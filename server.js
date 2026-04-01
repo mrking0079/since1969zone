@@ -284,40 +284,6 @@ function buildGameState(userId = DEMO_USER_ID) {
   };
 }
 
-  const placedBet = round ? getBetForRound(userId, round.id) : null;
-  const lastSettled = getLastSettledRound();
-  const history = getRecentHistory(userId);
-
-  return {
-    user: {
-      id: user.id,
-      username: user.username,
-      walletBalance: user.wallet_balance,
-      totalPlayed: user.total_played,
-      totalWins: user.total_wins,
-      bonusClaimed: user.bonus_claimed,
-      lastBonusTime: user.last_bonus_time
-    },
-    round: round ? {
-      id: round.id,
-      roundNumber: round.round_number,
-      startsAt: round.starts_at,
-      bettingClosesAt: round.betting_closes_at,
-      endsAt: round.ends_at,
-      status: getStatusForRound(round),
-      serverSeedHash: round.server_seed_hash,
-      clientSeed: round.client_seed,
-      luckyNumber: round.lucky_number,
-      alreadyPlaced: Boolean(placedBet)
-    } : null,
-    placedBet: placedBet ? {
-      totalCoins: placedBet.total_coins,
-      betMap: placedBet.bet_map,
-      result: placedBet.result,
-      payout: placedBet.payout
-    } : null,
-    lastSettledRound: lastSettled ? {
-      roundNumber: lastSettled.round_number,
       luckyNumber: lastSettled.lucky_number,
       serverSeedHash: lastSettled.server_seed_hash,
       serverSeed: lastSettled.server_seed,
