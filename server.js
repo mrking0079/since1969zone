@@ -185,31 +185,32 @@ function createRound(roundNumber, startsAt) {
 }
 
 function ensureActiveRound() {
-  const current = getCurrentRound();
+  const latest = [...db.rounds].sort((a, b) => b.round_number - a.round_number)[0];
   const now = nowMs();
 
-  if (!current) {
+  if (!latest) {
     return createRound(1, now);
   }
 
-  if (current.status === 'open' && now >= current.betting_closes_at) {
-    current.status = 'closed';
-    saveData(db);
+  if (latest.status !== 'settled') {
+    if (latest.status === 'open' && now >= latest.betting_closes_at) {
+      latest.status = 'closed';
+      saveData(db);
+    }
+
+    if (now >= latest.ends_at) {
+      settleRoundTx(latest.id);
+      return createRound(latest.round_number + 1, nowMs());
+    }
+
+    return latest;
   }
 
-  return getCurrentRound();
+  return createRound(latest.round_number + 1, now);
 }
 
 function createNextRoundIfNeeded() {
-  const latest = [...db.rounds].sort((a, b) => b.round_number - a.round_number)[0];
-  const active = getCurrentRound();
-  if (active) return active;
-
-  if (!latest) {
-    return createRound(1, nowMs());
-  }
-
-  return createRound(latest.round_number + 1, nowMs());
+  return ensureActiveRound();
 }
 
 function computeLuckyNumber(serverSeed, clientSeed, roundNumber) {
@@ -221,23 +222,13 @@ function computeLuckyNumber(serverSeed, clientSeed, roundNumber) {
 function getStatusForRound(round) {
   const now = nowMs();
   if (!round) return 'waiting';
-  if (round.status === 'settled') return 'settled';
   if (now < round.betting_closes_at) return 'open';
   if (now < round.ends_at) return 'closed';
   return 'awaiting_settlement';
 }
 
 function syncRoundState() {
-  const round = ensureActiveRound();
-  if (!round) return null;
-
-  const now = nowMs();
-  if (round.status === 'open' && now >= round.betting_closes_at) {
-    round.status = 'closed';
-    saveData(db);
-  }
-
-  return round;
+  return ensureActiveRound();
 }
 
 function buildGameState(userId = DEMO_USER_ID) {
