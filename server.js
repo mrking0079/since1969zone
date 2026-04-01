@@ -19,7 +19,7 @@ const BONUS_AMOUNT = 50;
 const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const PAYOUT_MULTIPLIER = 9;
 const DEMO_USER_ID = 1;
-const DATA_FILE = path.join(__dirname, 'data.json');
+const DATA_FILE = path.join(process.cwd(), 'data.json');
 
 app.use(helmet({
   contentSecurityPolicy: false
