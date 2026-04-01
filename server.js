@@ -261,6 +261,7 @@ function buildGameState(userId = DEMO_USER_ID) {
       status: getStatusForRound(round),
       serverSeedHash: round.server_seed_hash,
       clientSeed: round.client_seed,
+      luckyNumber: round.lucky_number,
       alreadyPlaced: Boolean(placedBet)
     } : null,
     placedBet: placedBet ? {
