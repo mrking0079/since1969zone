@@ -67,14 +67,16 @@ async function api(url, options = {}) {
   }
 
   const response = await fetch(url, {
-    headers,
-    ...options
+    ...options,
+    headers
   });
 
   const data = await response.json();
+
   if (!response.ok) {
     throw new Error(data.error || 'Request failed');
   }
+
   return data;
 }
 
@@ -126,6 +128,7 @@ function getCurrentBetTotal() {
 
 function buildNumbers() {
   els.numbers.innerHTML = '';
+
   for (let i = 0; i <= 9; i++) {
     const wrap = document.createElement('div');
     wrap.className = 'num';
@@ -142,6 +145,7 @@ function buildNumbers() {
 
     btn.addEventListener('click', () => {
       const key = String(i);
+
       if (state.selections.has(key)) {
         state.selections.delete(key);
         delete state.amounts[key];
@@ -152,16 +156,19 @@ function buildNumbers() {
         input.disabled = false;
         input.focus();
       }
+
       renderSelections();
     });
 
     input.addEventListener('input', () => {
       const val = Number(input.value);
+
       if (!input.value) {
         delete state.amounts[String(i)];
       } else {
         state.amounts[String(i)] = val;
       }
+
       renderSelections();
     });
 
@@ -169,6 +176,7 @@ function buildNumbers() {
     wrap.appendChild(input);
     els.numbers.appendChild(wrap);
   }
+
   renderSelections();
 }
 
@@ -177,15 +185,18 @@ function renderSelections() {
     const key = card.dataset.num;
     const active = state.selections.has(key);
     card.classList.toggle('active', active);
+
     const input = card.querySelector('input');
     input.disabled = !active;
     input.value = state.amounts[key] || '';
   });
+
   els.currentBet.textContent = getCurrentBetTotal();
 }
 
 function renderHistory(history = []) {
   els.historyBody.innerHTML = '';
+
   if (!history.length) {
     const tr = document.createElement('tr');
     tr.innerHTML = '<td colspan="5" class="muted">Abhi koi history nahi hai</td>';
@@ -260,14 +271,20 @@ function updateTimer() {
 }
 
 async function loadState() {
-  const data = await api('/api/state');
-  state.server = data;
-  renderServerState();
+  try {
+    const data = await api('/api/state');
+    state.server = data;
+    renderServerState();
+  } catch (error) {
+    showMessage(error.message);
+    throw error;
+  }
 }
 
 els.placeBetBtn.addEventListener('click', async () => {
   try {
     const betMap = {};
+
     for (const key of state.selections) {
       const amount = Number(state.amounts[key]);
       if (Number.isInteger(amount) && amount > 0) {
@@ -297,7 +314,11 @@ els.clearBtn.addEventListener('click', () => {
 
 els.bonusBtn.addEventListener('click', async () => {
   try {
-    const data = await api('/api/bonus', { method: 'POST', body: '{}' });
+    const data = await api('/api/bonus', {
+      method: 'POST',
+      body: '{}'
+    });
+
     state.server = data.state;
     renderServerState();
     showMessage(data.message);
@@ -309,11 +330,13 @@ els.bonusBtn.addEventListener('click', async () => {
 els.adminSettleBtn.addEventListener('click', async () => {
   try {
     const key = els.adminKey.value.trim();
+
     const data = await api('/api/admin/settle', {
       method: 'POST',
       headers: { 'x-admin-key': key },
       body: '{}'
     });
+
     state.server = data.state;
     renderServerState();
     els.adminMessage.textContent = data.message;
@@ -326,11 +349,13 @@ els.adminCreditBtn.addEventListener('click', async () => {
   try {
     const key = els.adminKey.value.trim();
     const amount = Number(els.adminCreditAmount.value);
+
     const data = await api('/api/admin/credit', {
       method: 'POST',
       headers: { 'x-admin-key': key },
       body: JSON.stringify({ amount })
     });
+
     state.server = data.state;
     renderServerState();
     els.adminMessage.textContent = `Wallet credited by ${amount}`;
@@ -342,6 +367,7 @@ els.adminCreditBtn.addEventListener('click', async () => {
 els.logoutBtn.addEventListener('click', () => {
   currentUser = null;
   localStorage.removeItem('user');
+
   document.getElementById('loginBox').style.display = 'block';
   document.querySelector('.wrap').style.display = 'none';
   document.getElementById('username').value = '';
@@ -351,7 +377,20 @@ els.logoutBtn.addEventListener('click', () => {
 
 buildNumbers();
 
+if (currentUser) {
+  document.getElementById('loginBox').style.display = 'none';
+  document.querySelector('.wrap').style.display = 'block';
+
+  loadState().catch(() => {
+    localStorage.removeItem('user');
+    currentUser = null;
+    document.getElementById('loginBox').style.display = 'block';
+    document.querySelector('.wrap').style.display = 'none';
+  });
+}
+
 setInterval(updateTimer, 1000);
+
 setInterval(() => {
   if (currentUser) {
     loadState().catch(() => {});
