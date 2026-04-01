@@ -401,7 +401,21 @@ async function login() {
 if (currentUser) {
   document.getElementById('loginBox').style.display = 'none';
   document.querySelector('.wrap').style.display = 'block';
-  loadState();
+
+  // important: ensure backend gets correct user id
+  try {
+    loadState().catch(() => {
+  localStorage.removeItem('user');
+  currentUser = null;
+  document.getElementById('loginBox').style.display = 'block';
+  document.querySelector('.wrap').style.display = 'none';
+});
+  } catch (e) {
+    localStorage.removeItem('user');
+    currentUser = null;
+    document.getElementById('loginBox').style.display = 'block';
+    document.querySelector('.wrap').style.display = 'none';
+  }
 }
 
     await loadState();
