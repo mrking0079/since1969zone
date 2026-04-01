@@ -1,164 +1,416 @@
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Since1969zone Game</title>
-</head>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
 
+```
+.card {
+  max-width: 700px;
+  margin: 0 auto 20px;
+  background: #1b1b1b;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.35);
+}
+
+input, button {
+  padding: 12px 14px;
+  margin: 6px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+input {
+  width: 220px;
+}
+
+button {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.primary {
+  background: #00c853;
+  color: #fff;
+}
+
+.danger {
+  background: #d50000;
+  color: #fff;
+}
+
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.num-btn {
+  background: #222;
+  color: #fff;
+  border: 1px solid #444;
+  font-size: 18px;
+}
+
+.num-btn:hover {
+  background: #333;
+}
+
+.muted {
+  color: #aaa;
+  font-size: 14px;
+}
+
+.good {
+  color: #00e676;
+  font-weight: bold;
+}
+
+.bad {
+  color: #ff5252;
+  font-weight: bold;
+}
+
+.history-list {
+  text-align: left;
+  margin-top: 12px;
+}
+
+.history-item {
+  background: #222;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.top-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+```
+
+  </style>
+</head>
 <body>
 
-<div id="loginBox">
-  <h2>Login</h2>
-  <input id="username" placeholder="Enter name" />
-  <button onclick="login()">Enter Game</button>
+  <!-- LOGIN -->
+
+  <div id="loginBox" class="card">
+    <h2>Since1969zone Login</h2>
+    <p class="muted">Username + password daal ke game kholo</p>
+    <input id="username" type="text" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+    <br />
+    <button class="primary" onclick="login()">Enter Game</button>
+  </div>
+
+  <!-- GAME -->
+
+  <div id="gameBox" class="card" style="display:none;">
+    <h2>Since1969zone Live Game</h2>
+
+```
+<p><strong>User:</strong> <span id="user">-</span></p>
+<p><strong>Balance:</strong> ₹<span id="balance">0</span></p>
+<p><strong>Round:</strong> <span id="round">-</span></p>
+<p><strong>Timer:</strong> <span id="timer">-</span></p>
+<p><strong>Status:</strong> <span id="betStatus">-</span></p>
+<p><strong>Last Result:</strong> <span id="result">-</span></p>
+
+<div class="top-actions">
+  <button class="danger" onclick="logout()">Logout</button>
+  <button onclick="claimBonus()">Claim Bonus</button>
+  <button onclick="loadState()">Refresh</button>
 </div>
 
-<div class="wrap" style="display:none;">
-  <h2>Game</h2>
-  <p>User: <span id="user"></span></p>
-  <p>Balance: <span id="balance">0</span></p>
-  <p>Round: <span id="round">-</span></p>
-  <p>Timer: <span id="timer">-</span></p>
-  <p>Status: <span id="betStatus">-</span></p>
-  <p>Result: <span id="result">-</span></p>
+<h3 style="margin-top:20px;">Select Number (₹10 fixed)</h3>
+<div id="numbers" class="numbers"></div>
 
-<button onclick="logout()">Logout</button>
+<p id="message" class="muted" style="margin-top:16px;"></p>
+```
 
-  <div id="numbers"></div>
-</div>
+  </div>
 
-<script>
-let currentUser = null;
+  <!-- HISTORY -->
 
-// API
-async function api(url, options = {}) {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    ...options
-  });
-  if (!res.ok) throw new Error("API error");
-  return res.json();
-}
+  <div id="historyBox" class="card" style="display:none;">
+    <h3>Last Results</h3>
+    <div id="historyList" class="history-list"></div>
+  </div>
 
-// LOGIN
-async function login() {
-  const username = document.getElementById("username").value.trim();
-  if (!username) return alert("Enter username");
+  <script>
+    let currentUser = null;
+    let latestRound = null;
 
-  const data = await api("/api/login", {
-    method: "POST",
-    body: JSON.stringify({ username })
-  });
+    // =========================
+    // API HELPER
+    // =========================
+    async function api(url, options = {}) {
+      const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      };
 
-  currentUser = data.user;
-  localStorage.setItem("user", JSON.stringify(currentUser));
+      if (currentUser?.id) {
+        headers["x-user-id"] = String(currentUser.id);
+      }
 
-  document.getElementById("loginBox").style.display = "none";
-  document.querySelector(".wrap").style.display = "block";
+      const res = await fetch(url, {
+        method: options.method || "GET",
+        headers,
+        body: options.body || undefined
+      });
 
-  loadState();
-}
+      const data = await res.json().catch(() => ({}));
 
-// LOGOUT
-function logout() {
-  localStorage.removeItem("user");
-  location.reload();
-}
+      if (!res.ok) {
+        throw new Error(data.error || "Request failed");
+      }
 
-// RESTORE
-function restoreUser() {
-  const saved = localStorage.getItem("user");
-  if (saved) {
-    try {
-      currentUser = JSON.parse(saved);
+      return data;
+    }
+
+    // =========================
+    // UI HELPERS
+    // =========================
+    function showMessage(text, type = "muted") {
+      const el = document.getElementById("message");
+      el.className = type;
+      el.innerText = text || "";
+    }
+
+    function showGame() {
       document.getElementById("loginBox").style.display = "none";
-      document.querySelector(".wrap").style.display = "block";
-      loadState();
-    } catch {
-      localStorage.removeItem("user");
-    }
-  }
-}
-
-// LOAD STATE
-async function loadState() {
-  try {
-    const state = await api("/api/state");
-
-    document.getElementById("user").innerText = currentUser?.username || "-";
-    document.getElementById("balance").innerText = state.balance || 0;
-    document.getElementById("round").innerText = state.round?.round_number || "-";
-
-    if (state.round?.lucky_number !== null) {
-      document.getElementById("result").innerText = state.round.lucky_number;
+      document.getElementById("gameBox").style.display = "block";
+      document.getElementById("historyBox").style.display = "block";
     }
 
-    updateTimer(state.round);
-  } catch {}
-}
+    function showLogin() {
+      document.getElementById("loginBox").style.display = "block";
+      document.getElementById("gameBox").style.display = "none";
+      document.getElementById("historyBox").style.display = "none";
+    }
 
-// TIMER
-function updateTimer(round) {
-  if (!round) return;
+    // =========================
+    // LOGIN
+    // =========================
+    async function login() {
+      try {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
 
-  const now = Date.now();
-  const end = round.ends_at;
-  const close = round.betting_closes_at;
+        if (!username) return alert("Username daalo");
+        if (!password) return alert("Password daalo");
 
-  let remaining = Math.floor((end - now) / 1000);
-  if (remaining < 0) remaining = 0;
+        const data = await api("/api/login", {
+          method: "POST",
+          body: JSON.stringify({ username, password })
+        });
 
-  document.getElementById("timer").innerText = remaining + "s";
+        currentUser = data.user;
+        localStorage.setItem("since1969_user", JSON.stringify(currentUser));
 
-  if (now > close) {
-    document.getElementById("betStatus").innerText = "Closed";
-  } else {
-    document.getElementById("betStatus").innerText = "Open";
-  }
-}
+        showGame();
+        showMessage("Login successful", "good");
+        await loadState();
+      } catch (err) {
+        alert(err.message || "Login failed");
+      }
+    }
 
-// NUMBERS
-function buildNumbers() {
-  const box = document.getElementById("numbers");
-  box.innerHTML = "";
+    // =========================
+    // LOGOUT
+    // =========================
+    function logout() {
+      currentUser = null;
+      latestRound = null;
+      localStorage.removeItem("since1969_user");
+      showLogin();
+      showMessage("");
+    }
 
-  for (let i = 0; i <= 9; i++) {
-    const btn = document.createElement("button");
-    btn.innerText = i;
-    btn.onclick = () => placeBet(i);
-    box.appendChild(btn);
-  }
-}
+    // =========================
+    // RESTORE USER
+    // =========================
+    function restoreUser() {
+      try {
+        const saved = localStorage.getItem("since1969_user");
+        if (!saved) return;
 
-// BET
-async function placeBet(num) {
-  if (!currentUser) return alert("Login first");
+        currentUser = JSON.parse(saved);
+        if (!currentUser?.id) {
+          localStorage.removeItem("since1969_user");
+          currentUser = null;
+          return;
+        }
 
-  try {
-    await api("/api/bet", {
-      method: "POST",
-      body: JSON.stringify({ number: num, amount: 10 })
-    });
+        showGame();
+        loadState();
+      } catch {
+        localStorage.removeItem("since1969_user");
+        currentUser = null;
+      }
+    }
 
-    loadState();
-  } catch {
-    alert("Bet failed");
-  }
-}
+    // =========================
+    // LOAD STATE
+    // =========================
+    async function loadState() {
+      if (!currentUser?.id) return;
 
-// INIT
-buildNumbers();
-restoreUser();
+      try {
+        const state = await api("/api/state");
+        latestRound = state.round || null;
 
-setInterval(() => {
-  if (currentUser) loadState();
-}, 3000);
+        document.getElementById("user").innerText = state.user?.username || "-";
+        document.getElementById("balance").innerText = state.balance ?? 0;
+        document.getElementById("round").innerText = state.round?.round_number ?? "-";
 
-setInterval(() => {
-  loadState();
-}, 1000);
-</script>
+        if (state.round?.lucky_number !== null && state.round?.lucky_number !== undefined) {
+          document.getElementById("result").innerText = state.round.lucky_number;
+        }
+
+        updateTimer();
+        renderHistory(state.lastResults || []);
+      } catch (err) {
+        console.error("STATE LOAD ERROR:", err.message);
+        showMessage(err.message || "State load failed", "bad");
+      }
+    }
+
+    // =========================
+    // TIMER
+    // =========================
+    function updateTimer() {
+      if (!latestRound) return;
+
+      const now = Date.now();
+      const end = latestRound.ends_at;
+      const close = latestRound.betting_closes_at;
+
+      let remaining = Math.floor((end - now) / 1000);
+      if (remaining < 0) remaining = 0;
+
+      document.getElementById("timer").innerText = remaining + "s";
+
+      if (now >= close) {
+        document.getElementById("betStatus").innerText = "Betting Closed";
+      } else {
+        document.getElementById("betStatus").innerText = "Betting Open";
+      }
+    }
+
+    // =========================
+    // BUILD NUMBER BUTTONS
+    // =========================
+    function buildNumbers() {
+      const box = document.getElementById("numbers");
+      box.innerHTML = "";
+
+      for (let i = 0; i <= 9; i++) {
+        const btn = document.createElement("button");
+        btn.className = "num-btn";
+        btn.innerText = i;
+        btn.onclick = () => placeBet(i);
+        box.appendChild(btn);
+      }
+    }
+
+    // =========================
+    // PLACE BET
+    // =========================
+    async function placeBet(num) {
+      if (!currentUser?.id) return alert("Login first");
+
+      try {
+        await api("/api/bet", {
+          method: "POST",
+          body: JSON.stringify({
+            betMap: {
+              [num]: 10
+            }
+          })
+        });
+
+        showMessage(`Bet placed on ${num}`, "good");
+        await loadState();
+      } catch (err) {
+        alert(err.message || "Bet failed");
+      }
+    }
+
+    // =========================
+    // BONUS
+    // =========================
+    async function claimBonus() {
+      if (!currentUser?.id) return alert("Login first");
+
+      try {
+        const data = await api("/api/bonus", {
+          method: "POST"
+        });
+
+        showMessage(data.message || "Bonus claimed", "good");
+        await loadState();
+      } catch (err) {
+        alert(err.message || "Bonus failed");
+      }
+    }
+
+    // =========================
+    // HISTORY
+    // =========================
+    function renderHistory(results) {
+      const box = document.getElementById("historyList");
+      box.innerHTML = "";
+
+      if (!results.length) {
+        box.innerHTML = '<div class="muted">Abhi koi result nahi hai</div>';
+        return;
+      }
+
+      results.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "history-item";
+        div.innerHTML = `
+          <strong>Round ${item.round_number}</strong><br>
+          Result: <strong>${item.lucky_number}</strong>
+        `;
+        box.appendChild(div);
+      });
+    }
+
+    // =========================
+    // INIT
+    // =========================
+    buildNumbers();
+    restoreUser();
+
+    setInterval(() => {
+      if (currentUser?.id) loadState();
+    }, 3000);
+
+    setInterval(() => {
+      if (currentUser?.id) updateTimer();
+    }, 1000);
+  </script>
 
 </body>
 </html>
