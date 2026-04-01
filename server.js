@@ -522,9 +522,13 @@ app.get('/api/state', (req, res) => {
     createNextRoundIfNeeded();
     const userId = getUserIdFromReq(req);
     return res.json(buildGameState(userId));
-  } catch {
-    return res.status(500).json({ error: 'Failed to load game state' });
-  }
+  } catch (err) {
+  console.error('STATE ERROR:', err);
+  return res.status(500).json({
+    error: 'Failed to load game state',
+    message: err.message
+  });
+}
 });
 
 app.post('/api/bet', (req, res) => {
