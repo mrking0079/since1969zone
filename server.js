@@ -243,9 +243,45 @@ function syncRoundState() {
 function buildGameState(userId = DEMO_USER_ID) {
   const round = syncRoundState();
   const user = getUser(userId);
+
   if (!user) {
     throw new Error('User not found');
   }
+
+  const userBets = db.bets.filter(
+    (bet) => bet.user_id === userId && bet.round_id === round.id
+  );
+
+  const lastResults = db.rounds
+    .filter((r) => r.status === 'settled')
+    .slice(-10)
+    .reverse()
+    .map((r) => ({
+      round_number: r.round_number,
+      lucky_number: r.lucky_number
+    }));
+
+  return {
+    user: {
+      id: user.id,
+      username: user.username,
+      balance: user.balance
+    },
+    balance: user.balance,
+    round: {
+      id: round.id,
+      round_number: round.round_number,
+      starts_at: round.starts_at,
+      betting_closes_at: round.betting_closes_at,
+      ends_at: round.ends_at,
+      status: round.status,
+      lucky_number: round.lucky_number,
+      server_seed_hash: round.server_seed_hash
+    },
+    bets: userBets,
+    lastResults
+  };
+}
 
   const placedBet = round ? getBetForRound(userId, round.id) : null;
   const lastSettled = getLastSettledRound();
