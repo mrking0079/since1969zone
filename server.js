@@ -283,17 +283,7 @@ function buildGameState(userId = DEMO_USER_ID) {
     lastResults
   };
 }
-
-      luckyNumber: lastSettled.lucky_number,
-      serverSeedHash: lastSettled.server_seed_hash,
-      serverSeed: lastSettled.server_seed,
-      clientSeed: lastSettled.client_seed,
-      settledAt: lastSettled.settled_at
-    } : null,
-    history
-  };
-}
-  
+ 
 function validateBetMap(betMap) {
   if (!betMap || typeof betMap !== 'object' || Array.isArray(betMap)) {
     return { ok: false, error: 'Invalid bet map' };
