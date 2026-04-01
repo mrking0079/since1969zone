@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-const ADMIN_KEY = process.env.ADMIN_KEY || 'mrking0079';
+const ADMIN_KEY = process.env.ADMIN_KEY;
 const ROUND_SECONDS = 300;
 const BETTING_CLOSE_SECONDS = 50;
 const BONUS_AMOUNT = 50;
