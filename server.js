@@ -576,3 +576,41 @@ app.listen(PORT, () => {
   console.log(`Secure game server running on http://localhost:${PORT}`);
   console.log('Set ADMIN_KEY env var before production use.');
 });
+app.post('/api/admin/announce', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'];
+    if (!process.env.ADMIN_KEY || adminKey !== process.env.ADMIN_KEY) {
+      return res.status(403).json({ success: false, message: 'Invalid admin key' });
+    }
+
+    const result = Number(req.body.result);
+
+    if (!Number.isInteger(result) || result < 0 || result > 9) {
+      return res.status(400).json({ success: false, message: 'Result must be a number between 0 and 9' });
+    }
+
+    const current = getCurrentRound();
+    if (!current) {
+      return res.status(404).json({ success: false, message: 'No active round found' });
+    }
+
+    current.lucky_number = result;
+    current.status = 'ended';
+    current.settled_at = nowMs();
+
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: 'Result announced successfully',
+      round_number: current.round_number,
+      lucky_number: current.lucky_number
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: 'Announce failed',
+      error: err.message
+    });
+  }
+});
