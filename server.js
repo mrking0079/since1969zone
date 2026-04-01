@@ -520,16 +520,26 @@ app.post('/api/login', (req, res) => {
 });
 app.get('/api/state', (req, res) => {
   try {
+    console.log('STATE HIT');
+
     createNextRoundIfNeeded();
+    console.log('ROUND OK');
+
     const userId = getUserIdFromReq(req);
-    return res.json(buildGameState(userId));
+    console.log('USER ID:', userId);
+
+    const state = buildGameState(userId);
+    console.log('BUILD OK');
+
+    return res.json(state);
   } catch (err) {
-  console.error('STATE ERROR:', err);
-  return res.status(500).json({
-    error: 'Failed to load game state',
-    message: err.message
-  });
-}
+    console.error('STATE FULL ERROR:', err);
+    return res.status(500).json({
+      error: 'Failed to load game state',
+      message: err.message,
+      stack: err.stack
+    });
+  }
 });
 
 app.post('/api/bet', (req, res) => {
