@@ -1,131 +1,164 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Since1969zone Game</title>
+</head>
+
+<body>
+
+<div id="loginBox">
+  <h2>Login</h2>
+  <input id="username" placeholder="Enter name" />
+  <button onclick="login()">Enter Game</button>
+</div>
+
+<div class="wrap" style="display:none;">
+  <h2>Game</h2>
+  <p>User: <span id="user"></span></p>
+  <p>Balance: <span id="balance">0</span></p>
+  <p>Round: <span id="round">-</span></p>
+  <p>Timer: <span id="timer">-</span></p>
+  <p>Status: <span id="betStatus">-</span></p>
+  <p>Result: <span id="result">-</span></p>
+
+<button onclick="logout()">Logout</button>
+
+  <div id="numbers"></div>
+</div>
+
 <script>
 let currentUser = null;
 
-// API helper
+// API
 async function api(url, options = {}) {
-const res = await fetch(url, {
-headers: {
-"Content-Type": "application/json"
-},
-credentials: "include",
-...options
-});
-
-if (!res.ok) throw new Error("API error");
-return res.json();
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    ...options
+  });
+  if (!res.ok) throw new Error("API error");
+  return res.json();
 }
 
 // LOGIN
 async function login() {
-const username = document.getElementById("username").value.trim();
-if (!username) return alert("Enter username");
+  const username = document.getElementById("username").value.trim();
+  if (!username) return alert("Enter username");
 
-const data = await api("/api/login", {
-method: "POST",
-body: JSON.stringify({ username })
-});
+  const data = await api("/api/login", {
+    method: "POST",
+    body: JSON.stringify({ username })
+  });
 
-currentUser = data.user;
-localStorage.setItem("user", JSON.stringify(currentUser));
+  currentUser = data.user;
+  localStorage.setItem("user", JSON.stringify(currentUser));
 
-document.getElementById("loginBox").style.display = "none";
-document.querySelector(".wrap").style.display = "block";
+  document.getElementById("loginBox").style.display = "none";
+  document.querySelector(".wrap").style.display = "block";
 
-loadState();
+  loadState();
 }
 
 // LOGOUT
 function logout() {
-localStorage.removeItem("user");
-location.reload();
+  localStorage.removeItem("user");
+  location.reload();
 }
 
-// RESTORE SESSION
+// RESTORE
 function restoreUser() {
-const saved = localStorage.getItem("user");
-if (saved) {
-try {
-currentUser = JSON.parse(saved);
-document.getElementById("loginBox").style.display = "none";
-document.querySelector(".wrap").style.display = "block";
-loadState();
-} catch {
-localStorage.removeItem("user");
-}
-}
+  const saved = localStorage.getItem("user");
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      document.getElementById("loginBox").style.display = "none";
+      document.querySelector(".wrap").style.display = "block";
+      loadState();
+    } catch {
+      localStorage.removeItem("user");
+    }
+  }
 }
 
-// LOAD GAME STATE
+// LOAD STATE
 async function loadState() {
-try {
-const state = await api("/api/state");
+  try {
+    const state = await api("/api/state");
 
-```
-document.getElementById("balance").innerText = state.balance || 0;
-document.getElementById("round").innerText = state.round?.round_number || "-";
+    document.getElementById("user").innerText = currentUser?.username || "-";
+    document.getElementById("balance").innerText = state.balance || 0;
+    document.getElementById("round").innerText = state.round?.round_number || "-";
 
-if (state.round?.lucky_number !== null) {
-  document.getElementById("result").innerText = state.round.lucky_number;
-}
+    if (state.round?.lucky_number !== null) {
+      document.getElementById("result").innerText = state.round.lucky_number;
+    }
 
-updateTimer(state.round);
-```
-
-} catch (e) {
-console.log("state load failed");
-}
+    updateTimer(state.round);
+  } catch {}
 }
 
 // TIMER
 function updateTimer(round) {
-if (!round) return;
+  if (!round) return;
 
-const now = Date.now();
-const end = round.ends_at;
-const close = round.betting_closes_at;
+  const now = Date.now();
+  const end = round.ends_at;
+  const close = round.betting_closes_at;
 
-let remaining = Math.floor((end - now) / 1000);
-if (remaining < 0) remaining = 0;
+  let remaining = Math.floor((end - now) / 1000);
+  if (remaining < 0) remaining = 0;
 
-document.getElementById("timer").innerText = remaining + "s";
+  document.getElementById("timer").innerText = remaining + "s";
 
-if (now > close) {
-document.getElementById("betStatus").innerText = "Betting Closed";
-} else {
-document.getElementById("betStatus").innerText = "Betting Open";
+  if (now > close) {
+    document.getElementById("betStatus").innerText = "Closed";
+  } else {
+    document.getElementById("betStatus").innerText = "Open";
+  }
 }
+
+// NUMBERS
+function buildNumbers() {
+  const box = document.getElementById("numbers");
+  box.innerHTML = "";
+
+  for (let i = 0; i <= 9; i++) {
+    const btn = document.createElement("button");
+    btn.innerText = i;
+    btn.onclick = () => placeBet(i);
+    box.appendChild(btn);
+  }
 }
 
-// PLACE BET
+// BET
 async function placeBet(num) {
-if (!currentUser) return alert("Login first");
+  if (!currentUser) return alert("Login first");
 
-try {
-await api("/api/bet", {
-method: "POST",
-body: JSON.stringify({ number: num, amount: 10 })
-});
+  try {
+    await api("/api/bet", {
+      method: "POST",
+      body: JSON.stringify({ number: num, amount: 10 })
+    });
 
-```
-loadState();
-```
-
-} catch {
-alert("Bet failed");
-}
+    loadState();
+  } catch {
+    alert("Bet failed");
+  }
 }
 
 // INIT
+buildNumbers();
 restoreUser();
 
-// AUTO REFRESH
 setInterval(() => {
-if (currentUser) loadState();
+  if (currentUser) loadState();
 }, 3000);
 
-// TIMER LOOP
 setInterval(() => {
-loadState();
+  loadState();
 }, 1000);
-
 </script>
+
+</body>
+</html>
