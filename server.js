@@ -26,12 +26,12 @@ app.use(helmet({
   contentSecurityPolicy: false
 }));
 app.use(express.json({ limit: '100kb' }));
-app.use(rateLimit({
-  windowMs: 60 * 1000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false
-}));
+// app.use(rateLimit({
+//   windowMs: 60 * 1000,
+//   max: 100,
+//   standardHeaders: true,
+//   legacyHeaders: false
+// }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 function nowMs() {
