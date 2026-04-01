@@ -250,24 +250,30 @@ button {
     // RESTORE USER
     // =========================
     function restoreUser() {
-      try {
-        const saved = localStorage.getItem("since1969_user");
-        if (!saved) return;
+  try {
+    const saved = localStorage.getItem("since1969_user");
+    if (!saved) return;
 
-        currentUser = JSON.parse(saved);
-        if (!currentUser?.id) {
-          localStorage.removeItem("since1969_user");
-          currentUser = null;
-          return;
-        }
+    const parsed = JSON.parse(saved);
 
-        showGame();
-        loadState();
-      } catch {
-        localStorage.removeItem("since1969_user");
-        currentUser = null;
-      }
+    if (!parsed || !parsed.id || !parsed.username) {
+      localStorage.removeItem("since1969_user");
+      currentUser = null;
+      return;
     }
+
+    currentUser = {
+      id: Number(parsed.id),
+      username: parsed.username
+    };
+
+    showGame();
+    loadState();
+  } catch {
+    localStorage.removeItem("since1969_user");
+    currentUser = null;
+  }
+}
 
     // =========================
     // LOAD STATE
