@@ -364,6 +364,16 @@
   <script>
 let currentUser = null;
 
+const savedUser = localStorage.getItem('user');
+if (savedUser) {
+  try {
+    currentUser = JSON.parse(savedUser);
+  } catch (e) {
+    localStorage.removeItem('user');
+    currentUser = null;
+  }
+}
+
 async function login() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -385,8 +395,14 @@ async function login() {
     });
 
     currentUser = data.user;
+    localStorage.setItem('user', JSON.stringify(data.user));
     document.getElementById('loginBox').style.display = 'none';
     document.querySelector('.wrap').style.display = 'block';
+if (currentUser) {
+  document.getElementById('loginBox').style.display = 'none';
+  document.querySelector('.wrap').style.display = 'block';
+  loadState();
+}
 
     await loadState();
     showMessage(`Welcome ${data.user.username}`);
@@ -698,6 +714,7 @@ setInterval(() => {
 
         els.logoutBtn.addEventListener('click', () => {
       currentUser = null;
+      localStorage.removeItem('user');
       document.getElementById('loginBox').style.display = 'block';
       document.querySelector('.wrap').style.display = 'none';
       document.getElementById('username').value = '';
