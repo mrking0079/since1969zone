@@ -402,6 +402,7 @@ async function login() {
       message: document.getElementById('message'),
       walletTop: document.getElementById('walletTop'),
       walletSummary: document.getElementById('walletSummary'),
+      logoutBtn: document.getElementById('logoutBtn'),
 
       timer: document.getElementById('timer'),
       statusBadge: document.getElementById('statusBadge'),
@@ -691,6 +692,15 @@ async function login() {
       } catch (error) {
         els.adminMessage.textContent = error.message;
       }
+    });
+
+        els.logoutBtn.addEventListener('click', () => {
+      currentUser = null;
+      document.getElementById('loginBox').style.display = 'block';
+      document.querySelector('.wrap').style.display = 'none';
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+      showMessage('');
     });
 
     buildNumbers();
