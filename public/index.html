@@ -619,6 +619,9 @@ async function login() {
       }
     }
 
+setInterval(() => {
+  loadState();
+}, 3000);
     els.placeBetBtn.addEventListener('click', async () => {
       try {
         const betMap = {};
