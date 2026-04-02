@@ -92,6 +92,17 @@
   transform: translateY(-4px);
   box-shadow: 0 0 18px rgba(255, 215, 0, 0.28);
 }
+.bet-closed .numbers,
+.bet-closed #placeBetBtn {
+  opacity: 0.45;
+  filter: blur(1.2px);
+  pointer-events: none;
+}
+
+.bet-closed .numbers .num input,
+.bet-closed .numbers .num button {
+  pointer-events: none;
+}
     .num button {
   width: 70px;
   height: 70px;
@@ -652,6 +663,8 @@ els.placeBetBtn.disabled = data.round.status !== 'open';
 
   renderHistory(data.history || []);
   updateTimer();
+document.body.classList.toggle('bet-closed', !state.server?.round || state.server.round.status !== 'open');
+
 els.placeBetBtn.disabled = !state.server?.round || state.server.round.status !== 'open';
 }
 
