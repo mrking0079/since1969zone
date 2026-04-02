@@ -656,8 +656,19 @@ function updateTimer() {
 
   const now = Date.now();
   const round = state.server.round;
-  const left = round.endsAt - now;
-  els.timer.textContent = formatTime(left);
+
+  let targetTime = round.endsAt;
+  if (round.status === 'open' && round.bettingClosesAt && now < round.bettingClosesAt) {
+    targetTime = round.bettingClosesAt;
+  }
+
+  const left = Math.max(0, targetTime - now);
+  const totalSeconds = Math.ceil(left / 1000);
+
+  const min = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const sec = String(totalSeconds % 60).padStart(2, '0');
+
+  els.timer.textContent = `${min}:${sec}`;
 }
 
 async function loadState() {
