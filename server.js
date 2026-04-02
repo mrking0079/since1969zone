@@ -438,33 +438,31 @@ app.post('/api/login', (req, res) => {
       return res.status(400).json({ error: 'Password required hai' });
     }
 
-    let user = db.users.find(
+    const existingUser = db.users.find(
       u => String(u.username).toLowerCase() === username.toLowerCase()
     );
 
-    if (!user) {
-      user = {
-        id: db.users.length ? Math.max(...db.users.map(u => u.id)) + 1 : 1,
-        username,
-        password,
-        wallet_balance: 1250,
-        total_played: 0,
-        total_wins: 0,
-        bonus_claimed: 0,
-        last_bonus_time: 0,
-        created_at: nowMs()
-      };
+    if (existingUser) {
+      return res.status(409).json({ error: 'username alerdy exists' });
+    }
+        const user = {
+      id: db.users.length ? Math.max(...db.users.map(u => u.id)) + 1 : 1,
+      username,
+      password,
+      wallet_balance: 1250,
+      total_played: 0,
+      total_wins: 0,
+      bonus_claimed: 0,
+      last_bonus_time: 0,
+      created_at: nowMs()
+    };
 
       db.users.push(user);
       saveData(db);
-    } else {
-      if (String(user.password || '') !== password) {
-        return res.status(401).json({ error: 'Galat password' });
-      }
-    }
 
     return res.json({
       success: true,
+      message: 'Signup successful',
       user: {
         id: user.id,
         username: user.username,
@@ -475,8 +473,8 @@ app.post('/api/login', (req, res) => {
         lastBonusTime: user.last_bonus_time
       }
     });
-  } catch (error) {
-    return res.status(500).json({ error: 'Login failed' });
+  } catch {
+    return res.status(500).json({ error: 'Signup failed' });
   }
 });
 app.get('/api/state', (req, res) => {
