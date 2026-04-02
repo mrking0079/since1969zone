@@ -511,6 +511,71 @@ logoutBtn: document.getElementById('logoutBtn'),
   }
   return data;
 }
+async function login() {
+  const name = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  if (!name) {
+    alert('Type Username');
+    return;
+  }
+
+  if (!password) {
+    alert('Type Password');
+    return;
+  }
+
+  try {
+    const data = await api('/api/login', {
+      method: 'POST',
+      body: JSON.stringify({ username: name, password })
+    });
+
+    currentUser = data.user;
+    localStorage.setItem('user', JSON.stringify(data.user));
+
+    document.getElementById('loginBox').style.display = 'none';
+    document.querySelector('.wrap').style.display = 'block';
+
+    await loadState();
+    showMessage(`Welcome ${data.user.username}`);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function signup() {
+  const name = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  if (!name) {
+    alert('Type Username');
+    return;
+  }
+
+  if (!password) {
+    alert('Type Password');
+    return;
+  }
+
+  try {
+    const data = await api('/api/signup', {
+      method: 'POST',
+      body: JSON.stringify({ username: name, password })
+    });
+
+    currentUser = data.user;
+    localStorage.setItem('user', JSON.stringify(data.user));
+
+    document.getElementById('loginBox').style.display = 'none';
+    document.querySelector('.wrap').style.display = 'block';
+
+    await loadState();
+    showMessage(`Signup successful. Welcome ${data.user.username}`);
+  } catch (error) {
+    alert(error.message);
+  }
+}
 
     function showMessage(text) {
       els.message.textContent = text || '';
@@ -776,72 +841,5 @@ if (currentUser) {
   }
 }
   </script>
-<script>
-async function login() {
-  const name = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
-
-  if (!name) {
-    alert('Type Username');
-    return;
-  }
-
-  if (!password) {
-    alert('Type Password');
-    return;
-  }
-
-  try {
-    const data = await api('/api/login', {
-      method: 'POST',
-      body: JSON.stringify({ username: name, password })
-    });
-
-    currentUser = data.user;
-    localStorage.setItem('user', JSON.stringify(data.user));
-
-    document.getElementById('loginBox').style.display = 'none';
-    document.querySelector('.wrap').style.display = 'block';
-
-    await loadState();
-    showMessage(`Welcome ${data.user.username}`);
-  } catch (error) {
-    alert(error.message);
-  }
-}
-
-async function signup() {
-  const name = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
-
-  if (!name) {
-    alert('Type Username');
-    return;
-  }
-
-  if (!password) {
-    alert('Type Password');
-    return;
-  }
-
-  try {
-    const data = await api('/api/signup', {
-      method: 'POST',
-      body: JSON.stringify({ username: name, password })
-    });
-
-    currentUser = data.user;
-    localStorage.setItem('user', JSON.stringify(data.user));
-
-    document.getElementById('loginBox').style.display = 'none';
-    document.querySelector('.wrap').style.display = 'block';
-
-    await loadState();
-    showMessage(`Signup successful. Welcome ${data.user.username}`);
-  } catch (error) {
-    alert(error.message);
-  }
-}
-</script>
 </body>
 </html>
