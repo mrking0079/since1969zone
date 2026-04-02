@@ -1,421 +1,776 @@
-<!DOCTYPE html>
+<!doctype html>
 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Since1969zone Game</title>
+  <title>Since 1969 zone</title>
   <style>
+    :root {
+      --bg: #050505;
+      --panel: #0f0f0f;
+      --panel2: #1a1a1a;
+      --text: #ffffff;
+      --muted: #aaaaaa;
+      --gold: #ffd700;
+      --red: #ff4d4d;
+      --green: #00cc66;
+      --border: #333333;
+    }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #050505, #111);
+      color: var(--text);
     }
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .card {
+      background: linear-gradient(180deg, #141414, #0d0d0d);
+      border: 1px solid #2f2f2f;
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      transition: 0.25s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 34px rgba(255, 215, 0, 0.12);
+    }
+    .big {
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.22);
+    }
+    .mini-label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 18px;
+    }
+    .numbers {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .num {
+      background: linear-gradient(180deg, #1b1b1b, #111);
+      border: 1px solid #3a2d00;
+      border-radius: 18px;
+      padding: 14px;
+      text-align: center;
+      transition: .2s ease;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    }
+    .num.active {
+      outline: 2px solid var(--gold);
+      transform: translateY(-4px);
+      box-shadow: 0 0 18px rgba(255, 215, 0, 0.28);
+    }
+    .num button {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(180deg, #ffd700, #d4a900);
+      border: none;
+      color: #111;
+      font-size: 28px;
+      font-weight: 900;
+      cursor: pointer;
+      margin: 0 auto 10px;
+      display: block;
+      border-radius: 50%;
+      box-shadow: 0 8px 20px rgba(255, 215, 0, 0.25);
+    }
+    .num input, .admin input, .login-box input {
+      width: 100%;
+      border: 1px solid #3a3a3a;
+      background: #080808;
+      color: #fff;
+      border-radius: 14px;
+      padding: 12px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      outline: none;
+    }
+    .btns, .admin {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .btns { grid-template-columns: repeat(4, 1fr); }
+    .admin { grid-template-columns: 1fr 140px 120px; }
 
 ```
-.card {
-  max-width: 700px;
-  margin: 0 auto 20px;
-  background: #1b1b1b;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.35);
-}
-
-input, button {
-  padding: 12px 14px;
-  margin: 6px;
+button.primary, button.secondary, button.danger {
   border: none;
-  border-radius: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+}
+button.primary {
+  background: linear-gradient(180deg, #ffd700, #e6b800);
+  color: #111;
+  font-size: 17px;
+  box-shadow: 0 8px 20px rgba(255, 215, 0, 0.28);
+}
+button.secondary {
+  background: #232323;
+  color: #fff;
   font-size: 16px;
 }
-
-input {
-  width: 220px;
-}
-
-button {
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.primary {
-  background: #00c853;
+button.danger {
+  background: linear-gradient(180deg, #ff4d4d, #d93636);
   color: #fff;
+  font-size: 16px;
 }
-
-.danger {
-  background: #d50000;
-  color: #fff;
-}
-
-.numbers {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.num-btn {
-  background: #222;
-  color: #fff;
-  border: 1px solid #444;
-  font-size: 18px;
-}
-
-.num-btn:hover {
-  background: #333;
-}
-
-.muted {
-  color: #aaa;
-  font-size: 14px;
-}
-
-.good {
-  color: #00e676;
-  font-weight: bold;
-}
-
-.bad {
-  color: #ff5252;
-  font-weight: bold;
-}
-
-.history-list {
-  text-align: left;
-  margin-top: 12px;
-}
-
-.history-item {
-  background: #222;
-  padding: 10px 12px;
-  border-radius: 10px;
-  margin-bottom: 8px;
-}
-
-.top-actions {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+.status {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
   margin-top: 10px;
+}
+.status.open { background: rgba(38,162,105,.18); color: #7ef0b1; }
+.status.closed { background: rgba(207,63,63,.18); color: #ff9696; }
+.status.waiting, .status.settled { background: rgba(240,194,79,.18); color: #ffd770; }
+
+.msg {
+  margin-top: 14px;
+  min-height: 22px;
+  color: #ffd700;
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.18);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.side-stack {
+  display: grid;
+  gap: 18px;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.stat {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+}
+.stat h4 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.stat p {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+}
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  background: #101010;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.history-table th, .history-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #2f2f2f;
+  text-align: left;
+  font-size: 14px;
+  vertical-align: top;
+}
+.fair-box {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #111;
+  border: 1px solid var(--border);
+  line-height: 1.5;
+  color: #d8d8d8;
+  word-break: break-word;
+}
+.muted { color: var(--muted); }
+
+.login-box {
+  max-width: 420px;
+  margin: 40px auto 20px;
+  text-align: center;
+}
+.login-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+  .topbar, .grid { grid-template-columns: 1fr; }
+  .numbers { grid-template-columns: repeat(3, 1fr); }
+  .btns, .admin { grid-template-columns: 1fr; }
 }
 ```
 
   </style>
 </head>
 <body>
-
-  <!-- LOGIN -->
-
-  <div id="loginBox" class="card">
-    <h2>Since1969zone Login</h2>
-    <p class="muted">Username + password daal ke game kholo</p>
-    <input id="username" type="text" placeholder="Username" />
-    <input id="password" type="password" placeholder="Password" />
-    <br />
-    <button class="primary" onclick="login()">Enter Game</button>
-  </div>
-
-  <!-- GAME -->
-
-  <div id="gameBox" class="card" style="display:none;">
-    <h2>Since1969zone Live Game</h2>
+  <div class="wrap">
 
 ```
-<p><strong>User:</strong> <span id="user">-</span></p>
-<p><strong>Balance:</strong> ₹<span id="balance">0</span></p>
-<p><strong>Round:</strong> <span id="round">-</span></p>
-<p><strong>Timer:</strong> <span id="timer">-</span></p>
-<p><strong>Status:</strong> <span id="betStatus">-</span></p>
-<p><strong>Last Result:</strong> <span id="result">-</span></p>
+<div id="loginBox" class="card login-box">
+  <div style="font-size: 42px; font-weight: 900; color: #ffd700;">Since 1969</div>
+  <div style="font-size: 18px; letter-spacing: 3px;">ZONE</div>
+  <div class="muted" style="margin-top:8px;">Login karke game kholo</div>
 
-<div class="top-actions">
-  <button class="danger" onclick="logout()">Logout</button>
-  <button onclick="claimBonus()">Claim Bonus</button>
-  <button onclick="loadState()">Refresh</button>
+  <div class="login-actions">
+    <input id="username" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+    <button class="primary" id="loginBtn">Enter Game</button>
+  </div>
+
+  <div class="msg" id="loginMessage"></div>
 </div>
 
-<h3 style="margin-top:20px;">Select Number (₹10 fixed)</h3>
-<div id="numbers" class="numbers"></div>
-
-<p id="message" class="muted" style="margin-top:16px;"></p>
-```
-
+<div id="gameBox" style="display:none;">
+  <div style="text-align:center; margin-bottom: 20px; padding: 20px; border-radius: 18px; background: linear-gradient(180deg, #111, #050505); box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 1px solid #2c2c2c;">
+    <div style="font-size: 46px; font-weight: 900; color: #ffd700;">Since 1969</div>
+    <div style="font-size: 20px; color: #ffffff; letter-spacing: 3px;">ZONE</div>
+    <div style="font-size: 14px; color: #b8b8b8; margin-top: 8px;">Premium Live Game Experience</div>
   </div>
 
-  <!-- HISTORY -->
+  <div class="topbar">
+    <div class="card">
+      <div class="mini-label">Wallet Balance</div>
+      <div class="big" id="walletTop">0 Coins</div>
+      <div class="muted" id="walletSummary">Since 1969 zone wallet</div>
+    </div>
+    <div class="card">
+      <div class="mini-label">Round Timer</div>
+      <div class="big" id="timer">--:--</div>
+      <div id="statusBadge" class="status">Loading</div>
+    </div>
+    <div class="card">
+      <div class="mini-label">Last Lucky Number</div>
+      <div class="big" id="lastLucky">--</div>
+      <div class="muted" id="lastRoundText">Waiting</div>
+    </div>
+  </div>
 
-  <div id="historyBox" class="card" style="display:none;">
-    <h3>Last Results</h3>
-    <div id="historyList" class="history-list"></div>
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div class="mini-label">Choose Your Numbers</div>
+        <div class="muted">0 se 9 tak multiple numbers select karo. Har number ke liye alag coin amount do.</div>
+
+        <div class="numbers" id="numbers"></div>
+
+        <div class="btns">
+          <button class="primary" id="placeBetBtn">Place Bet</button>
+          <button class="secondary" id="clearBtn">Clear</button>
+          <button class="secondary" id="bonusBtn">Claim Daily Bonus</button>
+          <button class="danger" id="logoutBtn">Logout</button>
+        </div>
+
+        <div class="msg" id="message"></div>
+
+        <div class="fair-box" id="fairnessBox">
+          Server seed hash loading...
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
+        <div class="mini-label">Recent Bet History</div>
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Round</th>
+              <th>Bet</th>
+              <th>Lucky</th>
+              <th>Result</th>
+              <th>Payout</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="side-stack">
+      <div class="card">
+        <div class="mini-label">Player Stats</div>
+        <div class="stat-grid">
+          <div class="stat">
+            <h4>Total Played</h4>
+            <p id="totalPlayed">0</p>
+          </div>
+          <div class="stat">
+            <h4>Total Wins</h4>
+            <p id="totalWins">0</p>
+          </div>
+          <div class="stat">
+            <h4>Bonus Claimed</h4>
+            <p id="bonusClaimed">0</p>
+          </div>
+          <div class="stat">
+            <h4>Current Bet</h4>
+            <p id="currentBet">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="mini-label">Admin Controls</div>
+        <div class="muted">Admin key dalo. Phir settle ya wallet credit test kar sakte ho.</div>
+
+        <div class="admin">
+          <input id="adminKey" placeholder="Admin key" />
+          <input id="adminCreditAmount" type="number" placeholder="Amount" />
+          <button class="secondary" id="adminCreditBtn">Credit</button>
+        </div>
+
+        <div class="admin" style="grid-template-columns: 1fr;">
+          <button class="danger" id="adminSettleBtn">Force Settle Round</button>
+        </div>
+
+        <div class="msg" id="adminMessage"></div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
   </div>
 
   <script>
     let currentUser = null;
-    let latestRound = null;
 
-    // =========================
-    // API HELPER
-    // =========================
+    const els = {
+      loginBox: document.getElementById('loginBox'),
+      gameBox: document.getElementById('gameBox'),
+      username: document.getElementById('username'),
+      password: document.getElementById('password'),
+      loginBtn: document.getElementById('loginBtn'),
+      loginMessage: document.getElementById('loginMessage'),
+
+      numbers: document.getElementById('numbers'),
+      placeBetBtn: document.getElementById('placeBetBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+      bonusBtn: document.getElementById('bonusBtn'),
+      logoutBtn: document.getElementById('logoutBtn'),
+      message: document.getElementById('message'),
+      walletTop: document.getElementById('walletTop'),
+      walletSummary: document.getElementById('walletSummary'),
+      timer: document.getElementById('timer'),
+      statusBadge: document.getElementById('statusBadge'),
+      lastLucky: document.getElementById('lastLucky'),
+      lastRoundText: document.getElementById('lastRoundText'),
+      fairnessBox: document.getElementById('fairnessBox'),
+      historyBody: document.getElementById('historyBody'),
+      totalPlayed: document.getElementById('totalPlayed'),
+      totalWins: document.getElementById('totalWins'),
+      bonusClaimed: document.getElementById('bonusClaimed'),
+      currentBet: document.getElementById('currentBet'),
+      adminKey: document.getElementById('adminKey'),
+      adminCreditAmount: document.getElementById('adminCreditAmount'),
+      adminCreditBtn: document.getElementById('adminCreditBtn'),
+      adminSettleBtn: document.getElementById('adminSettleBtn'),
+      adminMessage: document.getElementById('adminMessage')
+    };
+
+    const state = {
+      server: null,
+      selections: new Set(),
+      amounts: {}
+    };
+
+    function showLogin() {
+      els.loginBox.style.display = 'block';
+      els.gameBox.style.display = 'none';
+    }
+
+    function showGame() {
+      els.loginBox.style.display = 'none';
+      els.gameBox.style.display = 'block';
+    }
+
+    function formatCoins(value) {
+      return `${Number(value || 0)} Coins`;
+    }
+
+    function formatTime(ms) {
+      if (ms <= 0) return '00:00';
+      const total = Math.floor(ms / 1000);
+      const min = String(Math.floor(total / 60)).padStart(2, '0');
+      const sec = String(total % 60).padStart(2, '0');
+      return `${min}:${sec}`;
+    }
+
     async function api(url, options = {}) {
       const headers = {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...(options.headers || {})
       };
 
       if (currentUser?.id) {
-        headers["x-user-id"] = String(currentUser.id);
+        headers['x-user-id'] = String(currentUser.id);
       }
 
-      const res = await fetch(url, {
-        method: options.method || "GET",
+      const response = await fetch(url, {
+        method: options.method || 'GET',
         headers,
         body: options.body || undefined
       });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.error || "Request failed");
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Request failed');
       }
-
       return data;
     }
 
-    // =========================
-    // UI HELPERS
-    // =========================
-    function showMessage(text, type = "muted") {
-      const el = document.getElementById("message");
-      el.className = type;
-      el.innerText = text || "";
+    function showMessage(text) {
+      els.message.textContent = text || '';
     }
 
-    function showGame() {
-      document.getElementById("loginBox").style.display = "none";
-      document.getElementById("gameBox").style.display = "block";
-      document.getElementById("historyBox").style.display = "block";
+    function showLoginMessage(text) {
+      els.loginMessage.textContent = text || '';
     }
 
-    function showLogin() {
-      document.getElementById("loginBox").style.display = "block";
-      document.getElementById("gameBox").style.display = "none";
-      document.getElementById("historyBox").style.display = "none";
+    function getCurrentBetTotal() {
+      let total = 0;
+      for (const key of Object.keys(state.amounts)) {
+        const amount = Number(state.amounts[key]);
+        if (Number.isFinite(amount) && amount > 0) total += amount;
+      }
+      return total;
     }
 
-    // =========================
-    // LOGIN
-    // =========================
-    async function login() {
-      try {
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value.trim();
+    function buildNumbers() {
+      els.numbers.innerHTML = '';
+      for (let i = 0; i <= 9; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'num';
+        wrap.dataset.num = String(i);
 
-        if (!username) return alert("Username daalo");
-        if (!password) return alert("Password daalo");
+        const btn = document.createElement('button');
+        btn.textContent = i;
 
-        const data = await api("/api/login", {
-          method: "POST",
-          body: JSON.stringify({ username, password })
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = '1';
+        input.placeholder = 'Coins';
+        input.disabled = true;
+
+        btn.addEventListener('click', () => {
+          const key = String(i);
+          if (state.selections.has(key)) {
+            state.selections.delete(key);
+            delete state.amounts[key];
+            input.value = '';
+            input.disabled = true;
+          } else {
+            state.selections.add(key);
+            input.disabled = false;
+            input.focus();
+          }
+          renderSelections();
         });
 
-        currentUser = data.user;
-        localStorage.setItem("since1969_user", JSON.stringify(currentUser));
+        input.addEventListener('input', () => {
+          const val = Number(input.value);
+          if (!input.value) {
+            delete state.amounts[String(i)];
+          } else {
+            state.amounts[String(i)] = val;
+          }
+          renderSelections();
+        });
 
-        showGame();
-        showMessage("Login successful", "good");
-        await loadState();
-      } catch (err) {
-        alert(err.message || "Login failed");
+        wrap.appendChild(btn);
+        wrap.appendChild(input);
+        els.numbers.appendChild(wrap);
+      }
+      renderSelections();
+    }
+
+    function renderSelections() {
+      [...els.numbers.children].forEach(card => {
+        const key = card.dataset.num;
+        const active = state.selections.has(key);
+        card.classList.toggle('active', active);
+        const input = card.querySelector('input');
+        input.disabled = !active;
+        input.value = state.amounts[key] || '';
+      });
+      els.currentBet.textContent = getCurrentBetTotal();
+    }
+
+    function renderHistory(history = []) {
+      els.historyBody.innerHTML = '';
+      if (!history.length) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="5" class="muted">Abhi koi history nahi hai</td>';
+        els.historyBody.appendChild(tr);
+        return;
+      }
+
+      for (const item of history) {
+        const betSummary = Object.entries(item.bet_map || {})
+          .map(([num, amt]) => `${num}:${amt}`)
+          .join(', ');
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>#${item.round_number}</td>
+          <td>${betSummary || '-'}</td>
+          <td>${item.lucky_number ?? '-'}</td>
+          <td>${item.result || '-'}</td>
+          <td>${item.payout || 0}</td>
+        `;
+        els.historyBody.appendChild(tr);
       }
     }
 
-    // =========================
-    // LOGOUT
-    // =========================
-    function logout() {
-      currentUser = null;
-      latestRound = null;
-      localStorage.removeItem("since1969_user");
-      showLogin();
-      showMessage("");
+    function renderServerState() {
+      const data = state.server;
+      if (!data) return;
+
+      els.walletTop.textContent = formatCoins(data.balance);
+      els.walletSummary.textContent = `User: ${data.user.username}`;
+      els.totalPlayed.textContent = data.user.total_played ?? 0;
+      els.totalWins.textContent = data.user.total_wins ?? 0;
+      els.bonusClaimed.textContent = data.user.bonus_claimed ?? 0;
+      els.currentBet.textContent = getCurrentBetTotal();
+
+      if (data.round) {
+        els.statusBadge.textContent = data.round.status;
+        els.statusBadge.className = `status ${data.round.status}`;
+        els.fairnessBox.innerHTML = `
+          <strong>Fairness:</strong><br>
+          Current round hash: ${data.round.server_seed_hash}<br>
+          Round #: ${data.round.round_number}
+        `;
+      } else {
+        els.statusBadge.textContent = 'waiting';
+        els.statusBadge.className = 'status waiting';
+      }
+
+      if (data.lastResults?.length) {
+        els.lastLucky.textContent = data.lastResults[0].lucky_number;
+        els.lastRoundText.textContent = `Round #${data.lastResults[0].round_number}`;
+      } else {
+        els.lastLucky.textContent = '--';
+        els.lastRoundText.textContent = 'Waiting';
+      }
+
+      renderHistory([]);
+      updateTimer();
     }
 
-    // =========================
-    // RESTORE USER
-    // =========================
-    function restoreUser() {
-  try {
-    const saved = localStorage.getItem("since1969_user");
-    if (!saved) return;
+    function updateTimer() {
+      if (!state.server?.round) {
+        els.timer.textContent = '--:--';
+        return;
+      }
 
-    const parsed = JSON.parse(saved);
-
-    if (!parsed || !parsed.id || !parsed.username) {
-      localStorage.removeItem("since1969_user");
-      currentUser = null;
-      return;
+      const now = Date.now();
+      const round = state.server.round;
+      const end = round.status === 'open' ? round.betting_closes_at : round.ends_at;
+      const left = end - now;
+      els.timer.textContent = formatTime(left);
     }
 
-    currentUser = {
-      id: Number(parsed.id),
-      username: parsed.username
-    };
-
-    showGame();
-    loadState();
-  } catch {
-    localStorage.removeItem("since1969_user");
-    currentUser = null;
-  }
-}
-
-    // =========================
-    // LOAD STATE
-    // =========================
     async function loadState() {
       if (!currentUser?.id) return;
 
       try {
-        const state = await api("/api/state");
-        latestRound = state.round || null;
+        const data = await api('/api/state');
+        state.server = data;
+        renderServerState();
+      } catch (error) {
+        showMessage(error.message);
+      }
+    }
 
-        document.getElementById("user").innerText = state.user?.username || "-";
-        document.getElementById("balance").innerText = state.balance ?? 0;
-        document.getElementById("round").innerText = state.round?.round_number ?? "-";
+    async function login() {
+      try {
+        const username = els.username.value.trim();
+        const password = els.password.value.trim();
 
-        if (state.round?.lucky_number !== null && state.round?.lucky_number !== undefined) {
-          document.getElementById("result").innerText = state.round.lucky_number;
+        if (!username) return showLoginMessage('Username daalo');
+        if (!password) return showLoginMessage('Password daalo');
+
+        const data = await api('/api/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, password })
+        });
+
+        currentUser = data.user;
+        localStorage.setItem('since1969_user', JSON.stringify(currentUser));
+
+        showLoginMessage('Login successful');
+        showGame();
+        await loadState();
+      } catch (error) {
+        showLoginMessage(error.message);
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem('since1969_user');
+      state.server = null;
+      state.selections.clear();
+      state.amounts = {};
+      renderSelections();
+      showMessage('');
+      showLogin();
+    }
+
+    function restoreUser() {
+      try {
+        const saved = localStorage.getItem('since1969_user');
+        if (!saved) return;
+
+        const parsed = JSON.parse(saved);
+        if (!parsed || !parsed.id || !parsed.username) {
+          localStorage.removeItem('since1969_user');
+          return;
         }
 
-        updateTimer();
-        renderHistory(state.lastResults || []);
-      } catch (err) {
-        console.error("STATE LOAD ERROR:", err.message);
-        showMessage(err.message || "State load failed", "bad");
+        currentUser = {
+          id: Number(parsed.id),
+          username: parsed.username
+        };
+
+        showGame();
+        loadState();
+      } catch {
+        localStorage.removeItem('since1969_user');
       }
     }
 
-    // =========================
-    // TIMER
-    // =========================
-    function updateTimer() {
-      if (!latestRound) return;
+    els.loginBtn.addEventListener('click', login);
 
-      const now = Date.now();
-      const end = latestRound.ends_at;
-      const close = latestRound.betting_closes_at;
-
-      let remaining = Math.floor((end - now) / 1000);
-      if (remaining < 0) remaining = 0;
-
-      document.getElementById("timer").innerText = remaining + "s";
-
-      if (now >= close) {
-        document.getElementById("betStatus").innerText = "Betting Closed";
-      } else {
-        document.getElementById("betStatus").innerText = "Betting Open";
-      }
-    }
-
-    // =========================
-    // BUILD NUMBER BUTTONS
-    // =========================
-    function buildNumbers() {
-      const box = document.getElementById("numbers");
-      box.innerHTML = "";
-
-      for (let i = 0; i <= 9; i++) {
-        const btn = document.createElement("button");
-        btn.className = "num-btn";
-        btn.innerText = i;
-        btn.onclick = () => placeBet(i);
-        box.appendChild(btn);
-      }
-    }
-
-    // =========================
-    // PLACE BET
-    // =========================
-    async function placeBet(num) {
-      if (!currentUser?.id) return alert("Login first");
-
+    els.placeBetBtn.addEventListener('click', async () => {
       try {
-        await api("/api/bet", {
-          method: "POST",
+        const betMap = {};
+        for (const key of state.selections) {
+          const amount = Number(state.amounts[key]);
+          if (Number.isInteger(amount) && amount > 0) {
+            betMap[key] = amount;
+          }
+        }
+
+        const data = await api('/api/bet', {
+          method: 'POST',
+          body: JSON.stringify({ betMap })
+        });
+
+        state.server = data.state;
+        showMessage(data.message);
+        renderServerState();
+      } catch (error) {
+        showMessage(error.message);
+      }
+    });
+
+    els.clearBtn.addEventListener('click', () => {
+      state.selections.clear();
+      state.amounts = {};
+      renderSelections();
+      showMessage('Selections clear ho gaye');
+    });
+
+    els.bonusBtn.addEventListener('click', async () => {
+      try {
+        const data = await api('/api/bonus', {
+          method: 'POST',
+          body: '{}'
+        });
+        state.server = data.state;
+        renderServerState();
+        showMessage(data.message);
+      } catch (error) {
+        showMessage(error.message);
+      }
+    });
+
+    els.logoutBtn.addEventListener('click', logout);
+
+    els.adminSettleBtn.addEventListener('click', async () => {
+      try {
+        const key = els.adminKey.value.trim();
+        const data = await api('/api/admin/settle', {
+          method: 'POST',
+          headers: { 'x-admin-key': key },
+          body: '{}'
+        });
+        els.adminMessage.textContent = data.message || 'Round settled';
+        await loadState();
+      } catch (error) {
+        els.adminMessage.textContent = error.message;
+      }
+    });
+
+    els.adminCreditBtn.addEventListener('click', async () => {
+      try {
+        const key = els.adminKey.value.trim();
+        const amount = Number(els.adminCreditAmount.value);
+
+        const data = await api('/api/admin/credit', {
+          method: 'POST',
+          headers: { 'x-admin-key': key },
           body: JSON.stringify({
-            betMap: {
-              [num]: 10
-            }
+            userId: currentUser?.id,
+            amount
           })
         });
 
-        showMessage(`Bet placed on ${num}`, "good");
+        els.adminMessage.textContent = data.message || `Wallet credited by ${amount}`;
         await loadState();
-      } catch (err) {
-        alert(err.message || "Bet failed");
+      } catch (error) {
+        els.adminMessage.textContent = error.message;
       }
-    }
+    });
 
-    // =========================
-    // BONUS
-    // =========================
-    async function claimBonus() {
-      if (!currentUser?.id) return alert("Login first");
-
-      try {
-        const data = await api("/api/bonus", {
-          method: "POST"
-        });
-
-        showMessage(data.message || "Bonus claimed", "good");
-        await loadState();
-      } catch (err) {
-        alert(err.message || "Bonus failed");
-      }
-    }
-
-    // =========================
-    // HISTORY
-    // =========================
-    function renderHistory(results) {
-      const box = document.getElementById("historyList");
-      box.innerHTML = "";
-
-      if (!results.length) {
-        box.innerHTML = '<div class="muted">Abhi koi result nahi hai</div>';
-        return;
-      }
-
-      results.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "history-item";
-        div.innerHTML = `
-          <strong>Round ${item.round_number}</strong><br>
-          Result: <strong>${item.lucky_number}</strong>
-        `;
-        box.appendChild(div);
-      });
-    }
-
-    // =========================
-    // INIT
-    // =========================
     buildNumbers();
     restoreUser();
+    showLogin();
+    if (currentUser?.id) showGame();
 
+    setInterval(updateTimer, 1000);
     setInterval(() => {
       if (currentUser?.id) loadState();
-    }, 3000);
-
-    setInterval(() => {
-      if (currentUser?.id) updateTimer();
-    }, 1000);
+    }, 5000);
   </script>
 
 </body>
