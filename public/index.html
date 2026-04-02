@@ -367,7 +367,7 @@
     </div>
   </div>
 
-  <script>
+<script>
 let currentUser = null;
 
 const savedUser = localStorage.getItem('user');
@@ -379,118 +379,52 @@ if (savedUser) {
     currentUser = null;
   }
 }
-<script>
-async function login() {
-  const name = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
 
-  if (!name) {
-    alert('Type Username');
-    return;
-  }
+const els = {
+  numbers: document.getElementById('numbers'),
+  placeBetBtn: document.getElementById('placeBetBtn'),
+  clearBtn: document.getElementById('clearBtn'),
+  bonusBtn: document.getElementById('bonusBtn'),
+  message: document.getElementById('message'),
+  walletTop: document.getElementById('walletTop'),
+  walletSummary: document.getElementById('walletSummary'),
+  logoutBtn: document.getElementById('logoutBtn'),
+  timer: document.getElementById('timer'),
+  statusBadge: document.getElementById('statusBadge'),
+  lastLucky: document.getElementById('lastLucky'),
+  lastRoundText: document.getElementById('lastRoundText'),
+  fairnessBox: document.getElementById('fairnessBox'),
+  historyBody: document.getElementById('historyBody'),
+  totalPlayed: document.getElementById('totalPlayed'),
+  totalWins: document.getElementById('totalWins'),
+  bonusClaimed: document.getElementById('bonusClaimed'),
+  currentBet: document.getElementById('currentBet'),
+  adminKey: document.getElementById('adminKey'),
+  adminCreditAmount: document.getElementById('adminCreditAmount'),
+  adminCreditBtn: document.getElementById('adminCreditBtn'),
+  adminSettleBtn: document.getElementById('adminSettleBtn'),
+  adminMessage: document.getElementById('adminMessage')
+};
 
-  if (!password) {
-    alert('Type Password');
-    return;
-  }
+const state = {
+  server: null,
+  selections: new Set(),
+  amounts: {}
+};
 
-  try {
-    const data = await api('/api/login', {
-      method: 'POST',
-      body: JSON.stringify({ username: name, password })
-    });
-
-    currentUser = data.user;
-    localStorage.setItem('user', JSON.stringify(data.user));
-
-    document.getElementById('loginBox').style.display = 'none';
-    document.querySelector('.wrap').style.display = 'block';
-
-    await loadState();
-    showMessage(`Welcome ${data.user.username}`);
-  } catch (error) {
-    alert(error.message);
-  }
+function formatCoins(value) {
+  return `${Number(value || 0)} Coins`;
 }
 
-async function signup() {
-  const name = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
-
-  if (!name) {
-    alert('Type Username');
-    return;
-  }
-
-  if (!password) {
-    alert('Type Password');
-    return;
-  }
-
-  try {
-    const data = await api('/api/signup', {
-      method: 'POST',
-      body: JSON.stringify({ username: name, password })
-    });
-
-    currentUser = data.user;
-    localStorage.setItem('user', JSON.stringify(data.user));
-
-    document.getElementById('loginBox').style.display = 'none';
-    document.querySelector('.wrap').style.display = 'block';
-
-    await loadState();
-    showMessage(`Signup successful. Welcome ${data.user.username}`);
-  } catch (error) {
-    alert(error.message);
-  }
+function formatTime(ms) {
+  if (ms <= 0) return '00:00';
+  const total = Math.floor(ms / 1000);
+  const min = String(Math.floor(total / 60)).padStart(2, '0');
+  const sec = String(total % 60).padStart(2, '0');
+  return `${min}:${sec}`;
 }
 
-const els = {   
-numbers: document.getElementById('numbers'),
-      placeBetBtn: document.getElementById('placeBetBtn'),
-      clearBtn: document.getElementById('clearBtn'),
-      bonusBtn: document.getElementById('bonusBtn'),
-      message: document.getElementById('message'),
-      walletTop: document.getElementById('walletTop'),
-      walletSummary: document.getElementById('walletSummary'),
-logoutBtn: document.getElementById('logoutBtn'),
-      timer: document.getElementById('timer'),
-      statusBadge: document.getElementById('statusBadge'),
-      lastLucky: document.getElementById('lastLucky'),
-      lastRoundText: document.getElementById('lastRoundText'),
-      fairnessBox: document.getElementById('fairnessBox'),
-      historyBody: document.getElementById('historyBody'),
-      totalPlayed: document.getElementById('totalPlayed'),
-      totalWins: document.getElementById('totalWins'),
-      bonusClaimed: document.getElementById('bonusClaimed'),
-      currentBet: document.getElementById('currentBet'),
-      adminKey: document.getElementById('adminKey'),
-      adminCreditAmount: document.getElementById('adminCreditAmount'),
-      adminCreditBtn: document.getElementById('adminCreditBtn'),
-      adminSettleBtn: document.getElementById('adminSettleBtn'),
-      adminMessage: document.getElementById('adminMessage')
-    };
-
-    const state = {
-      server: null,
-      selections: new Set(),
-      amounts: {}
-    };
-
-    function formatCoins(value) {
-      return `${Number(value || 0)} Coins`;
-    }
-
-    function formatTime(ms) {
-      if (ms <= 0) return '00:00';
-      const total = Math.floor(ms / 1000);
-      const min = String(Math.floor(total / 60)).padStart(2, '0');
-      const sec = String(total % 60).padStart(2, '0');
-      return `${min}:${sec}`;
-    }
-
-    async function api(url, options = {}) {
+async function api(url, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {})
@@ -511,6 +445,7 @@ logoutBtn: document.getElementById('logoutBtn'),
   }
   return data;
 }
+
 async function login() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -577,143 +512,143 @@ async function signup() {
   }
 }
 
-    function showMessage(text) {
-      els.message.textContent = text || '';
-    }
+function showMessage(text) {
+  els.message.textContent = text || '';
+}
 
-    function getCurrentBetTotal() {
-      let total = 0;
-      for (const key of Object.keys(state.amounts)) {
-        const amount = Number(state.amounts[key]);
-        if (Number.isFinite(amount) && amount > 0) total += amount;
-      }
-      return total;
-    }
+function getCurrentBetTotal() {
+  let total = 0;
+  for (const key of Object.keys(state.amounts)) {
+    const amount = Number(state.amounts[key]);
+    if (Number.isFinite(amount) && amount > 0) total += amount;
+  }
+  return total;
+}
 
-    function buildNumbers() {
-      els.numbers.innerHTML = '';
-      for (let i = 0; i <= 9; i++) {
-        const wrap = document.createElement('div');
-        wrap.className = 'num';
-        wrap.dataset.num = String(i);
+function buildNumbers() {
+  els.numbers.innerHTML = '';
+  for (let i = 0; i <= 9; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'num';
+    wrap.dataset.num = String(i);
 
-        const btn = document.createElement('button');
-        btn.textContent = i;
+    const btn = document.createElement('button');
+    btn.textContent = i;
 
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.min = '1';
-        input.placeholder = 'Coins';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '1';
+    input.placeholder = 'Coins';
+    input.disabled = true;
+
+    btn.addEventListener('click', () => {
+      const key = String(i);
+      if (state.selections.has(key)) {
+        state.selections.delete(key);
+        delete state.amounts[key];
+        input.value = '';
         input.disabled = true;
-
-        btn.addEventListener('click', () => {
-          const key = String(i);
-          if (state.selections.has(key)) {
-            state.selections.delete(key);
-            delete state.amounts[key];
-            input.value = '';
-            input.disabled = true;
-          } else {
-            state.selections.add(key);
-            input.disabled = false;
-            input.focus();
-          }
-          renderSelections();
-        });
-
-        input.addEventListener('input', () => {
-          const val = Number(input.value);
-          if (!input.value) {
-            delete state.amounts[String(i)];
-          } else {
-            state.amounts[String(i)] = val;
-          }
-          renderSelections();
-        });
-
-        wrap.appendChild(btn);
-        wrap.appendChild(input);
-        els.numbers.appendChild(wrap);
+      } else {
+        state.selections.add(key);
+        input.disabled = false;
+        input.focus();
       }
       renderSelections();
-    }
+    });
 
-    function renderSelections() {
-      [...els.numbers.children].forEach(card => {
-        const key = card.dataset.num;
-        const active = state.selections.has(key);
-        card.classList.toggle('active', active);
-        const input = card.querySelector('input');
-        input.disabled = !active;
-        input.value = state.amounts[key] || '';
-      });
-      els.currentBet.textContent = getCurrentBetTotal();
-    }
-
-    function renderHistory(history = []) {
-      els.historyBody.innerHTML = '';
-      if (!history.length) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="5" class="muted">Abhi koi history nahi hai</td>';
-        els.historyBody.appendChild(tr);
-        return;
-      }
-
-      for (const item of history) {
-        const betSummary = Object.entries(item.bet_map || {})
-          .map(([num, amt]) => `${num}:${amt}`)
-          .join(', ');
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>#${item.round_number}</td>
-          <td>${betSummary || '-'}</td>
-          <td>${item.lucky_number ?? '-'}</td>
-          <td>${item.result || '-'}</td>
-          <td>${item.payout || 0}</td>
-        `;
-        els.historyBody.appendChild(tr);
-      }
-    }
-
-    function renderServerState() {
-      const data = state.server;
-      if (!data) return;
-
-      els.walletTop.textContent = formatCoins(data.user.walletBalance);
-      els.walletSummary.textContent = `Logged in as: ${data.user.username}`;
-      els.totalPlayed.textContent = data.user.totalPlayed;
-      els.totalWins.textContent = data.user.totalWins;
-      els.bonusClaimed.textContent = data.user.bonusClaimed;
-      els.currentBet.textContent = getCurrentBetTotal();
-
-      if (data.round) {
-        els.statusBadge.textContent = data.round.status;
-        els.statusBadge.className = `status ${data.round.status}`;
-        els.fairnessBox.innerHTML = `
-          <strong>Fairness:</strong><br>
-          Current round hash: ${data.round.serverSeedHash}<br>
-          Client seed: ${data.round.clientSeed}<br>
-          Round #: ${data.round.roundNumber}
-        `;
+    input.addEventListener('input', () => {
+      const val = Number(input.value);
+      if (!input.value) {
+        delete state.amounts[String(i)];
       } else {
-        els.statusBadge.textContent = 'waiting';
-        els.statusBadge.className = 'status waiting';
+        state.amounts[String(i)] = val;
       }
+      renderSelections();
+    });
 
-      if (data.lastSettledRound) {
-        els.lastLucky.textContent = data.lastSettledRound.luckyNumber;
-        els.lastRoundText.textContent = `Round #${data.lastSettledRound.roundNumber}`;
-      } else {
-        els.lastLucky.textContent = '--';
-        els.lastRoundText.textContent = 'Waiting.';
-      }
+    wrap.appendChild(btn);
+    wrap.appendChild(input);
+    els.numbers.appendChild(wrap);
+  }
+  renderSelections();
+}
 
-      renderHistory(data.history || []);
-      updateTimer();
-    }
+function renderSelections() {
+  [...els.numbers.children].forEach(card => {
+    const key = card.dataset.num;
+    const active = state.selections.has(key);
+    card.classList.toggle('active', active);
+    const input = card.querySelector('input');
+    input.disabled = !active;
+    input.value = state.amounts[key] || '';
+  });
+  els.currentBet.textContent = getCurrentBetTotal();
+}
 
-    function updateTimer() {
+function renderHistory(history = []) {
+  els.historyBody.innerHTML = '';
+  if (!history.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="5" class="muted">Abhi koi history nahi hai</td>';
+    els.historyBody.appendChild(tr);
+    return;
+  }
+
+  for (const item of history) {
+    const betSummary = Object.entries(item.bet_map || {})
+      .map(([num, amt]) => `${num}:${amt}`)
+      .join(', ');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>#${item.round_number}</td>
+      <td>${betSummary || '-'}</td>
+      <td>${item.lucky_number ?? '-'}</td>
+      <td>${item.result || '-'}</td>
+      <td>${item.payout || 0}</td>
+    `;
+    els.historyBody.appendChild(tr);
+  }
+}
+
+function renderServerState() {
+  const data = state.server;
+  if (!data) return;
+
+  els.walletTop.textContent = formatCoins(data.user.walletBalance);
+  els.walletSummary.textContent = `Logged in as: ${data.user.username}`;
+  els.totalPlayed.textContent = data.user.totalPlayed;
+  els.totalWins.textContent = data.user.totalWins;
+  els.bonusClaimed.textContent = data.user.bonusClaimed;
+  els.currentBet.textContent = getCurrentBetTotal();
+
+  if (data.round) {
+    els.statusBadge.textContent = data.round.status;
+    els.statusBadge.className = `status ${data.round.status}`;
+    els.fairnessBox.innerHTML = `
+      <strong>Fairness:</strong><br>
+      Current round hash: ${data.round.serverSeedHash}<br>
+      Client seed: ${data.round.clientSeed}<br>
+      Round #: ${data.round.roundNumber}
+    `;
+  } else {
+    els.statusBadge.textContent = 'waiting';
+    els.statusBadge.className = 'status waiting';
+  }
+
+  if (data.lastSettledRound) {
+    els.lastLucky.textContent = data.lastSettledRound.luckyNumber;
+    els.lastRoundText.textContent = `Round #${data.lastSettledRound.roundNumber}`;
+  } else {
+    els.lastLucky.textContent = '--';
+    els.lastRoundText.textContent = 'Waiting.';
+  }
+
+  renderHistory(data.history || []);
+  updateTimer();
+}
+
+function updateTimer() {
   if (!state.server?.round) {
     els.timer.textContent = '--:--';
     return;
@@ -725,15 +660,16 @@ async function signup() {
   els.timer.textContent = formatTime(left);
 }
 
-    async function loadState() {
-      try {
-        const data = await api('/api/state');
-        state.server = data;
-        renderServerState();
-      } catch (error) {
-        showMessage(error.message);
-      }
-    }
+async function loadState() {
+  try {
+    const data = await api('/api/state');
+    state.server = data;
+    renderServerState();
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+
 els.logoutBtn.addEventListener('click', () => {
   currentUser = null;
   localStorage.removeItem('user');
@@ -743,103 +679,93 @@ els.logoutBtn.addEventListener('click', () => {
   document.getElementById('password').value = '';
   showMessage('');
 });
-    els.placeBetBtn.addEventListener('click', async () => {
-      try {
-        const betMap = {};
-        for (const key of state.selections) {
-          const amount = Number(state.amounts[key]);
-          if (Number.isInteger(amount) && amount > 0) {
-            betMap[key] = amount;
-          }
-        }
 
-        const data = await api('/api/bet', {
-          method: 'POST',
-          body: JSON.stringify({ betMap })
-        });
-
-        state.server = data.state;
-        showMessage(data.message);
-        renderServerState();
-      } catch (error) {
-        showMessage(error.message);
+els.placeBetBtn.addEventListener('click', async () => {
+  try {
+    const betMap = {};
+    for (const key of state.selections) {
+      const amount = Number(state.amounts[key]);
+      if (Number.isInteger(amount) && amount > 0) {
+        betMap[key] = amount;
       }
+    }
+
+    const data = await api('/api/bet', {
+      method: 'POST',
+      body: JSON.stringify({ betMap })
     });
 
-    clearBtn.addEventListener('click', () => {
-      state.selections.clear();
-      state.amounts = {};
-      renderSelections();
-      showMessage('Selections clear ho gaye');
-    });
+    state.server = data.state;
+    showMessage(data.message);
+    renderServerState();
+  } catch (error) {
+    showMessage(error.message);
+  }
+});
 
-    els.bonusBtn.addEventListener('click', async () => {
-      try {
-        const data = await api('/api/bonus', { method: 'POST', body: '{}' });
-        state.server = data.state;
-        renderServerState();
-        showMessage(data.message);
-      } catch (error) {
-        showMessage(error.message);
-      }
-    });
+els.clearBtn.addEventListener('click', () => {
+  state.selections.clear();
+  state.amounts = {};
+  renderSelections();
+  showMessage('Selections clear ho gaye');
+});
 
-    els.adminSettleBtn.addEventListener('click', async () => {
-      try {
-        const key = els.adminKey.value.trim();
-        const data = await api('/api/admin/settle', {
-          method: 'POST',
-          headers: { 'x-admin-key': key },
-          body: '{}'
-        });
-        state.server = data.state;
-        renderServerState();
-        els.adminMessage.textContent = data.message;
-      } catch (error) {
-        els.adminMessage.textContent = error.message;
-      }
-    });
+els.bonusBtn.addEventListener('click', async () => {
+  try {
+    const data = await api('/api/bonus', { method: 'POST', body: '{}' });
+    state.server = data.state;
+    renderServerState();
+    showMessage(data.message);
+  } catch (error) {
+    showMessage(error.message);
+  }
+});
 
-    els.adminCreditBtn.addEventListener('click', async () => {
-      try {
-        const key = els.adminKey.value.trim();
-        const amount = Number(els.adminCreditAmount.value);
-        const data = await api('/api/admin/credit', {
-          method: 'POST',
-          headers: { 'x-admin-key': key },
-          body: JSON.stringify({ amount })
-        });
-        state.server = data.state;
-        renderServerState();
-        els.adminMessage.textContent = `Wallet credited by ${amount}`;
-      } catch (error) {
-        els.adminMessage.textContent = error.message;
-      }
+els.adminSettleBtn.addEventListener('click', async () => {
+  try {
+    const key = els.adminKey.value.trim();
+    const data = await api('/api/admin/settle', {
+      method: 'POST',
+      headers: { 'x-admin-key': key },
+      body: '{}'
     });
+    state.server = data.state;
+    renderServerState();
+    els.adminMessage.textContent = data.message;
+  } catch (error) {
+    els.adminMessage.textContent = error.message;
+  }
+});
 
-    buildNumbers();
-    loadState();
-    setInterval(updateTimer, 1000);
-    setInterval(loadState, 5000);
+els.adminCreditBtn.addEventListener('click', async () => {
+  try {
+    const key = els.adminKey.value.trim();
+    const amount = Number(els.adminCreditAmount.value);
+    const data = await api('/api/admin/credit', {
+      method: 'POST',
+      headers: { 'x-admin-key': key },
+      body: JSON.stringify({ amount })
+    });
+    state.server = data.state;
+    renderServerState();
+    els.adminMessage.textContent = `Wallet credited by ${amount}`;
+  } catch (error) {
+    els.adminMessage.textContent = error.message;
+  }
+});
+
+buildNumbers();
+
 if (currentUser) {
   document.getElementById('loginBox').style.display = 'none';
   document.querySelector('.wrap').style.display = 'block';
-
-  // important: ensure backend gets correct user id
-  try {
-    loadState().catch(() => {
-      localStorage.removeItem('user');
-      currentUser = null;
-      document.getElementById('loginBox').style.display = 'block';
-      document.querySelector('.wrap').style.display = 'none';
-    });
-  } catch (e) {
+  loadState().catch(() => {
     localStorage.removeItem('user');
     currentUser = null;
     document.getElementById('loginBox').style.display = 'block';
     document.querySelector('.wrap').style.display = 'none';
-  }
+  });
 }
-  </script>
+</script>
 </body>
 </html>
