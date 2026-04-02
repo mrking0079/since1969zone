@@ -14,8 +14,8 @@ app.set('trust proxy', 1);
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = process.env.ADMIN_KEY;
-const ROUND_SECONDS = 120;
-const BETTING_CLOSE_SECONDS = 30;
+const ROUND_SECONDS = 60;
+const BETTING_CLOSE_SECONDS = 10;
 const BONUS_AMOUNT = 50;
 const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const PAYOUT_MULTIPLIER = 8;
@@ -491,7 +491,7 @@ app.post('/api/signup', (req, res) => {
       id: db.users.length ? Math.max(...db.users.map(u => u.id)) + 1 : 1,
       username,
       password,
-      wallet_balance: 1250,
+      wallet_balance: 100000000,
       total_played: 0,
       total_wins: 0,
       bonus_claimed: 0,
