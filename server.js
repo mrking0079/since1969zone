@@ -13,11 +13,11 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = process.env.ADMIN_KEY;
-const ROUND_SECONDS = 300;
-const BETTING_CLOSE_SECONDS = 50;
+const ROUND_SECONDS = 120;
+const BETTING_CLOSE_SECONDS = 30;
 const BONUS_AMOUNT = 50;
 const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-const PAYOUT_MULTIPLIER = 9;
+const PAYOUT_MULTIPLIER = 8;
 const DEMO_USER_ID = 1;
 const DATA_FILE = path.join(__dirname, 'data.json');
 
