@@ -596,17 +596,16 @@ logoutBtn: document.getElementById('logoutBtn'),
     }
 
     function updateTimer() {
-      if (!state.server?.round) {
-        els.timer.textContent = '--:--';
-        return;
-      }
+  if (!state.server?.round) {
+    els.timer.textContent = '--:--';
+    return;
+  }
 
-      const now = Date.now();
-      const round = state.server.round;
-      const end = round.status === 'open' ? round.bettingClosesAt : round.endsAt;
-      const left = end - now;
-      els.timer.textContent = formatTime(left);
-    }
+  const now = Date.now();
+  const round = state.server.round;
+  const left = round.endsAt - now;
+  els.timer.textContent = formatTime(left);
+}
 
     async function loadState() {
       try {
