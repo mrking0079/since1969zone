@@ -623,7 +623,12 @@ function renderServerState() {
   els.currentBet.textContent = getCurrentBetTotal();
 
   if (data.round) {
-    els.statusBadge.textContent = data.round.status;
+    els.statusBadge.textContent =
+  data.round.status === 'open'
+    ? 'Betting Open'
+    : data.round.status === 'closed'
+    ? 'Betting Closed'
+    : 'Result Soon';
     els.statusBadge.className = `status ${data.round.status}`;
     els.fairnessBox.innerHTML = `
       <strong>Fairness:</strong><br>
