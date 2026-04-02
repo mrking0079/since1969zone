@@ -431,11 +431,51 @@ app.post('/api/login', (req, res) => {
     const password = String(req.body?.password || '').trim();
 
     if (!username) {
-      return res.status(400).json({ error: 'Username required hai' });
+      return res.status(400).json({ error: 'Username required' });
     }
 
     if (!password) {
-      return res.status(400).json({ error: 'Password required hai' });
+      return res.status(400).json({ error: 'Password required' });
+    }
+
+    let user = db.users.find(
+      u => String(u.username).toLowerCase() === username.toLowerCase()
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'username not exists signup first' });
+    }
+        if (String(user.password || '') !== password) {
+      return res.status(401).json({ error: 'Wrong password' });
+    }
+
+    return res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        walletBalance: user.wallet_balance,
+        totalPlayed: user.total_played,
+        totalWins: user.total_wins,
+        bonusClaimed: user.bonus_claimed,
+        lastBonusTime: user.last_bonus_time
+      }
+    });
+  } catch {
+    return res.status(500).json({ error: 'Login failed' });
+  }
+});
+app.post('/api/signup', (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '').trim();
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username required' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ error: 'Password required' });
     }
 
     const existingUser = db.users.find(
@@ -443,9 +483,10 @@ app.post('/api/login', (req, res) => {
     );
 
     if (existingUser) {
-      return res.status(409).json({ error: 'username alerdy exists' });
+      return res.status(409).json({ error: 'Username Alerdy exists' });
     }
-        const user = {
+
+    const user = {
       id: db.users.length ? Math.max(...db.users.map(u => u.id)) + 1 : 1,
       username,
       password,
@@ -457,8 +498,8 @@ app.post('/api/login', (req, res) => {
       created_at: nowMs()
     };
 
-      db.users.push(user);
-      saveData(db);
+    db.users.push(user);
+    saveData(db);
 
     return res.json({
       success: true,
