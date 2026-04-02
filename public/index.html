@@ -630,6 +630,7 @@ function renderServerState() {
     ? 'Betting Closed'
     : 'Result Soon';
     els.statusBadge.className = `status ${data.round.status}`;
+els.placeBetBtn.disabled = data.round.status !== 'open';
     els.fairnessBox.innerHTML = `
       <strong>Fairness:</strong><br>
       Current round hash: ${data.round.serverSeedHash}<br>
