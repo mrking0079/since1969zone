@@ -652,6 +652,7 @@ els.placeBetBtn.disabled = data.round.status !== 'open';
 
   renderHistory(data.history || []);
   updateTimer();
+els.placeBetBtn.disabled = !state.server?.round || state.server.round.status !== 'open';
 }
 
 function updateTimer() {
