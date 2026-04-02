@@ -706,6 +706,9 @@ els.placeBetBtn.addEventListener('click', async () => {
     });
 
     state.server = data.state;
+    state.selections.clear();
+    state.amounts = {};
+    renderSelections();
     showMessage(data.message);
     renderServerState();
   } catch (error) {
