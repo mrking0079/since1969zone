@@ -656,7 +656,7 @@ function updateTimer() {
 
   const now = Date.now();
   const round = state.server.round;
-  const left = Math.max(0, targetTime - now);
+  const left = Math.max(0, round.endsAt - now);
 
   const totalSeconds = Math.ceil(left / 1000);
   const min = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
