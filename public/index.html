@@ -700,6 +700,10 @@ els.placeBetBtn.addEventListener('click', async () => {
       }
     }
 
+if (Object.keys(betMap).length === 0) {
+  showMessage('Please select at least one number and enter coins');
+  return;
+}
     const data = await api('/api/bet', {
       method: 'POST',
       body: JSON.stringify({ betMap })
