@@ -615,7 +615,9 @@ function renderHistory(history = []) {
       <td>#${item.round_number}</td>
       <td>${betSummary || '-'}</td>
       <td>${item.lucky_number ?? '-'}</td>
-      <td>${item.result || '-'}</td>
+      <td style="font-weight:700;color:${item.result === 'WIN' ? '#00cc66' : item.result === 'LOSE' ? '#ff4d4d' : '#ffd700'};">
+  ${item.result || '-'}
+</td>
       <td>${item.payout || 0}</td>
     `;
     els.historyBody.appendChild(tr);
