@@ -713,7 +713,7 @@ if (Object.keys(betMap).length === 0) {
     state.selections.clear();
     state.amounts = {};
     renderSelections();
-    showMessage(data.message);
+    showMessage(`Bet placed successfully. Total bet: ${Object.values(betMap).reduce((sum, value) => sum + value, 0)} coins on numbers ${Object.keys(betMap).join(', ')}`);
     renderServerState();
   } catch (error) {
     showMessage(error.message);
