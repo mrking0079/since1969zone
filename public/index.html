@@ -250,6 +250,16 @@
   </style>
 </head>
 <body>
+<div id="resultFlash" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;">
+  <div id="flashLuckyNumber" style="font-size:120px;font-weight:900;color:#ffd700;line-height:1;text-shadow:0 0 25px rgba(255,215,0,0.45);">
+    0
+  </div>
+  <div id="flashMessage" style="margin-top:18px;font-size:28px;font-weight:800;color:#ffffff;">
+    Lucky Number
+  </div>
+  <div id="flashSubMessage" style="margin-top:10px;font-size:18px;color:#cccccc;">
+  </div>
+</div>
 <div id="loginBox" style="max-width:400px;margin:40px auto;padding:20px;background:#111;border-radius:16px;border:1px solid #333;text-align:center;">
   <h2 style="color:#ffd700;">Login</h2>
 
@@ -392,6 +402,10 @@ if (savedUser) {
 }
 
 const els = {
+resultFlash: document.getElementById('resultFlash'),
+flashLuckyNumber: document.getElementById('flashLuckyNumber'),
+flashMessage: document.getElementById('flashMessage'),
+flashSubMessage: document.getElementById('flashSubMessage'),
   numbers: document.getElementById('numbers'),
   placeBetBtn: document.getElementById('placeBetBtn'),
   clearBtn: document.getElementById('clearBtn'),
@@ -656,7 +670,27 @@ els.placeBetBtn.disabled = data.round.status !== 'open';
   }
 
   if (data.lastSettledRound) {
+// FULL SCREEN FLASH
+if (els.resultFlash && data.lastSettledRound) {
+  els.resultFlash.style.display = 'flex';
+  els.flashLuckyNumber.textContent = data.lastSettledRound.luckyNumber;
+  els.flashMessage.textContent = 'Lucky Number';
+
+  if ((data.lastSettledRound.result || '').toLowerCase() === 'win') {
+    els.flashSubMessage.textContent = '🎉 Congratulations! You Won';
+  } else {
+    els.flashSubMessage.textContent = '';
+  }
+
+  setTimeout(() => {
+    els.resultFlash.style.display = 'none';
+  }, 2000);
+}
     els.lastLucky.textContent = data.lastSettledRound.luckyNumber;
+
+if ((data.lastSettledRound.result || '').toLowerCase() === 'win') {
+  showMessage(`🎉 WIN! Lucky Number: ${data.lastSettledRound.luckyNumber} | Payout: ${data.lastSettledRound.payout || 0} coins`);
+}
     els.lastRoundText.textContent = `Round #${data.lastSettledRound.roundNumber}`;
   } else {
     els.lastLucky.textContent = '--';
