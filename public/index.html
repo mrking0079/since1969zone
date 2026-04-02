@@ -695,7 +695,7 @@ els.placeBetBtn.addEventListener('click', async () => {
     const betMap = {};
     for (const key of state.selections) {
       const amount = Number(state.amounts[key]);
-      if (Number.isInteger(amount) && amount > 0) {
+      if (Number.isInteger(amount) && amount > 1) {
         betMap[key] = amount;
       }
     }
