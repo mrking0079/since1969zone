@@ -363,6 +363,15 @@
   <script>
 let currentUser = null;
 
+const savedUser = localStorage.getItem('user');
+if (savedUser) {
+  try {
+    currentUser = JSON.parse(savedUser);
+  } catch (e) {
+    localStorage.removeItem('user');
+    currentUser = null;
+  }
+}
 async function login() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -384,6 +393,7 @@ async function login() {
     });
 
     currentUser = data.user;
+    localStorage.setItem('user', JSON.stringify(data.user));
     document.getElementById('loginBox').style.display = 'none';
     document.querySelector('.wrap').style.display = 'block';
 
@@ -618,9 +628,12 @@ logoutBtn: document.getElementById('logoutBtn'),
     }
 els.logoutBtn.addEventListener('click', () => {
   currentUser = null;
+  localStorage.removeItem('user');
   document.getElementById('loginBox').style.display = 'block';
   document.querySelector('.wrap').style.display = 'none';
   document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+  showMessage('');
 });
     els.placeBetBtn.addEventListener('click', async () => {
       try {
@@ -700,6 +713,11 @@ els.logoutBtn.addEventListener('click', () => {
     loadState();
     setInterval(updateTimer, 1000);
     setInterval(loadState, 5000);
+if (currentUser) {
+  document.getElementById('loginBox').style.display = 'none';
+  document.querySelector('.wrap').style.display = 'block';
+  loadState();
+}
   </script>
 </body>
 </html>
