@@ -651,6 +651,18 @@ app.post('/api/admin/credit', adminOnly, (req, res) => {
   }
 });
 
+function getLast10SettledRounds() {
+  const settled = db.rounds
+    .filter(r => r.lucky_number !== null)
+    .slice(-10)
+    .reverse();
+
+  return settled.map(r => ({
+    roundNumber: r.round_number,
+    luckyNumber: r.lucky_number
+  }));
+}
+
 app.get('*', (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
