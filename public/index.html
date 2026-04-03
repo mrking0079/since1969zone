@@ -393,6 +393,19 @@ text-align: center;
             </thead>
             <tbody id="historyBody"></tbody>
           </table>
+	<div id="historyPager" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;">
+  <button id="historyPrevBtn" type="button" style="padding:8px 12px;border:none;border-radius:8px;background:#222;color:#fff;cursor:pointer;">
+    ◀ Prev
+  </button>
+
+  <div id="historyPageInfo" style="font-weight:700;color:#ffd700;">
+    1/50
+  </div>
+
+  <button id="historyNextBtn" type="button" style="padding:8px 12px;border:none;border-radius:8px;background:#222;color:#fff;cursor:pointer;">
+    Next ▶
+  </button>
+</div>
         </div>
       </div>
 
@@ -465,6 +478,9 @@ flashSubMessage: document.getElementById('flashSubMessage'),
   latestLuckyRound: document.getElementById('latestLuckyRound'),
   fairnessBox: document.getElementById('fairnessBox'),
   historyBody: document.getElementById('historyBody'),
+  historyPrevBtn: document.getElementById('historyPrevBtn'),
+historyNextBtn: document.getElementById('historyNextBtn'),
+historyPageInfo: document.getElementById('historyPageInfo'),
   totalPlayed: document.getElementById('totalPlayed'),
   totalWins: document.getElementById('totalWins'),
   bonusClaimed: document.getElementById('bonusClaimed'),
@@ -704,32 +720,61 @@ function renderSelections() {
   els.currentBet.textContent = getCurrentBetTotal();
 }
 
+let historyPage = 1;
+const HISTORY_PER_PAGE = 10;
+const HISTORY_MAX_ROWS = 500;
+
 function renderHistory(history = []) {
+  const safeHistory = Array.isArray(history) ? history.slice(0, HISTORY_MAX_ROWS) : [];
+  const totalPages = Math.max(1, Math.ceil(safeHistory.length / HISTORY_PER_PAGE));
+
+  if (historyPage > totalPages) historyPage = totalPages;
+  if (historyPage < 1) historyPage = 1;
+
+  const startIndex = (historyPage - 1) * HISTORY_PER_PAGE;
+  const endIndex = startIndex + HISTORY_PER_PAGE;
+  const pageItems = safeHistory.slice(startIndex, endIndex);
+
   els.historyBody.innerHTML = '';
-  if (!history.length) {
+
+  if (!pageItems.length) {
     const tr = document.createElement('tr');
     tr.innerHTML = '<td colspan="5" class="muted">Abhi koi history nahi hai</td>';
     els.historyBody.appendChild(tr);
+
+    const pageInfo = document.getElementById('historyPageInfo');
+    if (pageInfo) pageInfo.textContent = `1/1`;
     return;
   }
 
-  for (const item of history) {
+  for (const item of pageItems) {
     const betSummary = Object.entries(item.bet_map || {})
       .map(([num, amt]) => `${num}:${amt}`)
       .join(', ');
 
+    const resultText = item.result || '-';
+    const resultLower = resultText.toLowerCase();
+
+    const payoutValue =
+      item.payout === null || item.payout === undefined || item.payout === 0
+        ? '-'
+        : item.payout;
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>#${item.round_number}</td>
+      <td>#${item.round_number ?? '-'}</td>
       <td>${betSummary || '-'}</td>
       <td>${item.lucky_number ?? '-'}</td>
-      <td style="font-weight:700;color:${(item.result || '').toLowerCase() === 'win' ? '#00cc66' : (item.result || '').toLowerCase() === 'lose' ? '#ff4d4d' : '#ffd700'};">
-  ${item.result || '-'}
-</td>
-      <td>${item.payout || 0}</td>
+      <td style="font-weight:700;color:${resultLower === 'win' ? '#00cc66' : resultLower === 'lose' ? '#ff4d4d' : '#ffd700'};">
+        ${resultText}
+      </td>
+      <td>${payoutValue}</td>
     `;
     els.historyBody.appendChild(tr);
   }
+
+  const pageInfo = document.getElementById('historyPageInfo');
+  if (pageInfo) pageInfo.textContent = `${historyPage}/${totalPages}`;
 }
 
 function renderServerState() {
@@ -969,6 +1014,27 @@ if (currentUser) {
     currentUser = null;
     document.getElementById('loginBox').style.display = 'block';
     document.querySelector('.wrap').style.display = 'none';
+  });
+}
+
+if (els.historyPrevBtn) {
+  els.historyPrevBtn.addEventListener('click', () => {
+    if (historyPage > 1) {
+      historyPage--;
+      renderHistory(state.server?.history || []);
+    }
+  });
+}
+
+if (els.historyNextBtn) {
+  els.historyNextBtn.addEventListener('click', () => {
+    const totalItems = Array.isArray(state.server?.history) ? state.server.history.length : 0;
+    const totalPages = Math.max(1, Math.ceil(totalItems / HISTORY_PER_PAGE));
+
+    if (historyPage < totalPages) {
+      historyPage++;
+      renderHistory(state.server?.history || []);
+    }
   });
 }
 
