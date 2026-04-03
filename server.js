@@ -112,18 +112,18 @@ function getUser(userId) {
   return db.users.find(u => u.id === userId) || null;
 }
 function getUserIdFromReq(req) {
-  const id = Number(req.header('x-user-id'));
+  const token = String(req.header('x-auth-token') || '').trim();
 
-  if (!id || !Number.isInteger(id)) {
+  if (!token) {
     return null;
   }
 
-  const user = db.users.find(u => u.id === id);
+  const user = db.users.find(u => String(u.session_token || '') === token);
   if (!user) {
     return null;
   }
 
-  return id;
+  return user.id;
 }
 function getCurrentRound() {
   const active = db.rounds
@@ -486,11 +486,13 @@ app.post('/api/login', (req, res) => {
       return res.status(401).json({ error: 'Wrong password' });
     }
 
+user.session_token = crypto.randomUUID();
     return res.json({
       success: true,
       user: {
         id: user.id,
         username: user.username,
+        sessionToken: user.session_token,
         walletBalance: user.wallet_balance,
         totalPlayed: user.total_played,
         totalWins: user.total_wins,
@@ -527,7 +529,8 @@ app.post('/api/signup', (req, res) => {
       id: db.users.length ? Math.max(...db.users.map(u => u.id)) + 1 : 1,
       username,
       password,
-      wallet_balance: 100000000,
+      session_token: crypto.randomUUID(),
+      wallet_balance: 1000,
       total_played: 0,
       total_wins: 0,
       bonus_claimed: 0,
@@ -544,6 +547,7 @@ app.post('/api/signup', (req, res) => {
       user: {
         id: user.id,
         username: user.username,
+sessionToken: user.session_token,
         walletBalance: user.wallet_balance,
         totalPlayed: user.total_played,
         totalWins: user.total_wins,

@@ -547,9 +547,9 @@ async function api(url, options = {}) {
     ...(options.headers || {})
   };
 
-  if (currentUser?.id) {
-    headers['x-user-id'] = String(currentUser.id);
-  }
+  if (currentUser?.sessionToken) {
+  headers['x-auth-token'] = currentUser.sessionToken;
+}
 
   const response = await fetch(url, {
     headers,
