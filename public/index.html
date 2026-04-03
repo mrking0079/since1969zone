@@ -749,7 +749,7 @@ els.placeBetBtn.disabled = data.round.status !== 'open';
     els.statusBadge.className = 'status waiting';
   }
 
-  if (data.last10LuckyNumbers && data.last10LuckyNumbers.length) {
+if (data.last10LuckyNumbers && data.last10LuckyNumbers.length) {
   const last10 = data.last10LuckyNumbers.map(item => item.luckyNumber);
 
   els.lastLuckyList.innerHTML = last10.length
@@ -764,6 +764,9 @@ els.placeBetBtn.disabled = data.round.status !== 'open';
     ? `Latest Round #${data.lastSettledRound.roundNumber}`
     : 'Waiting.';
 } else {
+  els.lastLuckyList.innerHTML = '<div class="big" id="lastLucky">--</div>';
+  els.lastRoundText.textContent = 'Waiting.';
+}
   els.lastLuckyList.innerHTML = '<div class="big" id="lastLucky">--</div>';
   els.lastRoundText.textContent = 'Waiting.';
 }
