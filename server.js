@@ -172,6 +172,7 @@ function getRecentHistory(userId = null, limit = 500) {
 
     return {
       round_number: round.round_number,
+round_code: round.round_code || `${new Date(round.starts_at).getFullYear()}${String(new Date(round.starts_at).getMonth() + 1).padStart(2, '0')}${String(new Date(round.starts_at).getDate()).padStart(2, '0')}${String((((round.round_number || 1) - 1) % 50000) + 1).padStart(5, '0')}`,
       lucky_number: round.lucky_number,
       bet_map: userBet ? userBet.bet_map : {},
       bet_display: betSummary || '-',
@@ -191,9 +192,19 @@ function createRound(roundNumber, startsAt) {
   const clientSeed = `round-${roundNumber}-public-demo-seed`;
   const serverSeedHash = sha256(serverSeed);
 
+  const dateObj = new Date(startsAt);
+  const year = String(dateObj.getFullYear());
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const datePart = `${year}${month}${day}`;
+
+  const displayRoundNumber = ((roundNumber - 1) % 50000) + 1;
+  const roundCode = `${datePart}${String(displayRoundNumber).padStart(5, '0')}`;
+
   const round = {
     id: db.counters.roundId++,
     round_number: roundNumber,
+    round_code: roundCode,
     starts_at: startsAt,
     betting_closes_at: bettingClosesAt,
     ends_at: endsAt,

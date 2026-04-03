@@ -762,7 +762,7 @@ function renderHistory(history = []) {
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>#${item.round_number ?? '-'}</td>
+      <td>${item.round_code || item.round_number || '-'}</td>
       <td>${betSummary || '-'}</td>
       <td>${item.lucky_number ?? '-'}</td>
       <td style="font-weight:700;color:${resultLower === 'win' ? '#00cc66' : resultLower === 'lose' ? '#ff4d4d' : '#ffd700'};">
