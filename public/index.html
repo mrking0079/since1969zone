@@ -60,6 +60,7 @@
       margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: .8px;
+text-align: center;
     }
     .big {
   font-size: 34px;
@@ -515,6 +516,18 @@ function playWinSound() {
   setTimeout(() => playTone(880, 160, 'triangle', 0.05), 120);
 }
 
+function showResultFlash(luckyNumber, message, subMessage = '') {
+  els.flashLuckyNumber.textContent = luckyNumber;
+  els.flashMessage.textContent = message || 'Lucky Number';
+  els.flashSubMessage.textContent = subMessage || '';
+
+  els.resultFlash.style.display = 'flex';
+
+  setTimeout(() => {
+    els.resultFlash.style.display = 'none';
+  }, 3500);
+}
+
 function formatCoins(value) {
   return `${Number(value || 0)} Coins`;
 }
@@ -767,6 +780,7 @@ if (data.lastSettledRound) {
   els.latestLuckyNumber.textContent = '--';
   els.latestLuckyRound.textContent = 'Waiting.';
 }
+
   const last10 = data.last10LuckyNumbers.map(item => item.luckyNumber);
 
   els.lastLuckyList.innerHTML = last10.length
@@ -785,6 +799,17 @@ if (data.lastSettledRound) {
   els.lastRoundText.textContent = 'Waiting.';
 }
 
+if (data.lastSettledRound && data.lastSettledRound.roundNumber !== lastFlashedRoundId) {
+  lastFlashedRoundId = data.lastSettledRound.roundNumber;
+
+  showResultFlash(
+    data.lastSettledRound.luckyNumber,
+    'Lucky Number',
+    `Round #${data.lastSettledRound.roundNumber}`
+  );
+
+  playResultSound();
+}
   renderHistory(data.history || []);
   updateTimer();
 document.body.classList.toggle('bet-closed', !state.server?.round || state.server.round.status !== 'open');
