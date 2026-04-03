@@ -749,11 +749,8 @@ els.placeBetBtn.disabled = data.round.status !== 'open';
     els.statusBadge.className = 'status waiting';
   }
 
-  if (data.history && data.history.length) {
-  const last10 = data.history
-    .map(item => item.lucky_number)
-    .filter(num => num !== null && num !== undefined)
-    .slice(0, 10);
+  if (data.last10LuckyNumbers && data.last10LuckyNumbers.length) {
+  const last10 = data.last10LuckyNumbers.map(item => item.luckyNumber);
 
   els.lastLuckyList.innerHTML = last10.length
     ? last10.map(num => `

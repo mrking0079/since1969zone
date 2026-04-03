@@ -133,6 +133,16 @@ function getCurrentRound() {
 }
 
 function getLastSettledRound() {
+function getLast10SettledRounds() {
+  return db.rounds
+    .filter(r => r.status === 'settled' && r.lucky_number !== null && r.lucky_number !== undefined)
+    .sort((a, b) => b.round_number - a.round_number)
+    .slice(0, 10)
+    .map(round => ({
+      roundNumber: round.round_number,
+      luckyNumber: round.lucky_number
+    }));
+}
   const settled = db.rounds
     .filter(r => r.status === 'settled')
     .sort((a, b) => b.round_number - a.round_number);
@@ -287,6 +297,7 @@ function buildGameState(userId = DEMO_USER_ID) {
       clientSeed: lastSettled.client_seed,
       settledAt: lastSettled.settled_at
     } : null,
+     last10LuckyNumbers: getLast10SettledRounds(),
     history
   };
 }
