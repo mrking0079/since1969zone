@@ -809,20 +809,27 @@ if (data.lastSettledRound) {
 
     const last = data.lastSettledRound;
 
-// history me latest result dekhna
-const lastHistory = data.history && data.history[0];
+const historyList = Array.isArray(data.history) ? data.history : [];
 
-const isWinner =
-  lastHistory &&
-  lastHistory.roundNumber === last.roundNumber &&
-  lastHistory.isWinner === true;
+// sirf usi round ki user history entry lo
+const matchedHistory = historyList.find(
+  item => Number(item.roundNumber) === Number(last.roundNumber)
+);
+
+let flashSubMessage = `Round #${last.roundNumber}`;
+
+if (matchedHistory) {
+  if (matchedHistory.isWinner === true) {
+    flashSubMessage = '🎉 CONGRATULATIONS! YOU WON 🎉';
+  } else if (matchedHistory.isWinner === false) {
+    flashSubMessage = '❌ BETTER LUCK NEXT TIME';
+  }
+}
 
 showResultFlash(
   last.luckyNumber,
   'Lucky Number',
-  isWinner
-    ? '🎉 CONGRATULATIONS! YOU WON 🎉'
-    : '❌ BETTER LUCK NEXT TIME'
+  flashSubMessage
 );
 
     playResultSound();
