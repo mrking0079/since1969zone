@@ -323,8 +323,10 @@
         <div id="statusBadge" class="status">Loading.</div>
       </div>
       <div class="card">
-        <div class="mini-label">Last Lucky Number</div>
+        <div class="mini-label">Last 10 Lucky Number</div>
+      <div id="lastLuckyList" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px;min-height:54px;">
         <div class="big" id="lastLucky">--</div>
+        </div>
         <div class="muted" id="lastRoundText">Waiting.</div>
       </div>
     </div>
@@ -442,6 +444,7 @@ flashSubMessage: document.getElementById('flashSubMessage'),
   timer: document.getElementById('timer'),
   statusBadge: document.getElementById('statusBadge'),
   lastLucky: document.getElementById('lastLucky'),
+  lastLuckyList: document.getElementById('lastLuckyList'),
   lastRoundText: document.getElementById('lastRoundText'),
   fairnessBox: document.getElementById('fairnessBox'),
   historyBody: document.getElementById('historyBody'),
@@ -746,35 +749,27 @@ els.placeBetBtn.disabled = data.round.status !== 'open';
     els.statusBadge.className = 'status waiting';
   }
 
-  if (data.lastSettledRound) {
-// FULL SCREEN FLASH
-if (els.resultFlash && data.lastSettledRound && lastFlashedRoundId !== data.lastSettledRound.roundNumber) {
-  els.resultFlash.style.display = 'flex';
-  playResultSound();
-  els.flashLuckyNumber.textContent = data.lastSettledRound.luckyNumber;
-  els.flashMessage.textContent = 'Lucky Number';
+  if (data.history && data.history.length) {
+  const last10 = data.history
+    .map(item => item.lucky_number)
+    .filter(num => num !== null && num !== undefined)
+    .slice(0, 10);
 
-  if ((data.history?.[0]?.result || '').toLowerCase() === 'win' && data.history?.[0]?.round_number === data.lastSettledRound.roundNumber) {
-    els.flashSubMessage.textContent = '🎉 Congratulations! You Won';
-playWinSound();
-  } else {
-    els.flashSubMessage.textContent = 'Better luck next round';
-  }
-lastFlashedRoundId = data.lastSettledRound.roundNumber;
-  setTimeout(() => {
-    els.resultFlash.style.display = 'none';
-  }, 2000);
-}
-    els.lastLucky.textContent = data.lastSettledRound.luckyNumber;
+  els.lastLuckyList.innerHTML = last10.length
+    ? last10.map(num => `
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#ffd700,#d4a900);color:#111;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 6px 16px rgba(255,215,0,0.2);">
+          ${num}
+        </div>
+      `).join('')
+    : '<div class="big" id="lastLucky">--</div>';
 
-if ((data.lastSettledRound.result || '').toLowerCase() === 'win') {
-  showMessage(`🎉 WIN! Lucky Number: ${data.lastSettledRound.luckyNumber} | Payout: ${data.lastSettledRound.payout || 0} coins`);
+  els.lastRoundText.textContent = data.lastSettledRound
+    ? `Latest Round #${data.lastSettledRound.roundNumber}`
+    : 'Waiting.';
+} else {
+  els.lastLuckyList.innerHTML = '<div class="big" id="lastLucky">--</div>';
+  els.lastRoundText.textContent = 'Waiting.';
 }
-    els.lastRoundText.textContent = `Round #${data.lastSettledRound.roundNumber}`;
-  } else {
-    els.lastLucky.textContent = '--';
-    els.lastRoundText.textContent = 'Waiting.';
-  }
 
   renderHistory(data.history || []);
   updateTimer();
