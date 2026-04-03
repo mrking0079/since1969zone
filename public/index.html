@@ -814,8 +814,20 @@ if (data.lastSettledRound) {
     );
 
     playResultSound();
+const latestHistory = data.history && data.history[0];
+
+if (
+  latestHistory &&
+  latestHistory.round_number === data.lastSettledRound.roundNumber
+) {
+  if (String(latestHistory.result || '').toLowerCase() === 'win') {
+    showMessage(`🎉 Congratulations! You won ${latestHistory.payout || 0} coins on Round #${latestHistory.round_number}`);
+    playWinSound();
+  } else if (String(latestHistory.result || '').toLowerCase() === 'lose') {
+    showMessage(`😔 Bad luck! You lost on Round #${latestHistory.round_number}`);
   }
 }
+
   renderHistory(data.history || []);
   updateTimer();
 document.body.classList.toggle('bet-closed', !state.server?.round || state.server.round.status !== 'open');
