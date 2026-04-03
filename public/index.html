@@ -332,7 +332,11 @@ text-align: center;
         <div class="mini-label">Wallet Balance</div>
         <div class="big" id="walletTop">0 Coins</div>
         <div class="muted" id="walletSummary"></div>
-<button id="logoutBtn" class="secondary" style="margin-top:10px;">Logout</button>
+<div style="display:flex;gap:10px;margin-top:10px;">
+  <button id="logoutBtn" class="secondary" style="flex:1;">Logout</button>
+  <button id="addCoinBtn" class="secondary" style="flex:1;">Add Coin</button>
+  <button id="withdrawCoinBtn" class="secondary" style="flex:1;">Withdrawal Coin</button>
+</div>
       </div>
       <div class="card">
   <div class="mini-label">Round Timer</div>
@@ -487,7 +491,16 @@ historyPageInfo: document.getElementById('historyPageInfo'),
   totalPlayed: document.getElementById('totalPlayed'),
   totalWins: document.getElementById('totalWins'),
   bonusClaimed: document.getElementById('bonusClaimed'),
-  currentBet: document.getElementById('currentBet'),
+  currentBet: document.getElementById('currentBet'),addCoinBtn: document.getElementById('addCoinBtn'),
+withdrawCoinBtn: document.getElementById('withdrawCoinBtn'),
+addCoinModal: document.getElementById('addCoinModal'),
+withdrawCoinModal: document.getElementById('withdrawCoinModal'),
+closeAddCoinModal: document.getElementById('closeAddCoinModal'),
+closeWithdrawCoinModal: document.getElementById('closeWithdrawCoinModal'),
+addCoinInput: document.getElementById('addCoinInput'),
+withdrawCoinInput: document.getElementById('withdrawCoinInput'),
+submitAddCoin: document.getElementById('submitAddCoin'),
+submitWithdrawCoin: document.getElementById('submitWithdrawCoin'),
 };
 
 const state = {
@@ -1007,6 +1020,104 @@ els.bonusBtn.addEventListener('click', async () => {
   }
 });
 
+const TELEGRAM_BASE = 'https://t.me/x_snny?text=';
+
+function openTelegramMessage(text) {
+  window.open(`${TELEGRAM_BASE}${encodeURIComponent(text)}`, '_blank');
+}
+
+// open add modal
+els.addCoinBtn.addEventListener('click', () => {
+  els.addCoinModal.style.display = 'flex';
+  els.addCoinInput.value = '';
+});
+
+// open withdraw modal
+els.withdrawCoinBtn.addEventListener('click', () => {
+  els.withdrawCoinModal.style.display = 'flex';
+  els.withdrawCoinInput.value = '';
+});
+
+// close add modal
+els.closeAddCoinModal.addEventListener('click', () => {
+  els.addCoinModal.style.display = 'none';
+});
+
+// close withdraw modal
+els.closeWithdrawCoinModal.addEventListener('click', () => {
+  els.withdrawCoinModal.style.display = 'none';
+});
+
+// outside click close
+els.addCoinModal.addEventListener('click', (e) => {
+  if (e.target === els.addCoinModal) {
+    els.addCoinModal.style.display = 'none';
+  }
+});
+
+els.withdrawCoinModal.addEventListener('click', (e) => {
+  if (e.target === els.withdrawCoinModal) {
+    els.withdrawCoinModal.style.display = 'none';
+  }
+});
+
+// quick add coin buttons
+document.querySelectorAll('.add-coin-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.add-coin-option').forEach(b => {
+      b.style.outline = 'none';
+      b.style.background = '#232323';
+      b.style.color = '#fff';
+    });
+
+    btn.style.outline = '2px solid #ffd700';
+    btn.style.background = '#ffd700';
+    btn.style.color = '#111';
+
+    els.addCoinInput.value = btn.dataset.coin;
+  });
+});
+
+// add coin submit
+els.submitAddCoin.addEventListener('click', () => {
+  const amount = Number(els.addCoinInput.value);
+
+  if (!amount || amount <= 0) {
+    alert('Please enter valid coins');
+    return;
+  }
+
+  const username = currentUser?.username || 'Unknown User';
+
+  const msg = `Hello bhai%0AUsername: ${username}%0AAdd Coin Request: ${amount} coins`;
+
+  openTelegramMessage(msg);
+  els.addCoinModal.style.display = 'none';
+});
+
+// withdraw submit
+els.submitWithdrawCoin.addEventListener('click', () => {
+  const amount = Number(els.withdrawCoinInput.value);
+  const walletBalance = Number(state.server?.user?.walletBalance || 0);
+
+  if (!amount || amount <= 0) {
+    alert('Please enter valid withdrawal coins');
+    return;
+  }
+
+  if (amount > walletBalance) {
+    alert('Insufficient balance');
+    return;
+  }
+
+  const username = currentUser?.username || 'Unknown User';
+
+  const msg = `Hello bhai%0AUsername: ${username}%0AWithdrawal Request: ${amount} coins`;
+
+  openTelegramMessage(msg);
+  els.withdrawCoinModal.style.display = 'none';
+});
+
 buildNumbers();
 
 if (currentUser) {
@@ -1044,5 +1155,41 @@ if (els.historyNextBtn) {
 setInterval(updateTimer, 1000);
 setInterval(loadState, 1000);
 </script>
+
+<div id="addCoinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;color:#ffd700;">Add Coin</h3>
+      <button id="closeAddCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
+    </div>
+
+    <input id="addCoinInput" type="number" placeholder="Enter coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
+
+    <div id="addCoinQuickOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+      <button type="button" class="add-coin-option secondary" data-coin="100">100</button>
+      <button type="button" class="add-coin-option secondary" data-coin="200">200</button>
+      <button type="button" class="add-coin-option secondary" data-coin="500">500</button>
+      <button type="button" class="add-coin-option secondary" data-coin="1000">1000</button>
+      <button type="button" class="add-coin-option secondary" data-coin="2000">2000</button>
+      <button type="button" class="add-coin-option secondary" data-coin="5000">5000</button>
+    </div>
+
+    <button id="submitAddCoin" class="primary" style="width:100%;">Add Coin</button>
+  </div>
+</div>
+
+<div id="withdrawCoinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;color:#ffd700;">Withdrawal Coin</h3>
+      <button id="closeWithdrawCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
+    </div>
+
+    <input id="withdrawCoinInput" type="number" placeholder="Enter withdrawal coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:16px;" />
+
+    <button id="submitWithdrawCoin" class="danger" style="width:100%;">Withdrawal</button>
+  </div>
+</div>
+
 </body>
 </html>
