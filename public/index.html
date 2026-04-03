@@ -243,10 +243,31 @@
     .hidden { display: none; }
     .muted { color: var(--muted); }
     @media (max-width: 900px) {
-      .topbar, .grid { grid-template-columns: 1fr; }
-      .numbers { grid-template-columns: repeat(3, 1fr); }
-      .btns, .admin { grid-template-columns: 1fr; }
-    }
+  .topbar, .grid { grid-template-columns: 1fr; }
+  .numbers { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .btns, .admin { grid-template-columns: 1fr; }
+
+  .wrap {
+    padding: 14px;
+  }
+
+  .num {
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .num button {
+    width: 58px;
+    height: 58px;
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .num input {
+    padding: 10px;
+    font-size: 14px;
+  }
+}
   </style>
 </head>
 <body>
