@@ -430,6 +430,7 @@ text-align: center;
 let currentUser = null;
 let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
 let lastFlashedRoundId = null;
+let flashInitialized = false;
 
 const savedUser = localStorage.getItem('user');
 if (savedUser) {
@@ -525,7 +526,7 @@ function showResultFlash(luckyNumber, message, subMessage = '') {
 
   setTimeout(() => {
     els.resultFlash.style.display = 'none';
-  }, 3500);
+  }, 1000);
 }
 
 function formatCoins(value) {
@@ -799,16 +800,21 @@ if (data.lastSettledRound) {
   els.lastRoundText.textContent = 'Waiting.';
 }
 
-if (data.lastSettledRound && data.lastSettledRound.roundNumber !== lastFlashedRoundId) {
-  lastFlashedRoundId = data.lastSettledRound.roundNumber;
+if (data.lastSettledRound) {
+  if (!flashInitialized) {
+    lastFlashedRoundId = data.lastSettledRound.roundNumber;
+    flashInitialized = true;
+  } else if (data.lastSettledRound.roundNumber !== lastFlashedRoundId) {
+    lastFlashedRoundId = data.lastSettledRound.roundNumber;
 
-  showResultFlash(
-    data.lastSettledRound.luckyNumber,
-    'Lucky Number',
-    `Round #${data.lastSettledRound.roundNumber}`
-  );
+    showResultFlash(
+      data.lastSettledRound.luckyNumber,
+      'Lucky Number',
+      `Round #${data.lastSettledRound.roundNumber}`
+    );
 
-  playResultSound();
+    playResultSound();
+  }
 }
   renderHistory(data.history || []);
   updateTimer();
