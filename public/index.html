@@ -436,10 +436,16 @@ flashSubMessage: document.getElementById('flashSubMessage'),
 };
 
 const state = {
+server: null,
+  selections: new Set(),
+  amounts: {}
+};
+
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playTone(freq = 440, duration = 120, type = 'sine', volume = 0.04) {
 if (!soundEnabled) return;
+
   try {
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
@@ -474,10 +480,6 @@ function playWinSound() {
   playTone(660, 120, 'triangle', 0.05);
   setTimeout(() => playTone(880, 160, 'triangle', 0.05), 120);
 }
-  server: null,
-  selections: new Set(),
-  amounts: {}
-};
 
 function formatCoins(value) {
   return `${Number(value || 0)} Coins`;
