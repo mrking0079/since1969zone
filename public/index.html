@@ -168,9 +168,18 @@ text-align: center;
   box-shadow: 0 8px 20px rgba(255, 215, 0, 0.28);
 }
     button.secondary {
-  background: #232323;
+  background: linear-gradient(180deg, #2a2a2a, #161616);
   color: #fff;
   font-size: 16px;
+  border: 1px solid #3a3a3a;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+button.secondary:hover {
+  transform: translateY(-2px);
+  border-color: #ffd700;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.18), 0 10px 20px rgba(0,0,0,0.32);
 }
     button.danger {
   background: linear-gradient(180deg, #ff4d4d, #d93636);
@@ -446,6 +455,70 @@ text-align: center;
     </div>
   </div>
 
+<div id="addCoinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;color:#ffd700;">Add Coin</h3>
+      <button id="closeAddCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
+    </div>
+
+    <input id="addCoinInput" type="number" placeholder="Enter coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
+
+    <div id="addCoinQuickOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+      <button type="button" class="add-coin-option secondary" data-coin="100">100</button>
+      <button type="button" class="add-coin-option secondary" data-coin="200">200</button>
+      <button type="button" class="add-coin-option secondary" data-coin="500">500</button>
+      <button type="button" class="add-coin-option secondary" data-coin="1000">1000</button>
+      <button type="button" class="add-coin-option secondary" data-coin="2000">2000</button>
+      <button type="button" class="add-coin-option secondary" data-coin="5000">5000</button>
+    </div>
+
+    <button id="submitAddCoin" class="primary" style="width:100%;">Add Coin</button>
+  </div>
+</div>
+
+<div id="withdrawCoinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;color:#ffd700;">Withdrawal Coin</h3>
+      <button id="closeWithdrawCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
+    </div>
+
+    <input id="withdrawCoinInput" type="number" placeholder="Enter withdrawal coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:16px;" />
+
+    <button id="submitWithdrawCoin" class="danger" style="width:100%;">Withdrawal</button>
+  </div>
+</div>
+
+<div id="confirmActionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100000;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;text-align:center;">
+    <h3 style="margin:0 0 12px;color:#ffd700;">Confirm Request</h3>
+
+    <div id="confirmActionText" style="color:#fff;font-size:16px;line-height:1.6;margin-bottom:18px;">
+      Are you sure?
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <button id="cancelConfirmAction" class="secondary" style="flex:1;">Cancel</button>
+      <button id="confirmActionBtn" class="primary" style="flex:1;">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirmActionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100000;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:400px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;text-align:center;">
+    <h3 style="margin:0 0 12px;color:#ffd700;">Confirm Request</h3>
+    <div id="confirmActionText" style="color:#fff;font-size:16px;line-height:1.5;margin-bottom:18px;">
+      Are you sure?
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button id="cancelConfirmAction" class="secondary" style="flex:1;">Cancel</button>
+      <button id="confirmActionBtn" class="primary" style="flex:1;">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let currentUser = null;
 let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
@@ -501,6 +574,14 @@ addCoinInput: document.getElementById('addCoinInput'),
 withdrawCoinInput: document.getElementById('withdrawCoinInput'),
 submitAddCoin: document.getElementById('submitAddCoin'),
 submitWithdrawCoin: document.getElementById('submitWithdrawCoin'),
+confirmActionModal: document.getElementById('confirmActionModal'),
+confirmActionText: document.getElementById('confirmActionText'),
+cancelConfirmAction: document.getElementById('cancelConfirmAction'),
+confirmActionBtn: document.getElementById('confirmActionBtn'),
+confirmActionModal: document.getElementById('confirmActionModal'),
+confirmActionText: document.getElementById('confirmActionText'),
+cancelConfirmAction: document.getElementById('cancelConfirmAction'),
+confirmActionBtn: document.getElementById('confirmActionBtn'),
 };
 
 const state = {
@@ -509,6 +590,7 @@ server: null,
   amounts: {}
 };
 
+let pendingTelegramMessage = '';
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playTone(freq = 440, duration = 120, type = 'sine', volume = 0.04) {
@@ -1089,10 +1171,9 @@ els.submitAddCoin.addEventListener('click', () => {
 
   const username = currentUser?.username || 'Unknown User';
 
-  const msg = `Hello bhai%0AUsername: ${username}%0AAdd Coin Request: ${amount} coins`;
-
-  openTelegramMessage(msg);
-  els.addCoinModal.style.display = 'none';
+  pendingTelegramMessage = `Hello bhai\nUsername: ${username}\nAdd Coin Request: ${amount} coins`;
+  els.confirmActionText.textContent = `Do you want to send Add Coin request for ${amount} coins?`;
+  els.confirmActionModal.style.display = 'flex';
 });
 
 // withdraw submit
@@ -1112,10 +1193,32 @@ els.submitWithdrawCoin.addEventListener('click', () => {
 
   const username = currentUser?.username || 'Unknown User';
 
-  const msg = `Hello bhai%0AUsername: ${username}%0AWithdrawal Request: ${amount} coins`;
+  pendingTelegramMessage = `Hello bhai\nUsername: ${username}\nWithdrawal Request: ${amount} coins`;
+  els.confirmActionText.textContent = `Do you want to send Withdrawal request for ${amount} coins?`;
+  els.confirmActionModal.style.display = 'flex';
+});
 
-  openTelegramMessage(msg);
+els.cancelConfirmAction.addEventListener('click', () => {
+  els.confirmActionModal.style.display = 'none';
+  pendingTelegramMessage = '';
+});
+
+els.confirmActionBtn.addEventListener('click', () => {
+  if (!pendingTelegramMessage) return;
+
+  openTelegramMessage(pendingTelegramMessage);
+
+  els.confirmActionModal.style.display = 'none';
+  els.addCoinModal.style.display = 'none';
   els.withdrawCoinModal.style.display = 'none';
+  pendingTelegramMessage = '';
+});
+
+els.confirmActionModal.addEventListener('click', (e) => {
+  if (e.target === els.confirmActionModal) {
+    els.confirmActionModal.style.display = 'none';
+    pendingTelegramMessage = '';
+  }
 });
 
 buildNumbers();
@@ -1156,40 +1259,6 @@ setInterval(updateTimer, 1000);
 setInterval(loadState, 1000);
 </script>
 
-<div id="addCoinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
-  <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="margin:0;color:#ffd700;">Add Coin</h3>
-      <button id="closeAddCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
-    </div>
-
-    <input id="addCoinInput" type="number" placeholder="Enter coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
-
-    <div id="addCoinQuickOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-      <button type="button" class="add-coin-option secondary" data-coin="100">100</button>
-      <button type="button" class="add-coin-option secondary" data-coin="200">200</button>
-      <button type="button" class="add-coin-option secondary" data-coin="500">500</button>
-      <button type="button" class="add-coin-option secondary" data-coin="1000">1000</button>
-      <button type="button" class="add-coin-option secondary" data-coin="2000">2000</button>
-      <button type="button" class="add-coin-option secondary" data-coin="5000">5000</button>
-    </div>
-
-    <button id="submitAddCoin" class="primary" style="width:100%;">Add Coin</button>
-  </div>
-</div>
-
-<div id="withdrawCoinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
-  <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="margin:0;color:#ffd700;">Withdrawal Coin</h3>
-      <button id="closeWithdrawCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
-    </div>
-
-    <input id="withdrawCoinInput" type="number" placeholder="Enter withdrawal coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:16px;" />
-
-    <button id="submitWithdrawCoin" class="danger" style="width:100%;">Withdrawal</button>
-  </div>
-</div>
 
 </body>
 </html>
