@@ -818,7 +818,15 @@ const matchedHistory = historyList.find(
 
 let flashSubMessage = `Round #${last.roundNumber}`;
 
-if (matchedHistory) {
+const betAmount = Number(
+  matchedHistory?.betAmount ??
+  matchedHistory?.totalBet ??
+  matchedHistory?.amount ??
+  matchedHistory?.stake ??
+  0
+);
+
+if (matchedHistory && betAmount > 0) {
   if (matchedHistory.isWinner === true) {
     flashSubMessage = '🎉 CONGRATULATIONS! YOU WON 🎉';
   } else if (matchedHistory.isWinner === false) {
