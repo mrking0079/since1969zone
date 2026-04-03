@@ -294,6 +294,7 @@
         <div class="big" id="walletTop">0 Coins</div>
         <div class="muted" id="walletSummary">Logged in as: Guest</div>
 <button id="logoutBtn" class="secondary" style="margin-top:10px;">Logout</button>
+<button id="soundToggleBtn" class="secondary" style="margin-top:10px;">🔊 Sound On</button>
       </div>
       <div class="card">
         <div class="mini-label">Round Timer</div>
@@ -390,6 +391,7 @@
 
 <script>
 let currentUser = null;
+let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
 let lastFlashedRoundId = null;
 
 const savedUser = localStorage.getItem('user');
@@ -415,6 +417,7 @@ flashSubMessage: document.getElementById('flashSubMessage'),
   walletTop: document.getElementById('walletTop'),
   walletSummary: document.getElementById('walletSummary'),
   logoutBtn: document.getElementById('logoutBtn'),
+  soundToggleBtn: document.getElementById('soundToggleBtn'),
   timer: document.getElementById('timer'),
   statusBadge: document.getElementById('statusBadge'),
   lastLucky: document.getElementById('lastLucky'),
@@ -433,6 +436,44 @@ flashSubMessage: document.getElementById('flashSubMessage'),
 };
 
 const state = {
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq = 440, duration = 120, type = 'sine', volume = 0.04) {
+if (!soundEnabled) return;
+  try {
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+    gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration / 1000);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + duration / 1000);
+  } catch (e) {}
+}
+
+function playClickSound() {
+  playTone(520, 70, 'square', 0.03);
+}
+
+function playBetSound() {
+  playTone(620, 90, 'triangle', 0.04);
+}
+
+function playResultSound() {
+  playTone(760, 180, 'sine', 0.05);
+}
+
+function playWinSound() {
+  playTone(660, 120, 'triangle', 0.05);
+  setTimeout(() => playTone(880, 160, 'triangle', 0.05), 120);
+}
   server: null,
   selections: new Set(),
   amounts: {}
@@ -568,6 +609,8 @@ function buildNumbers() {
     input.disabled = true;
 
     btn.addEventListener('click', () => {
+    playClickSound();
+
       const key = String(i);
       if (state.selections.has(key)) {
         state.selections.delete(key);
@@ -684,11 +727,13 @@ els.placeBetBtn.disabled = data.round.status !== 'open';
 // FULL SCREEN FLASH
 if (els.resultFlash && data.lastSettledRound && lastFlashedRoundId !== data.lastSettledRound.roundNumber) {
   els.resultFlash.style.display = 'flex';
+  playResultSound();
   els.flashLuckyNumber.textContent = data.lastSettledRound.luckyNumber;
   els.flashMessage.textContent = 'Lucky Number';
 
   if ((data.history?.[0]?.result || '').toLowerCase() === 'win' && data.history?.[0]?.round_number === data.lastSettledRound.roundNumber) {
     els.flashSubMessage.textContent = '🎉 Congratulations! You Won';
+playWinSound();
   } else {
     els.flashSubMessage.textContent = 'Better luck next round';
   }
@@ -743,6 +788,13 @@ async function loadState() {
 }
 
 els.logoutBtn.addEventListener('click', () => {
+els.soundToggleBtn.textContent = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
+
+els.soundToggleBtn.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('soundEnabled', String(soundEnabled));
+  els.soundToggleBtn.textContent = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
+});
   currentUser = null;
   localStorage.removeItem('user');
   document.getElementById('loginBox').style.display = 'block';
@@ -770,6 +822,8 @@ if (Object.keys(betMap).length === 0) {
       method: 'POST',
       body: JSON.stringify({ betMap })
     });
+
+     playBetSound();
 
     state.server = data.state;
     state.selections.clear();
