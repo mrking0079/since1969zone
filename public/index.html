@@ -680,7 +680,7 @@ if (els.resultFlash && data.lastSettledRound && lastFlashedRoundId !== data.last
   if ((data.history?.[0]?.result || '').toLowerCase() === 'win' && data.history?.[0]?.round_number === data.lastSettledRound.roundNumber) {
     els.flashSubMessage.textContent = '🎉 Congratulations! You Won';
   } else {
-    els.flashSubMessage.textContent = '';
+    els.flashSubMessage.textContent = 'Better luck next round';
   }
 lastFlashedRoundId = data.lastSettledRound.roundNumber;
   setTimeout(() => {
