@@ -393,9 +393,20 @@
         </div>
 
         <div class="card">
-  <div class="mini-label">External Use Only</div>
-  <div class="muted">Reserved for future external control panel.</div>
-</div>
+          <div class="mini-label">Admin Controls</div>
+          <div class="muted">Admin key dalo. Phir settle ya wallet credit test kar sakte ho.</div>
+
+          <div class="admin">
+            <input id="adminKey" placeholder="Admin key" />
+            <input id="adminCreditAmount" type="number" placeholder="Amount" />
+            <button class="secondary" id="adminCreditBtn">Credit</button>
+          </div>
+
+          <div class="admin" style="grid-template-columns: 1fr;">
+            <button class="danger" id="adminSettleBtn">Force Settle Round</button>
+          </div>
+
+          <div class="msg" id="adminMessage"></div>
         </div>
       </div>
     </div>
@@ -441,11 +452,6 @@ flashSubMessage: document.getElementById('flashSubMessage'),
   totalWins: document.getElementById('totalWins'),
   bonusClaimed: document.getElementById('bonusClaimed'),
   currentBet: document.getElementById('currentBet'),
-  adminKey: document.getElementById('adminKey'),
-  adminCreditAmount: document.getElementById('adminCreditAmount'),
-  adminCreditBtn: document.getElementById('adminCreditBtn'),
-  adminSettleBtn: document.getElementById('adminSettleBtn'),
-  adminMessage: document.getElementById('adminMessage')
 };
 
 const state = {
@@ -855,39 +861,6 @@ els.bonusBtn.addEventListener('click', async () => {
     showMessage(data.message);
   } catch (error) {
     showMessage(error.message);
-  }
-});
-
-els.adminSettleBtn.addEventListener('click', async () => {
-  try {
-    const key = els.adminKey.value.trim();
-    const data = await api('/api/admin/settle', {
-      method: 'POST',
-      headers: { 'x-admin-key': key },
-      body: '{}'
-    });
-    state.server = data.state;
-    renderServerState();
-    els.adminMessage.textContent = data.message;
-  } catch (error) {
-    els.adminMessage.textContent = error.message;
-  }
-});
-
-els.adminCreditBtn.addEventListener('click', async () => {
-  try {
-    const key = els.adminKey.value.trim();
-    const amount = Number(els.adminCreditAmount.value);
-    const data = await api('/api/admin/credit', {
-      method: 'POST',
-      headers: { 'x-admin-key': key },
-      body: JSON.stringify({ amount })
-    });
-    state.server = data.state;
-    renderServerState();
-    els.adminMessage.textContent = `Wallet credited by ${amount}`;
-  } catch (error) {
-    els.adminMessage.textContent = error.message;
   }
 });
 
