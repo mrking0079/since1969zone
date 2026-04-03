@@ -1,368 +1,50 @@
 {
   "users": [
     {
+      "id": 999,
+      "username": "admin",
+      "password": "admin123",
+      "session_token": "",
+      "wallet_balance": 0,
+      "total_played": 0,
+      "total_wins": 0,
+      "bonus_claimed": 0,
+      "last_bonus_time": 0,
+      "created_at": 1775260115351
+    },
+    {
       "id": 1,
       "username": "demo-user",
-      "wallet_balance": 1290,
-      "total_played": 100,
-      "total_wins": 1,
-      "bonus_claimed": 1,
-      "last_bonus_time": 1775113650325,
-      "created_at": 1775113547982
-    },
-    {
-      "id": 2,
-      "username": "parmod0079",
-      "wallet_balance": 1290,
-      "total_played": 10,
-      "total_wins": 0,
-      "bonus_claimed": 1,
-      "last_bonus_time": 1775119649321,
-      "created_at": 1775116168882
-    },
-    {
-      "id": 3,
-      "username": "karmjeet",
-      "wallet_balance": 1290,
-      "total_played": 10,
-      "total_wins": 0,
-      "bonus_claimed": 1,
-      "last_bonus_time": 1775119472753,
-      "created_at": 1775119470633
-    },
-    {
-      "id": 4,
-      "username": "ramesh",
-      "wallet_balance": 1250,
+      "wallet_balance": 1000,
       "total_played": 0,
       "total_wins": 0,
       "bonus_claimed": 0,
       "last_bonus_time": 0,
-      "created_at": 1775119592343
-    },
-    {
-      "id": 5,
-      "username": "parmod00079",
-      "password": "0079",
-      "wallet_balance": 1250,
-      "total_played": 0,
-      "total_wins": 0,
-      "bonus_claimed": 0,
-      "last_bonus_time": 0,
-      "created_at": 1775120615793
-    },
-    {
-      "id": 6,
-      "username": "karmjeet0079",
-      "password": "0079",
-      "wallet_balance": 1250,
-      "total_played": 0,
-      "total_wins": 0,
-      "bonus_claimed": 0,
-      "last_bonus_time": 0,
-      "created_at": 1775120634405
+      "created_at": 1775260115351
     }
   ],
   "rounds": [
     {
       "id": 1,
       "round_number": 1,
-      "starts_at": 1775113547983,
-      "betting_closes_at": 1775113797983,
-      "ends_at": 1775113847983,
-      "status": "settled",
-      "server_seed": "988055701078033b2c694c1dd7ea045afc97f4f9b4b564e1328c15510e987076",
-      "server_seed_hash": "a69ff59734bb38f5de920794edab9a7f44f09a37118eceb44488cf7becb30251",
+      "round_code": "2026040400001",
+      "starts_at": 1775260115354,
+      "betting_closes_at": 1775260165354,
+      "ends_at": 1775260175354,
+      "status": "open",
+      "server_seed": "4b24f069645e5b6c334ab37b6e8bb2070a217a6548897a5c8182b7571f8468ef",
+      "server_seed_hash": "a03e6a3549ab9ba8210769b084ce75e310162f827891c0b55ae580ad12897484",
       "client_seed": "round-1-public-demo-seed",
-      "lucky_number": 7,
-      "settled_at": 1775113878884,
-      "created_at": 1775113547985
-    },
-    {
-      "id": 2,
-      "round_number": 2,
-      "starts_at": 1775113878885,
-      "betting_closes_at": 1775114128885,
-      "ends_at": 1775114178885,
-      "status": "settled",
-      "server_seed": "38a71dbde48c91b8df59ee4c98d5cdbff55e3c93f5ca710d1848c365c098fe5d",
-      "server_seed_hash": "f7bac5ea433c6f3a0dff2d92c282f50dc9f1839057af1d6ef9b1bdcbf4724ff0",
-      "client_seed": "round-2-public-demo-seed",
-      "lucky_number": 6,
-      "settled_at": 1775115128811,
-      "created_at": 1775113878885
-    },
-    {
-      "id": 3,
-      "round_number": 3,
-      "starts_at": 1775115128812,
-      "betting_closes_at": 1775115378812,
-      "ends_at": 1775115428812,
-      "status": "settled",
-      "server_seed": "06488318e1ee3bdbda11db72c2ebb501273b7e68db03e17cbe4c2663a51bd029",
-      "server_seed_hash": "a3c3d01cea087c7f663963ae711564053162345584f3c7ab5999caa34db1f25a",
-      "client_seed": "round-3-public-demo-seed",
-      "lucky_number": 2,
-      "settled_at": 1775115797046,
-      "created_at": 1775115128812
-    },
-    {
-      "id": 4,
-      "round_number": 4,
-      "starts_at": 1775115797047,
-      "betting_closes_at": 1775116047047,
-      "ends_at": 1775116097047,
-      "status": "settled",
-      "server_seed": "5e02fc2c348c3bc71e14d2c781a054f6d6e7301cf24d24274557b8439faab465",
-      "server_seed_hash": "6c217675ebf880a8fc94b58a969e607a647a911eb6d688b72442e58a54e5a2f2",
-      "client_seed": "round-4-public-demo-seed",
-      "lucky_number": 7,
-      "settled_at": 1775116176930,
-      "created_at": 1775115797047
-    },
-    {
-      "id": 5,
-      "round_number": 5,
-      "starts_at": 1775116176931,
-      "betting_closes_at": 1775116426931,
-      "ends_at": 1775116476931,
-      "status": "settled",
-      "server_seed": "95700e80caf8e0c52086452ed35f37faa4a7d6784264d5b375192b412f3d4a54",
-      "server_seed_hash": "5d7e564671da1cfe3124733fb2f2a793202139c8fce9d7f16d6b04ffaddb937c",
-      "client_seed": "round-5-public-demo-seed",
-      "lucky_number": 7,
-      "settled_at": 1775119429958,
-      "created_at": 1775116176931
-    },
-    {
-      "id": 6,
-      "round_number": 6,
-      "starts_at": 1775119429959,
-      "betting_closes_at": 1775119679959,
-      "ends_at": 1775119729959,
-      "status": "settled",
-      "server_seed": "4c477db86ae6140c00d30d9cdad9367ed69939368a21e7aa9409509767b5e99b",
-      "server_seed_hash": "d939a6bb0a8290a668b6a8ca62951d7e3f12ceabadd1e2172365f5c697939021",
-      "client_seed": "round-6-public-demo-seed",
-      "lucky_number": 4,
-      "settled_at": 1775119850863,
-      "created_at": 1775119429961
-    },
-    {
-      "id": 7,
-      "round_number": 7,
-      "starts_at": 1775119850863,
-      "betting_closes_at": 1775120100863,
-      "ends_at": 1775120150863,
-      "status": "settled",
-      "server_seed": "5143f96f5908a8317e117246506896ce88717cf4b19f64df76164f252f53a4dc",
-      "server_seed_hash": "2aa5b8be5fd94cf191edc9129ea2313694b9c884c3694c7bbf027c7db468fb58",
-      "client_seed": "round-7-public-demo-seed",
-      "lucky_number": 3,
-      "settled_at": 1775120648466,
-      "created_at": 1775119850864
-    },
-    {
-      "id": 8,
-      "round_number": 8,
-      "starts_at": 1775120648466,
-      "betting_closes_at": 1775120898466,
-      "ends_at": 1775120948466,
-      "status": "closed",
-      "server_seed": "3769429ec6ed80bcfefe812f0790e7eb9b8ac503f4e6ef19f5c9532d37fbdc79",
-      "server_seed_hash": "b4fabd5bc7ddbffd6e09cbd04ade4b09cd84078cf6921596e61ec26e7f1ca3b0",
-      "client_seed": "round-8-public-demo-seed",
       "lucky_number": null,
       "settled_at": null,
-      "created_at": 1775120648467
+      "created_at": 1775260115358
     }
   ],
-  "bets": [
-    {
-      "id": 1,
-      "round_id": 1,
-      "user_id": 1,
-      "bet_map": {
-        "0": 10
-      },
-      "total_coins": 10,
-      "matched_number": 7,
-      "payout": 0,
-      "result": "lose",
-      "created_at": 1775113688329
-    },
-    {
-      "id": 2,
-      "round_id": 3,
-      "user_id": 1,
-      "bet_map": {
-        "4": 10
-      },
-      "total_coins": 10,
-      "matched_number": 2,
-      "payout": 0,
-      "result": "lose",
-      "created_at": 1775115296401
-    },
-    {
-      "id": 3,
-      "round_id": 4,
-      "user_id": 1,
-      "bet_map": {
-        "1": 10,
-        "3": 10,
-        "5": 10,
-        "7": 10,
-        "9": 10
-      },
-      "total_coins": 50,
-      "matched_number": 7,
-      "payout": 90,
-      "result": "win",
-      "created_at": 1775115815419
-    },
-    {
-      "id": 4,
-      "round_id": 5,
-      "user_id": 1,
-      "bet_map": {
-        "2": 10,
-        "5": 10,
-        "9": 10
-      },
-      "total_coins": 30,
-      "matched_number": 7,
-      "payout": 0,
-      "result": "lose",
-      "created_at": 1775116200375
-    },
-    {
-      "id": 5,
-      "round_id": 6,
-      "user_id": 2,
-      "bet_map": {
-        "7": 10
-      },
-      "total_coins": 10,
-      "matched_number": 4,
-      "payout": 0,
-      "result": "lose",
-      "created_at": 1775119440516
-    },
-    {
-      "id": 6,
-      "round_id": 6,
-      "user_id": 3,
-      "bet_map": {
-        "7": 10
-      },
-      "total_coins": 10,
-      "matched_number": 4,
-      "payout": 0,
-      "result": "lose",
-      "created_at": 1775119476145
-    }
-  ],
-  "transactions": [
-    {
-      "id": 1,
-      "user_id": 1,
-      "type": "bonus_credit",
-      "amount": 50,
-      "meta": {},
-      "created_at": 1775113650325
-    },
-    {
-      "id": 2,
-      "user_id": 1,
-      "type": "bet_debit",
-      "amount": -10,
-      "meta": {
-        "roundId": 1
-      },
-      "created_at": 1775113688329
-    },
-    {
-      "id": 3,
-      "user_id": 1,
-      "type": "bet_debit",
-      "amount": -10,
-      "meta": {
-        "roundId": 3
-      },
-      "created_at": 1775115296401
-    },
-    {
-      "id": 4,
-      "user_id": 1,
-      "type": "bet_debit",
-      "amount": -50,
-      "meta": {
-        "roundId": 4
-      },
-      "created_at": 1775115815419
-    },
-    {
-      "id": 5,
-      "user_id": 1,
-      "type": "win_credit",
-      "amount": 90,
-      "meta": {
-        "roundId": 4,
-        "luckyNumber": 7
-      },
-      "created_at": 1775116176930
-    },
-    {
-      "id": 6,
-      "user_id": 1,
-      "type": "bet_debit",
-      "amount": -30,
-      "meta": {
-        "roundId": 5
-      },
-      "created_at": 1775116200375
-    },
-    {
-      "id": 7,
-      "user_id": 2,
-      "type": "bet_debit",
-      "amount": -10,
-      "meta": {
-        "roundId": 6
-      },
-      "created_at": 1775119440516
-    },
-    {
-      "id": 8,
-      "user_id": 3,
-      "type": "bonus_credit",
-      "amount": 50,
-      "meta": {},
-      "created_at": 1775119472753
-    },
-    {
-      "id": 9,
-      "user_id": 3,
-      "type": "bet_debit",
-      "amount": -10,
-      "meta": {
-        "roundId": 6
-      },
-      "created_at": 1775119476145
-    },
-    {
-      "id": 10,
-      "user_id": 2,
-      "type": "bonus_credit",
-      "amount": 50,
-      "meta": {},
-      "created_at": 1775119649321
-    }
-  ],
+  "bets": [],
+  "transactions": [],
   "counters": {
-    "roundId": 9,
-    "betId": 7,
-    "transactionId": 11
+    "roundId": 2,
+    "betId": 1,
+    "transactionId": 1
   }
 }

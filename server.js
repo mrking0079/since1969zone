@@ -55,16 +55,41 @@ function jsonParseSafe(value, fallback) {
 }
 
 function adminOnly(req, res, next) {
-  const key = req.header('x-admin-key');
-  if (!key || key !== ADMIN_KEY) {
-    return res.status(401).json({ error: 'Unauthorized admin access' });
+  const userId = getUserIdFromReq(req);
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Login required' });
   }
+
+  const user = getUser(userId);
+
+  if (!user) {
+    return res.status(401).json({ error: 'User not found' });
+  }
+
+  if (String(user.username).toLowerCase() !== 'admin') {
+    return res.status(403).json({ error: 'Admin access only' });
+  }
+
+  req.user = user;
   next();
 }
 
 function createDefaultData() {
   return {
     users: [
+{
+  id: 999,
+  username: 'admin',
+  password: 'admin123',
+  session_token: '',
+  wallet_balance: 0,
+  total_played: 0,
+  total_wins: 0,
+  bonus_claimed: 0,
+  last_bonus_time: 0,
+  created_at: nowMs()
+},
       {
         id: DEMO_USER_ID,
         username: 'demo-user',
@@ -107,6 +132,27 @@ function saveData(data) {
 }
 
 let db = loadData();
+
+const adminExists = db.users.find(
+  u => String(u.username).toLowerCase() === 'admin'
+);
+
+if (!adminExists) {
+  db.users.unshift({
+    id: 999,
+    username: 'admin',
+    password: 'admin123',
+    session_token: '',
+    wallet_balance: 0,
+    total_played: 0,
+    total_wins: 0,
+    bonus_claimed: 0,
+    last_bonus_time: 0,
+    created_at: nowMs()
+  });
+
+  saveData(db);
+}
 
 function getUser(userId) {
   return db.users.find(u => u.id === userId) || null;
