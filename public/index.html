@@ -318,10 +318,16 @@
 <button id="soundToggleBtn" class="secondary" style="margin-top:10px;">🔊 Sound On</button>
       </div>
       <div class="card">
-        <div class="mini-label">Round Timer</div>
-        <div class="big" id="timer">--:--</div>
-        <div id="statusBadge" class="status">Loading.</div>
-      </div>
+  <div class="mini-label">Round Timer</div>
+  <div class="big" id="timer">--:--</div>
+  <div id="statusBadge" class="status">Loading.</div>
+
+  <div style="margin-top:14px;padding:12px;border-radius:14px;background:#111;border:1px solid #2f2f2f;text-align:center;">
+    <div class="mini-label">Latest Lucky Number</div>
+    <div class="big" id="latestLuckyNumber">--</div>
+    <div class="muted" id="latestLuckyRound">Waiting.</div>
+  </div>
+</div>
       <div class="card">
         <div class="mini-label">Last 10 Lucky Number</div>
       <div id="lastLuckyList" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px;min-height:54px;">
@@ -433,6 +439,8 @@ flashSubMessage: document.getElementById('flashSubMessage'),
   lastLucky: document.getElementById('lastLucky'),
   lastLuckyList: document.getElementById('lastLuckyList'),
   lastRoundText: document.getElementById('lastRoundText'),
+  latestLuckyNumber: document.getElementById('latestLuckyNumber'),
+  latestLuckyRound: document.getElementById('latestLuckyRound'),
   fairnessBox: document.getElementById('fairnessBox'),
   historyBody: document.getElementById('historyBody'),
   totalPlayed: document.getElementById('totalPlayed'),
@@ -732,6 +740,13 @@ els.placeBetBtn.disabled = data.round.status !== 'open';
   }
 
 if (data.last10LuckyNumbers && data.last10LuckyNumbers.length) {
+if (data.lastSettledRound) {
+  els.latestLuckyNumber.textContent = data.lastSettledRound.luckyNumber;
+  els.latestLuckyRound.textContent = `Round #${data.lastSettledRound.roundNumber}`;
+} else {
+  els.latestLuckyNumber.textContent = '--';
+  els.latestLuckyRound.textContent = 'Waiting.';
+}
   const last10 = data.last10LuckyNumbers.map(item => item.luckyNumber);
 
   els.lastLuckyList.innerHTML = last10.length
