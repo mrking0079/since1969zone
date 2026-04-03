@@ -153,28 +153,35 @@ function getBetForRound(userId, roundId) {
   return db.bets.find(b => b.user_id === userId && b.round_id === roundId) || null;
 }
 
-function getRecentHistory(userId = DEMO_USER_ID, limit = 10) {
-  return db.bets
-    .filter(b => b.user_id === userId)
-    .sort((a, b) => b.id - a.id)
-    .slice(0, limit)
-    .map(bet => {
-      const round = db.rounds.find(r => r.id === bet.round_id) || {};
-      return {
-        id: bet.id,
-        round_number: round.round_number,
-        total_coins: bet.total_coins,
-        matched_number: bet.matched_number,
-        payout: bet.payout,
-        result: bet.result,
-        bet_map: bet.bet_map,
-        lucky_number: round.lucky_number,
-        server_seed_hash: round.server_seed_hash,
-        server_seed: round.server_seed,
-        client_seed: round.client_seed,
-        created_at: bet.created_at
-      };
-    });
+function getRecentHistory(userId = null, limit = 500) {
+  const settledRounds = db.rounds
+    .filter(r => r.status === 'settled')
+    .sort((a, b) => b.round_number - a.round_number)
+    .slice(0, limit);
+
+  return settledRounds.map(round => {
+    const userBet = userId
+      ? db.bets.find(b => b.user_id === userId && b.round_id === round.id)
+      : null;
+
+    const betSummary = userBet
+      ? Object.entries(userBet.bet_map || {})
+          .map(([num, amt]) => `${num}:${amt}`)
+          .join(', ')
+      : '-';
+
+    return {
+      round_number: round.round_number,
+      lucky_number: round.lucky_number,
+      bet_map: userBet ? userBet.bet_map : {},
+      bet_display: betSummary || '-',
+      result: userBet ? userBet.result || '-' : '-',
+      payout: userBet && Number(userBet.payout) !== 0 ? userBet.payout : '-',
+      isWinner: userBet ? userBet.result === 'win' : false,
+      total_coins: userBet ? userBet.total_coins : 0,
+      hasBet: Boolean(userBet)
+    };
+  });
 }
 
 function createRound(roundNumber, startsAt) {

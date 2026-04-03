@@ -1041,32 +1041,5 @@ if (els.historyNextBtn) {
 setInterval(updateTimer, 1000);
 setInterval(loadState, 1000);
 </script>
-<script>
-function showResultFlash(number, isWinner) {
-  const flash = document.getElementById("resultFlash");
-  const num = document.getElementById("flashLuckyNumber");
-  const sub = document.getElementById("flashSubMessage");
-
-  // number show
-  num.textContent = number;
-
-  // winner / loser message
-  if (isWinner) {
-    sub.textContent = "🎉 CONGRATULATIONS! YOU WON 🎉";
-    sub.style.color = "#00ff99";
-  } else {
-    sub.textContent = "❌ BETTER LUCK NEXT TIME";
-    sub.style.color = "#ff4444";
-  }
-
-  // show flash
-  flash.style.display = "flex";
-
-  // hide after 1 sec
-  setTimeout(() => {
-    flash.style.display = "none";
-  }, 1000);
-}
-</script>
 </body>
 </html>
