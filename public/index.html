@@ -807,10 +807,20 @@ if (data.lastSettledRound) {
   } else if (data.lastSettledRound.roundNumber !== lastFlashedRoundId) {
     lastFlashedRoundId = data.lastSettledRound.roundNumber;
 
-    showResultFlash(
-  data.lastSettledRound.luckyNumber,
+    const last = data.lastSettledRound;
+
+// history me latest result dekhna
+const lastHistory = data.history && data.history[0];
+
+const isWinner =
+  lastHistory &&
+  lastHistory.roundNumber === last.roundNumber &&
+  lastHistory.isWinner === true;
+
+showResultFlash(
+  last.luckyNumber,
   'Lucky Number',
-  data.lastSettledRound.isWinner
+  isWinner
     ? '🎉 CONGRATULATIONS! YOU WON 🎉'
     : '❌ BETTER LUCK NEXT TIME'
 );
