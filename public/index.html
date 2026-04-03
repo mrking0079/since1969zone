@@ -660,11 +660,21 @@ function renderServerState() {
     els.statusBadge.className = `status ${data.round.status}`;
 els.placeBetBtn.disabled = data.round.status !== 'open';
     els.fairnessBox.innerHTML = `
-      <strong>Fairness:</strong><br>
-      Current round hash: ${data.round.serverSeedHash}<br>
-      Client seed: ${data.round.clientSeed}<br>
-      Round #: ${data.round.roundNumber}
-    `;
+  <strong>Fairness:</strong><br>
+  Current round hash: ${data.round.serverSeedHash}<br>
+  Client seed: ${data.round.clientSeed}<br>
+  Round #: ${data.round.roundNumber}
+  ${
+    data.lastSettledRound
+      ? `<br><br><strong>Previous Round Reveal:</strong><br>
+         Round #: ${data.lastSettledRound.roundNumber}<br>
+         Server seed hash: ${data.lastSettledRound.serverSeedHash}<br>
+         Server seed: ${data.lastSettledRound.serverSeed}<br>
+         Client seed: ${data.lastSettledRound.clientSeed}<br>
+         Lucky number: ${data.lastSettledRound.luckyNumber}`
+      : ''
+  }
+`;
   } else {
     els.statusBadge.textContent = 'waiting';
     els.statusBadge.className = 'status waiting';
