@@ -677,7 +677,7 @@ if (els.resultFlash && data.lastSettledRound && lastFlashedRoundId !== data.last
   els.flashLuckyNumber.textContent = data.lastSettledRound.luckyNumber;
   els.flashMessage.textContent = 'Lucky Number';
 
-  if ((data.lastSettledRound.result || '').toLowerCase() === 'win') {
+  if ((data.history?.[0]?.result || '').toLowerCase() === 'win' && data.history?.[0]?.round_number === data.lastSettledRound.roundNumber) {
     els.flashSubMessage.textContent = '🎉 Congratulations! You Won';
   } else {
     els.flashSubMessage.textContent = '';
