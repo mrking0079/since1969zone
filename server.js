@@ -179,6 +179,11 @@ function getCurrentRound() {
 }
 
 function getLastSettledRound() {
+const settled = db.rounds
+    .filter(r => r.status === 'settled')
+    .sort((a, b) => b.round_number - a.round_number);
+  return settled[0] || null;
+}
 function getLast10SettledRounds() {
   return db.rounds
     .filter(r => r.status === 'settled' && r.lucky_number !== null && r.lucky_number !== undefined)
@@ -188,11 +193,6 @@ function getLast10SettledRounds() {
       roundNumber: round.round_number,
       luckyNumber: round.lucky_number
     }));
-}
-  const settled = db.rounds
-    .filter(r => r.status === 'settled')
-    .sort((a, b) => b.round_number - a.round_number);
-  return settled[0] || null;
 }
 
 function getBetForRound(userId, roundId) {
@@ -694,81 +694,6 @@ app.post('/api/admin/settle', adminOnly, (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({ error: error.message || 'Settlement failed' });
-  }
-});
-
-app.post('/api/admin/credit', adminOnly, (req, res) => {
-app.get('/api/admin/users', adminOnly, (req, res) => {
-  try {
-    const users = db.users.map(user => ({
-      id: user.id,
-      username: user.username,
-      walletBalance: user.wallet_balance || 0,
-      totalPlayed: user.total_played || 0,
-      totalWins: user.total_wins || 0,
-      bonusClaimed: user.bonus_claimed || 0,
-      createdAt: user.created_at || null
-    }));
-
-    return res.json({
-      success: true,
-      users
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to load users' });
-  }
-});
-  try {
-    const amount = Number(req.body?.amount);
-    if (!Number.isInteger(amount) || amount <= 0 || amount > 100000) {
-      return res.status(400).json({ error: 'Valid integer amount bhejo' });
-    }
-
-    const user = getUser(DEMO_USER_ID);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    user.wallet_balance += amount;
-    addTransaction(DEMO_USER_ID, 'admin_credit', amount, {});
-    saveData(db);
-
-    return res.json({ success: true, state: buildGameState() });
-  } catch {
-    return res.status(500).json({ error: 'Credit failed' });
-  }
-});
-
-function getLast10SettledRounds() {
-  const settled = db.rounds
-    .filter(r => r.lucky_number !== null)
-    .slice(-10)
-    .reverse();
-
-  return settled.map(r => ({
-    roundNumber: r.round_number,
-    luckyNumber: r.lucky_number
-  }));
-}
-
-app.get('/api/admin/users', adminOnly, (req, res) => {
-  try {
-    const users = db.users.map(user => ({
-      id: user.id,
-      username: user.username,
-      walletBalance: user.wallet_balance || 0,
-      totalPlayed: user.total_played || 0,
-      totalWins: user.total_wins || 0,
-      bonusClaimed: user.bonus_claimed || 0,
-      createdAt: user.created_at || null
-    }));
-
-    return res.json({
-      success: true,
-      users
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to load users' });
   }
 });
 
