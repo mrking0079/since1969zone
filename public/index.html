@@ -343,8 +343,8 @@ button.secondary:hover {
         <div class="muted" id="walletSummary"></div>
 <div style="display:flex;gap:10px;margin-top:10px;">
   <button id="logoutBtn" class="secondary" style="flex:1;">Logout</button>
-  <button id="addCoinBtn" class="secondary" style="flex:1;">Add Coin</button>
-  <button id="withdrawCoinBtn" class="secondary" style="flex:1;">Withdrawal Coin</button>
+  <button id="addCoinBtn" class="secondary" style="flex:1;">Deposit Request</button>
+  <button id="withdrawCoinBtn" class="secondary" style="flex:1;">Withdrawal Request</button>
 </div>
       </div>
       <div class="card">
@@ -449,7 +449,15 @@ button.secondary:hover {
         </div>
 
         <div class="card">
-  <div class="mini-label">External Use Only</div>
+  <div class="mini-label">Deposit Request History</div>
+
+  <div id="depositRequestBox" style="margin-top:12px;">
+    <div class="muted" id="depositRequestEmpty" style="text-align:center;padding:16px;">
+      No deposit requests yet
+    </div>
+
+    <div id="depositRequestList" style="display:grid;gap:12px;"></div>
+  </div>
 </div>
       </div>
     </div>
@@ -458,11 +466,11 @@ button.secondary:hover {
 <div id="addCoinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
   <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="margin:0;color:#ffd700;">Add Coin</h3>
+      <h3 style="margin:0;color:#ffd700;">Deposit Request</h3>
       <button id="closeAddCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
     </div>
 
-    <input id="addCoinInput" type="number" placeholder="Enter coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
+    <input id="addCoinInput" type="number" placeholder="Enter deposit coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
 
     <div id="addCoinQuickOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
       <button type="button" class="add-coin-option secondary" data-coin="100">100</button>
@@ -473,20 +481,20 @@ button.secondary:hover {
       <button type="button" class="add-coin-option secondary" data-coin="5000">5000</button>
     </div>
 
-    <button id="submitAddCoin" class="primary" style="width:100%;">Add Coin</button>
+    <button id="submitAddCoin" class="primary" style="width:100%;">Send Deposit Request</button>
   </div>
 </div>
 
 <div id="withdrawCoinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
   <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="margin:0;color:#ffd700;">Withdrawal Coin</h3>
+      <h3 style="margin:0;color:#ffd700;">Withdrawal Request</h3>
       <button id="closeWithdrawCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
     </div>
 
-    <input id="withdrawCoinInput" type="number" placeholder="Enter withdrawal coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:16px;" />
+    <input id="withdrawCoinInput" type="number" placeholder="Enter withdrawal request coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:16px;" />
 
-    <button id="submitWithdrawCoin" class="danger" style="width:100%;">Withdrawal</button>
+    <button id="submitWithdrawCoin" class="danger" style="width:100%;">Send Withdrawal Request</button>
   </div>
 </div>
 
@@ -499,20 +507,6 @@ button.secondary:hover {
     </div>
 
     <div style="display:flex;gap:12px;">
-      <button id="cancelConfirmAction" class="secondary" style="flex:1;">Cancel</button>
-      <button id="confirmActionBtn" class="primary" style="flex:1;">Confirm</button>
-    </div>
-  </div>
-</div>
-
-<div id="confirmActionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100000;align-items:center;justify-content:center;padding:20px;">
-  <div style="width:100%;max-width:400px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;text-align:center;">
-    <h3 style="margin:0 0 12px;color:#ffd700;">Confirm Request</h3>
-    <div id="confirmActionText" style="color:#fff;font-size:16px;line-height:1.5;margin-bottom:18px;">
-      Are you sure?
-    </div>
-
-    <div style="display:flex;gap:10px;">
       <button id="cancelConfirmAction" class="secondary" style="flex:1;">Cancel</button>
       <button id="confirmActionBtn" class="primary" style="flex:1;">Confirm</button>
     </div>
@@ -564,8 +558,11 @@ historyPageInfo: document.getElementById('historyPageInfo'),
   totalPlayed: document.getElementById('totalPlayed'),
   totalWins: document.getElementById('totalWins'),
   bonusClaimed: document.getElementById('bonusClaimed'),
-  currentBet: document.getElementById('currentBet'),addCoinBtn: document.getElementById('addCoinBtn'),
+  currentBet: document.getElementById('currentBet'),
+addCoinBtn: document.getElementById('addCoinBtn'),
 withdrawCoinBtn: document.getElementById('withdrawCoinBtn'),
+depositRequestEmpty: document.getElementById('depositRequestEmpty'),
+depositRequestList: document.getElementById('depositRequestList'),
 addCoinModal: document.getElementById('addCoinModal'),
 withdrawCoinModal: document.getElementById('withdrawCoinModal'),
 closeAddCoinModal: document.getElementById('closeAddCoinModal'),
@@ -574,10 +571,6 @@ addCoinInput: document.getElementById('addCoinInput'),
 withdrawCoinInput: document.getElementById('withdrawCoinInput'),
 submitAddCoin: document.getElementById('submitAddCoin'),
 submitWithdrawCoin: document.getElementById('submitWithdrawCoin'),
-confirmActionModal: document.getElementById('confirmActionModal'),
-confirmActionText: document.getElementById('confirmActionText'),
-cancelConfirmAction: document.getElementById('cancelConfirmAction'),
-confirmActionBtn: document.getElementById('confirmActionBtn'),
 confirmActionModal: document.getElementById('confirmActionModal'),
 confirmActionText: document.getElementById('confirmActionText'),
 cancelConfirmAction: document.getElementById('cancelConfirmAction'),
@@ -875,6 +868,75 @@ function renderHistory(history = []) {
   if (pageInfo) pageInfo.textContent = `${historyPage}/${totalPages}`;
 }
 
+function renderDepositRequests(requests = []) {
+  if (!els.depositRequestList || !els.depositRequestEmpty) return;
+
+  const safeRequests = Array.isArray(requests) ? requests : [];
+
+  els.depositRequestList.innerHTML = '';
+
+  if (!safeRequests.length) {
+    els.depositRequestEmpty.style.display = 'block';
+    return;
+  }
+
+  els.depositRequestEmpty.style.display = 'none';
+
+  safeRequests
+    .slice()
+    .reverse()
+    .forEach(item => {
+      const status = String(item.status || 'pending').toLowerCase();
+
+      let statusColor = '#ffd700';
+      let statusBg = 'rgba(255,215,0,0.10)';
+
+      if (status === 'approved') {
+        statusColor = '#00cc66';
+        statusBg = 'rgba(0,204,102,0.10)';
+      } else if (status === 'rejected') {
+        statusColor = '#ff4d4d';
+        statusBg = 'rgba(255,77,77,0.10)';
+      }
+
+      const card = document.createElement('div');
+      card.style.padding = '14px';
+      card.style.border = '1px solid #333';
+      card.style.borderRadius = '14px';
+      card.style.background = '#111';
+
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="font-weight:800;color:#fff;">
+            ${Number(item.amount || 0)} Coins
+          </div>
+
+          <div style="
+            padding:6px 12px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:800;
+            color:${statusColor};
+            background:${statusBg};
+            text-transform:uppercase;
+          ">
+            ${status}
+          </div>
+        </div>
+
+        <div style="margin-top:8px;color:#bbb;font-size:13px;">
+          Request ID: ${item.id || '-'}
+        </div>
+
+        <div style="margin-top:6px;color:#888;font-size:12px;">
+          Type: ${item.type || 'deposit'}
+        </div>
+      `;
+
+      els.depositRequestList.appendChild(card);
+    });
+}
+
 function renderServerState() {
   const data = state.server;
   if (!data) return;
@@ -1002,6 +1064,7 @@ showResultFlash(
 }
 
 renderHistory(data.history || []);
+renderDepositRequests(data.depositRequests || []);
 updateTimer();
 document.body.classList.toggle('bet-closed', !state.server?.round || state.server.round.status !== 'open');
 
@@ -1035,7 +1098,6 @@ async function loadState() {
   }
 }
 
-els.logoutBtn.addEventListener('click', () => {
 els.soundToggleBtn.textContent = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
 
 els.soundToggleBtn.addEventListener('click', () => {
@@ -1043,6 +1105,8 @@ els.soundToggleBtn.addEventListener('click', () => {
   localStorage.setItem('soundEnabled', String(soundEnabled));
   els.soundToggleBtn.textContent = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
 });
+
+els.logoutBtn.addEventListener('click', () => {
   currentUser = null;
   localStorage.removeItem('user');
   document.getElementById('loginBox').style.display = 'block';
@@ -1161,18 +1225,20 @@ document.querySelectorAll('.add-coin-option').forEach(btn => {
 });
 
 // add coin submit
-els.submitAddCoin.addEventListener('click', () => {
+els.submitAddCoin.addEventListener('click', async () => {
   const amount = Number(els.addCoinInput.value);
 
   if (!amount || amount <= 0) {
-    alert('Please enter valid coins');
+    alert('Please enter valid deposit coins');
     return;
   }
 
-  const username = currentUser?.username || 'Unknown User';
+  els.confirmActionText.textContent = `Do you want to send Deposit Request for ${amount} coins?`;
+  pendingTelegramMessage = JSON.stringify({
+    type: 'deposit',
+    amount
+  });
 
-  pendingTelegramMessage = `Hello bhai\nUsername: ${username}\nAdd Coin Request: ${amount} coins`;
-  els.confirmActionText.textContent = `Do you want to send Add Coin request for ${amount} coins?`;
   els.confirmActionModal.style.display = 'flex';
 });
 
@@ -1203,15 +1269,34 @@ els.cancelConfirmAction.addEventListener('click', () => {
   pendingTelegramMessage = '';
 });
 
-els.confirmActionBtn.addEventListener('click', () => {
+els.confirmActionBtn.addEventListener('click', async () => {
   if (!pendingTelegramMessage) return;
 
-  openTelegramMessage(pendingTelegramMessage);
+  try {
+    const payload = JSON.parse(pendingTelegramMessage);
 
-  els.confirmActionModal.style.display = 'none';
-  els.addCoinModal.style.display = 'none';
-  els.withdrawCoinModal.style.display = 'none';
-  pendingTelegramMessage = '';
+    if (payload.type === 'deposit') {
+      await api('/api/deposit-request', {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: payload.amount
+        })
+      });
+
+      showMessage(`Deposit Request sent for ${payload.amount} coins`);
+      els.addCoinInput.value = '';
+      await loadState();
+    }
+
+    els.confirmActionModal.style.display = 'none';
+    els.addCoinModal.style.display = 'none';
+    els.withdrawCoinModal.style.display = 'none';
+    pendingTelegramMessage = '';
+  } catch (error) {
+    showMessage(error.message || 'Request failed');
+    els.confirmActionModal.style.display = 'none';
+    pendingTelegramMessage = '';
+  }
 });
 
 els.confirmActionModal.addEventListener('click', (e) => {

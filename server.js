@@ -103,11 +103,13 @@ function createDefaultData() {
     ],
     rounds: [],
     bets: [],
+deposit_requests: [],
     transactions: [],
     counters: {
       roundId: 1,
       betId: 1,
-      transactionId: 1
+      transactionId: 1,
+  depositRequestId: 1
     }
   };
 }
@@ -132,6 +134,18 @@ function saveData(data) {
 }
 
 let db = loadData();
+
+if (!Array.isArray(db.deposit_requests)) {
+  db.deposit_requests = [];
+}
+
+if (!db.counters) {
+  db.counters = {};
+}
+
+if (typeof db.counters.depositRequestId !== 'number') {
+  db.counters.depositRequestId = 1;
+}
 
 const adminExists = db.users.find(
   u => String(u.username).toLowerCase() === 'admin'
@@ -350,6 +364,9 @@ if (!user) {
   const placedBet = round ? getBetForRound(userId, round.id) : null;
   const lastSettled = getLastSettledRound();
   const history = getRecentHistory(userId);
+const depositRequests = (db.deposit_requests || []).filter(
+  request => request.user_id === user.id
+);
 
   return {
     user: {
@@ -388,6 +405,7 @@ if (!user) {
     } : null,
      last10LuckyNumbers: getLast10SettledRounds(),
     history
+depositRequests
   };
 }
 
@@ -669,6 +687,47 @@ app.post('/api/bet', (req, res) => {
   }
 });
 
+app.post('/api/deposit-request', (req, res) => {
+  try {
+    const userId = getUserIdFromReq(req);
+    const user = getUser(userId);
+    const amount = Number(req.body?.amount);
+    const method = String(req.body?.method || '').trim();
+    const utr = String(req.body?.utr || '').trim();
+
+    if (!user) {
+      return res.status(401).json({ error: 'Login required' });
+    }
+
+    if (!Number.isInteger(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount required' });
+    }
+
+    const request = {
+      id: db.counters.depositRequestId++,
+      user_id: user.id,
+      username: user.username,
+      amount,
+      method,
+      utr,
+      status: 'pending',
+      created_at: nowMs(),
+      updated_at: nowMs()
+    };
+
+    db.deposit_requests.push(request);
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: 'Deposit request submitted successfully',
+      request
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to submit deposit request' });
+  }
+});
+
 app.post('/api/bonus', (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
@@ -725,6 +784,95 @@ app.post('/api/admin/settle', adminOnly, (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({ error: error.message || 'Settlement failed' });
+  }
+});
+
+app.get('/api/admin/deposit-requests', adminOnly, (req, res) => {
+  try {
+    const requests = [...db.deposit_requests]
+      .sort((a, b) => b.created_at - a.created_at)
+      .map(reqItem => ({
+        id: reqItem.id,
+        username: reqItem.username || 'Unknown',
+        amount: reqItem.amount || 0,
+        method: reqItem.method || '-',
+        utr: reqItem.utr || '-',
+        status: reqItem.status || 'pending',
+        createdAt: reqItem.created_at || null,
+        updatedAt: reqItem.updated_at || null
+      }));
+
+    return res.json({
+      success: true,
+      requests
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load deposit requests' });
+  }
+});
+
+app.post('/api/admin/deposit-requests/action', adminOnly, (req, res) => {
+  try {
+    const requestId = Number(req.body?.requestId);
+    const action = String(req.body?.action || '').trim().toLowerCase();
+
+    if (!Number.isInteger(requestId) || requestId <= 0) {
+      return res.status(400).json({ error: 'Valid requestId required' });
+    }
+
+    if (action !== 'approve' && action !== 'reject') {
+      return res.status(400).json({ error: 'Valid action required' });
+    }
+
+    const request = db.deposit_requests.find(r => r.id === requestId);
+
+    if (!request) {
+      return res.status(404).json({ error: 'Deposit request not found' });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ error: 'Only pending requests can be updated' });
+    }
+
+    const user = db.users.find(u => u.id === request.user_id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (action === 'approve') {
+      user.wallet_balance = Number(user.wallet_balance || 0) + Number(request.amount || 0);
+
+      addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
+        by: req.user.username,
+        depositRequestId: request.id
+      });
+
+      request.status = 'approved';
+    } else {
+      request.status = 'rejected';
+    }
+
+    request.updated_at = nowMs();
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: action === 'approve'
+        ? 'Deposit request approved successfully'
+        : 'Deposit request rejected successfully',
+      request: {
+        id: request.id,
+        status: request.status
+      },
+      user: {
+        id: user.id,
+        username: user.username,
+        walletBalance: user.wallet_balance
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to update deposit request' });
   }
 });
 
