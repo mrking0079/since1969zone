@@ -75,6 +75,14 @@
 
     const data = await res.json();
 
+if (data.user?.sessionToken) {
+  localStorage.setItem('sessionToken', data.user.sessionToken);
+  localStorage.setItem('username', data.user.username || '');
+}
+if (data.user?.sessionToken) {
+  localStorage.setItem('sessionToken', data.user.sessionToken);
+  localStorage.setItem('username', data.user.username || '');
+}
     if (!res.ok) {
       output.textContent = '❌ ' + (data.error || 'Access denied');
       return;
