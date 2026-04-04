@@ -194,9 +194,25 @@ function filterUsers() {
   const query = document.getElementById('userSearch').value.toLowerCase();
   const usersList = document.getElementById('usersList');
 
-  const filtered = allUsers.filter(user =>
-    String(user.username).toLowerCase().includes(query)
+  let filtered = allUsers.filter(user =>
+  String(user.username).toLowerCase().includes(query)
+);
+
+if (selectedUsername) {
+  const selectedUserExists = filtered.some(
+    user => String(user.username) === String(selectedUsername)
   );
+
+  if (!selectedUserExists) {
+    const selectedUser = allUsers.find(
+      user => String(user.username) === String(selectedUsername)
+    );
+
+    if (selectedUser) {
+      filtered = [selectedUser, ...filtered];
+    }
+  }
+}
 
   if (!filtered.length) {
     usersList.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No users found</div>';
