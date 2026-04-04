@@ -404,7 +404,7 @@ const depositRequests = (db.deposit_requests || []).filter(
       settledAt: lastSettled.settled_at
     } : null,
      last10LuckyNumbers: getLast10SettledRounds(),
-    history
+    history,
 depositRequests
   };
 }
