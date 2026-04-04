@@ -472,6 +472,12 @@ button.secondary:hover {
 
     <input id="addCoinInput" type="number" placeholder="Enter deposit coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
 
+<input id="depositMethodInput" type="text" placeholder="Enter payment method (e.g. UPI / Bank)" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:12px;" />
+
+<input id="depositUtrInput" type="text" placeholder="Enter UTR / Transaction ID" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:12px;" />
+
+<input id="depositScreenshotInput" type="text" placeholder="Paste payment proof image URL" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
+
     <div id="addCoinQuickOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
       <button type="button" class="add-coin-option secondary" data-coin="100">100</button>
       <button type="button" class="add-coin-option secondary" data-coin="200">200</button>
@@ -568,6 +574,9 @@ withdrawCoinModal: document.getElementById('withdrawCoinModal'),
 closeAddCoinModal: document.getElementById('closeAddCoinModal'),
 closeWithdrawCoinModal: document.getElementById('closeWithdrawCoinModal'),
 addCoinInput: document.getElementById('addCoinInput'),
+depositMethodInput: document.getElementById('depositMethodInput'),
+depositUtrInput: document.getElementById('depositUtrInput'),
+depositScreenshotInput: document.getElementById('depositScreenshotInput'),
 withdrawCoinInput: document.getElementById('withdrawCoinInput'),
 submitAddCoin: document.getElementById('submitAddCoin'),
 submitWithdrawCoin: document.getElementById('submitWithdrawCoin'),
@@ -1227,16 +1236,37 @@ document.querySelectorAll('.add-coin-option').forEach(btn => {
 // add coin submit
 els.submitAddCoin.addEventListener('click', async () => {
   const amount = Number(els.addCoinInput.value);
+  const method = String(els.depositMethodInput.value || '').trim();
+  const utr = String(els.depositUtrInput.value || '').trim();
+  const screenshot = String(els.depositScreenshotInput.value || '').trim();
 
   if (!amount || amount <= 0) {
     alert('Please enter valid deposit coins');
     return;
   }
 
+  if (!method) {
+    alert('Please enter payment method');
+    return;
+  }
+
+  if (!utr) {
+    alert('Please enter UTR / Transaction ID');
+    return;
+  }
+
+  if (!screenshot) {
+    alert('Please paste payment proof image URL');
+    return;
+  }
+
   els.confirmActionText.textContent = `Do you want to send Deposit Request for ${amount} coins?`;
   pendingTelegramMessage = JSON.stringify({
     type: 'deposit',
-    amount
+    amount,
+    method,
+    utr,
+    screenshot
   });
 
   els.confirmActionModal.style.display = 'flex';
@@ -1280,12 +1310,18 @@ els.confirmActionBtn.addEventListener('click', async () => {
       await api('/api/deposit-request', {
         method: 'POST',
         body: JSON.stringify({
-          amount: payload.amount
+        amount: payload.amount,
+        method: payload.method,
+        utr: payload.utr,
+        screenshot: payload.screenshot
         })
       });
 
       showMessage(`Deposit Request sent for ${payload.amount} coins`);
       els.addCoinInput.value = '';
+els.depositMethodInput.value = '';
+els.depositUtrInput.value = '';
+els.depositScreenshotInput.value = '';
       await loadState();
     }
 

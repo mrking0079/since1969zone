@@ -82,6 +82,22 @@
 
     <div id="panelSection" class="hidden">
       <button onclick="loadUsers()">Load Users</button>
+<div id="dashboardStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0 16px 0;">
+  <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
+    <div style="color:#9ca3af;font-size:13px;">Total Deposits</div>
+    <div id="totalDepositsStat" style="font-size:24px;font-weight:800;color:#22c55e;margin-top:6px;">0</div>
+  </div>
+
+  <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
+    <div style="color:#9ca3af;font-size:13px;">Total Withdrawals</div>
+    <div id="totalWithdrawalsStat" style="font-size:24px;font-weight:800;color:#ff4d4f;margin-top:6px;">0</div>
+  </div>
+
+  <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
+    <div style="color:#9ca3af;font-size:13px;">Profit / Loss</div>
+    <div id="profitLossStat" style="font-size:24px;font-weight:800;color:#ffd54a;margin-top:6px;">0</div>
+  </div>
+</div>
 <div id="selectedUserInfo" style="margin:12px 0;padding:12px 14px;background:linear-gradient(135deg,#111827,#0b1220);border:1px solid #3a4b63;border-radius:12px;color:#ffd54a;box-shadow:0 0 14px rgba(255,213,74,0.08);font-weight:600;">No user selected</div>
 
 <button onclick="toggleBlockUser()" style="margin-bottom:10px;background:#ff4d4f;color:#fff;">
@@ -124,6 +140,28 @@
 
 <script>
   let allUsers = [];
+async function loadDashboardStats() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  if (!token) return;
+
+  try {
+    const res = await fetch('/api/admin/dashboard-stats', {
+      headers: {
+        'x-auth-token': token
+      }
+    });
+
+    const data = await res.json();
+    if (!res.ok) return;
+
+    document.getElementById('totalDepositsStat').textContent = data.stats?.totalDeposits || 0;
+    document.getElementById('totalWithdrawalsStat').textContent = data.stats?.totalWithdrawals || 0;
+    document.getElementById('profitLossStat').textContent = data.stats?.profitLoss || 0;
+  } catch (err) {
+    console.log('Dashboard stats load failed');
+  }
+}
+
 let selectedUsername = '';
     function checkAdminLogin() {
       const token = localStorage.getItem('adminSessionToken') || '';
@@ -171,6 +209,7 @@ let selectedUsername = '';
         loginMsg.textContent = 'Admin login successful';
         checkAdminLogin();
 loadUsers();
+loadDashboardStats();
       } catch (err) {
         loginMsg.textContent = 'Server error';
       }
@@ -576,6 +615,7 @@ async function handleDepositRequest(requestId, action) {
 
     output.textContent = data.message || 'Deposit request updated';
     loadDepositRequests();
+loadDashboardStats();
     loadUsers();
     loadTransactions();
   } catch (err) {
@@ -626,11 +666,19 @@ async function loadDepositRequests() {
       return `
         <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;">
           <div><strong>User:</strong> ${reqItem.username}</div>
-          <div><strong>Amount:</strong> ${reqItem.amount}</div>
-          <div><strong>Method:</strong> ${reqItem.method}</div>
-          <div><strong>UTR:</strong> ${reqItem.utr}</div>
-          <div><strong>Status:</strong> ${reqItem.status}</div>
-          <div><strong>Time:</strong> ${dateText}</div>
+<div><strong>Type:</strong> ${reqItem.type || 'deposit'}</div>
+<div><strong>Amount:</strong> ${reqItem.amount}</div>
+<div><strong>Method:</strong> ${reqItem.method}</div>
+<div><strong>UTR:</strong> ${reqItem.utr}</div>
+<div><strong>Status:</strong> ${reqItem.status}</div>
+<div><strong>Time:</strong> ${dateText}</div>
+${reqItem.screenshot ? `
+  <div style="margin-top:10px;">
+    <a href="${reqItem.screenshot}" target="_blank" style="color:#60a5fa;text-decoration:none;font-weight:700;">
+      View Payment Proof
+    </a>
+  </div>
+` : ''}
           ${reqItem.status === 'pending' ? `
   <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
     <button onclick="handleDepositRequest(${reqItem.id}, 'approve')" style="background:#22c55e;color:#111;">Approve</button>
@@ -722,6 +770,7 @@ document.getElementById('depositRequestsPanel').style.display = 'none';
     }
 
     checkAdminLogin();
+loadDashboardStats();
   </script>
 </body>
 </html>

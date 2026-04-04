@@ -695,6 +695,7 @@ app.post('/api/deposit-request', (req, res) => {
     const method = String(req.body?.method || '').trim();
     const utr = String(req.body?.utr || '').trim();
 
+const screenshot = String(req.body?.screenshot || '').trim();
     if (!user) {
       return res.status(401).json({ error: 'Login required' });
     }
@@ -710,6 +711,7 @@ app.post('/api/deposit-request', (req, res) => {
       amount,
       method,
       utr,
+      screenshot,
       status: 'pending',
       created_at: nowMs(),
       updated_at: nowMs()
@@ -841,6 +843,8 @@ app.get('/api/admin/deposit-requests', adminOnly, (req, res) => {
         amount: reqItem.amount || 0,
         method: reqItem.method || '-',
         utr: reqItem.utr || '-',
+        screenshot: reqItem.screenshot || '',
+        type: reqItem.type || 'deposit',
         status: reqItem.status || 'pending',
         createdAt: reqItem.created_at || null,
         updatedAt: reqItem.updated_at || null
@@ -1119,6 +1123,38 @@ app.get('/api/admin/transactions', adminOnly, (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to load transactions' });
+  }
+});
+
+app.get('/api/admin/dashboard-stats', adminOnly, (req, res) => {
+  try {
+    const requests = db.deposit_requests || [];
+
+    let totalDeposits = 0;
+    let totalWithdrawals = 0;
+
+    for (const r of requests) {
+      if (r.status !== 'approved') continue;
+
+      if (r.type === 'withdrawal') {
+        totalWithdrawals += Number(r.amount || 0);
+      } else {
+        totalDeposits += Number(r.amount || 0);
+      }
+    }
+
+    const profitLoss = totalDeposits - totalWithdrawals;
+
+    return res.json({
+      success: true,
+      stats: {
+        totalDeposits,
+        totalWithdrawals,
+        profitLoss
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load dashboard stats' });
   }
 });
 
