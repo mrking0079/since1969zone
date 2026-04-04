@@ -93,6 +93,7 @@
   <button onclick="addCoins()" style="margin-bottom:0;">Add Coins</button>
   <button onclick="withdrawCoins()" style="margin-bottom:0;">Withdraw Coins</button>
 <button onclick="loadTransactions()" style="margin-bottom:0;">Transaction History</button>
+<button onclick="loadCurrentRound()" style="margin-bottom:0;">Round Control</button>
   <button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
 </div>
 <input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
@@ -102,6 +103,16 @@
 <div id="transactionsPanel" style="margin-top:16px;display:none;">
   <h3 style="margin:0 0 10px 0;color:#ffd54a;">Transaction History</h3>
   <div id="transactionsList" style="display:grid;gap:10px;"></div>
+</div>
+
+<div id="roundPanel" style="margin-top:16px;display:none;">
+  <h3 style="margin:0 0 10px 0;color:#ffd54a;">Round Control</h3>
+  <div id="roundInfo" style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;line-height:1.8;">
+    Round info will appear here...
+  </div>
+  <div style="margin-top:12px;">
+    <button onclick="forceSettleRound()" style="background:#ff9800;color:#111;">Force Settle Round</button>
+  </div>
 </div>
     </div>
   </div>
@@ -437,6 +448,91 @@ document.querySelector('button[onclick="toggleBlockUser()"]').textContent =
     loadUsers();
   } catch (err) {
     output.textContent = 'Failed to update block status: ' + err.message;
+  }
+}
+
+async function loadCurrentRound() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const roundPanel = document.getElementById('roundPanel');
+  const roundInfo = document.getElementById('roundInfo');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  roundPanel.style.display = 'block';
+  roundInfo.innerHTML = 'Loading round info...';
+
+  try {
+    const res = await fetch('/api/admin/current-round', {
+      headers: {
+        'x-auth-token': token
+      }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      roundInfo.innerHTML = 'Failed to load round info';
+      return;
+    }
+
+    const round = data.round;
+
+    roundInfo.innerHTML = `
+      <div><strong>Round Number:</strong> ${round.roundNumber}</div>
+      <div><strong>Round Code:</strong> ${round.roundCode}</div>
+      <div><strong>Status:</strong> ${round.status}</div>
+      <div><strong>Start Time:</strong> ${new Date(round.startsAt).toLocaleString()}</div>
+      <div><strong>Bet Close Time:</strong> ${new Date(round.bettingClosesAt).toLocaleString()}</div>
+      <div><strong>End Time:</strong> ${new Date(round.endsAt).toLocaleString()}</div>
+      <div><strong>Server Seed Hash:</strong> ${round.serverSeedHash}</div>
+      <div><strong>Client Seed:</strong> ${round.clientSeed}</div>
+    `;
+
+    output.textContent = 'Current round loaded';
+  } catch (err) {
+    roundInfo.innerHTML = 'Failed to load round info';
+    output.textContent = 'Failed to load round: ' + err.message;
+  }
+}
+
+async function forceSettleRound() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!confirm('Are you sure you want to force settle the current round?')) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/settle', {
+      method: 'POST',
+      headers: {
+        'x-auth-token': token
+      }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = data.message || 'Round settled successfully';
+    loadCurrentRound();
+    loadTransactions();
+  } catch (err) {
+    output.textContent = 'Failed to settle round: ' + err.message;
   }
 }
 

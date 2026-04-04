@@ -683,6 +683,33 @@ app.post('/api/bonus', (req, res) => {
   }
 });
 
+app.get('/api/admin/current-round', adminOnly, (req, res) => {
+  try {
+    const round = syncRoundState();
+
+    if (!round) {
+      return res.status(404).json({ error: 'No active round found' });
+    }
+
+    return res.json({
+      success: true,
+      round: {
+        id: round.id,
+        roundNumber: round.round_number,
+        roundCode: round.round_code || '-',
+        status: getStatusForRound(round),
+        startsAt: round.starts_at,
+        bettingClosesAt: round.betting_closes_at,
+        endsAt: round.ends_at,
+        serverSeedHash: round.server_seed_hash,
+        clientSeed: round.client_seed
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load current round' });
+  }
+});
+
 app.post('/api/admin/settle', adminOnly, (req, res) => {
   try {
     const round = syncRoundState();
