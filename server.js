@@ -698,6 +698,26 @@ app.post('/api/admin/settle', adminOnly, (req, res) => {
 });
 
 app.post('/api/admin/credit', adminOnly, (req, res) => {
+app.get('/api/admin/users', adminOnly, (req, res) => {
+  try {
+    const users = db.users.map(user => ({
+      id: user.id,
+      username: user.username,
+      walletBalance: user.wallet_balance || 0,
+      totalPlayed: user.total_played || 0,
+      totalWins: user.total_wins || 0,
+      bonusClaimed: user.bonus_claimed || 0,
+      createdAt: user.created_at || null
+    }));
+
+    return res.json({
+      success: true,
+      users
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load users' });
+  }
+});
   try {
     const amount = Number(req.body?.amount);
     if (!Number.isInteger(amount) || amount <= 0 || amount > 100000) {
