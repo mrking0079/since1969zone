@@ -95,7 +95,8 @@
 </div>
 <input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
       <div id="usersList" style="margin-top:16px;"></div>
-<pre id="output">Admin action result yaha dikhega...</pre>
+<pre id="output">Admin action results will appear here....</pre>
+
 <div id="transactionsPanel" style="margin-top:16px;display:none;">
   <h3 style="margin:0 0 10px 0;color:#ffd54a;">Transaction History</h3>
   <div id="transactionsList" style="display:grid;gap:10px;"></div>
@@ -103,8 +104,8 @@
     </div>
   </div>
 
-  <script>
-let allUsers = [];
+<script>
+  let allUsers = [];
 let selectedUsername = '';
     function checkAdminLogin() {
       const token = localStorage.getItem('adminSessionToken') || '';
