@@ -421,49 +421,6 @@ async function loadTransactions() {
   }
 }
 
-  panel.style.display = 'block';
-  list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading transactions...</div>';
-
-  try {
-    const res = await fetch('/api/admin/transactions', {
-      headers: {
-        'x-auth-token': token
-      }
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
-      list.innerHTML = '';
-      return;
-    }
-
-    if (!data.transactions || !data.transactions.length) {
-      list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No transactions found</div>';
-      output.textContent = 'Transaction history loaded';
-      return;
-    }
-
-    list.innerHTML = data.transactions.map(tx => {
-      const dateText = tx.createdAt ? new Date(tx.createdAt).toLocaleString() : '-';
-
-      return `
-        <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;">
-          <div><strong>User:</strong> ${tx.username}</div>
-          <div><strong>Type:</strong> ${tx.type}</div>
-          <div><strong>Amount:</strong> ${tx.amount}</div>
-          <div><strong>Time:</strong> ${dateText}</div>
-        </div>
-      `;
-    }).join('');
-
-    output.textContent = 'Transaction history loaded';
-  } catch (err) {
-    list.innerHTML = '';
-    output.textContent = 'Failed to load transactions: ' + err.message;
-  }
-}
     function adminLogout() {
       localStorage.removeItem('adminSessionToken');
       checkAdminLogin();
