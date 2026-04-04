@@ -59,7 +59,7 @@
 
   <script>
     async function loadUsers() {
-  const token = localStorage.getItem('sessionToken');
+  const token = localStorage.getItem('sessionToken') || sessionStorage.getItem('sessionToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
   const output = document.getElementById('output');
 const tokenInfo = document.getElementById('tokenInfo');
 tokenInfo.textContent = 'Token on admin page: ' + (token || 'NOT FOUND');
