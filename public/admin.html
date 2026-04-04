@@ -90,11 +90,16 @@
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
   <button onclick="addCoins()" style="margin-bottom:0;">Add Coins</button>
   <button onclick="withdrawCoins()" style="margin-bottom:0;">Withdraw Coins</button>
+<button onclick="loadTransactions()" style="margin-bottom:0;">Transaction History</button>
   <button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
 </div>
 <input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
       <div id="usersList" style="margin-top:16px;"></div>
 <pre id="output">Admin action result yaha dikhega...</pre>
+<div id="transactionsPanel" style="margin-top:16px;display:none;">
+  <h3 style="margin:0 0 10px 0;color:#ffd54a;">Transaction History</h3>
+  <div id="transactionsList" style="display:grid;gap:10px;"></div>
+</div>
     </div>
   </div>
 
@@ -357,10 +362,111 @@ loadUsers();
     output.textContent = 'Failed to withdraw coins: ' + err.message;
   }
 }
+
+async function loadTransactions() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const panel = document.getElementById('transactionsPanel');
+  const list = document.getElementById('transactionsList');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  panel.style.display = 'block';
+  list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading transactions...</div>';
+
+  try {
+    const res = await fetch('/api/admin/transactions', {
+      headers: {
+        'x-auth-token': token
+      }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      list.innerHTML = '';
+      return;
+    }
+
+    if (!data.transactions || !data.transactions.length) {
+      list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No transactions found</div>';
+      output.textContent = 'Transaction history loaded';
+      return;
+    }
+
+    list.innerHTML = data.transactions.map(tx => {
+      const dateText = tx.createdAt
+        ? new Date(tx.createdAt).toLocaleString()
+        : '-';
+
+      return `
+        <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;">
+          <div><strong>User:</strong> ${tx.username}</div>
+          <div><strong>Type:</strong> ${tx.type}</div>
+          <div><strong>Amount:</strong> ${tx.amount}</div>
+          <div><strong>Time:</strong> ${dateText}</div>
+        </div>
+      `;
+    }).join('');
+
+    output.textContent = 'Transaction history loaded';
+  } catch (err) {
+    list.innerHTML = '';
+    output.textContent = 'Failed to load transactions: ' + err.message;
+  }
+}
+
+  panel.style.display = 'block';
+  list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading transactions...</div>';
+
+  try {
+    const res = await fetch('/api/admin/transactions', {
+      headers: {
+        'x-auth-token': token
+      }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      list.innerHTML = '';
+      return;
+    }
+
+    if (!data.transactions || !data.transactions.length) {
+      list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No transactions found</div>';
+      output.textContent = 'Transaction history loaded';
+      return;
+    }
+
+    list.innerHTML = data.transactions.map(tx => {
+      const dateText = tx.createdAt ? new Date(tx.createdAt).toLocaleString() : '-';
+
+      return `
+        <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;">
+          <div><strong>User:</strong> ${tx.username}</div>
+          <div><strong>Type:</strong> ${tx.type}</div>
+          <div><strong>Amount:</strong> ${tx.amount}</div>
+          <div><strong>Time:</strong> ${dateText}</div>
+        </div>
+      `;
+    }).join('');
+
+    output.textContent = 'Transaction history loaded';
+  } catch (err) {
+    list.innerHTML = '';
+    output.textContent = 'Failed to load transactions: ' + err.message;
+  }
+}
     function adminLogout() {
       localStorage.removeItem('adminSessionToken');
       checkAdminLogin();
-      document.getElementById('output').textContent = 'Admin data yaha dikhega...';
+      document.getElementById('output').textContent = 'Admin action results will appear here....';
 document.getElementById('usersList').innerHTML = '';
 document.getElementById('selectedUserInfo').textContent = 'No user selected';
 document.getElementById('userSearch').value = '';

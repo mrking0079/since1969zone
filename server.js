@@ -810,6 +810,33 @@ app.post('/api/admin/withdraw-coins', adminOnly, (req, res) => {
   }
 });
 
+app.get('/api/admin/transactions', adminOnly, (req, res) => {
+  try {
+    const transactions = [...db.transactions]
+      .sort((a, b) => b.created_at - a.created_at)
+      .slice(0, 200)
+      .map(tx => {
+        const user = db.users.find(u => u.id === tx.user_id);
+
+        return {
+          id: tx.id,
+          username: user ? user.username : 'Unknown',
+          type: tx.type || '-',
+          amount: tx.amount || 0,
+          meta: tx.meta || {},
+          createdAt: tx.created_at || null
+        };
+      });
+
+    return res.json({
+      success: true,
+      transactions
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load transactions' });
+  }
+});
+
 app.get('*', (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
