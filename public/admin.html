@@ -252,7 +252,7 @@ async function addCoins() {
       return;
     }
 
-    output.textContent = JSON.stringify(data, null, 2);
+    output.textContent = data.message + ' | New Wallet: ' + data.user.walletBalance;
 
 document.getElementById('coinAmount').value = '';
 loadUsers();
@@ -298,7 +298,7 @@ async function withdrawCoins() {
       return;
     }
 
-    output.textContent = JSON.stringify(data, null, 2);
+    output.textContent = data.message + ' | New Wallet: ' + data.user.walletBalance;
 
 document.getElementById('coinAmount').value = '';
 loadUsers();
