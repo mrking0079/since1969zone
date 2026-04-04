@@ -157,13 +157,13 @@
         const data = await res.json();
 
         if (!res.ok) {
-          output.textContent = data.error || 'Access denied';
-          return;
-        }
+  output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Access denied');
+  return;
+}
 
         output.textContent = JSON.stringify(data, null, 2);
       } catch (err) {
-        output.textContent = 'Failed to load users';
+        output.textContent = 'Failed to load users: ' + err.message;
       }
     }
 
