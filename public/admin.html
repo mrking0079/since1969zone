@@ -97,6 +97,7 @@
   </div>
 
   <script>
+let allUsers = [];
     function checkAdminLogin() {
       const token = localStorage.getItem('adminSessionToken') || '';
       document.getElementById('loginSection').classList.toggle('hidden', !!token);
@@ -172,6 +173,7 @@
     }
 
     const users = Array.isArray(data.users) ? data.users : [];
+allUsers = users;
 
     if (!users.length) {
       usersList.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No users found</div>';
