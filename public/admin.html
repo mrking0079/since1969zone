@@ -256,6 +256,9 @@ async function addCoins() {
     return;
   }
 
+if (!confirm(`Add ${amount} coins to ${username}?`)) {
+  return;
+}
   try {
     const res = await fetch('/api/admin/add-coins', {
       method: 'POST',
@@ -304,6 +307,9 @@ async function withdrawCoins() {
     return;
   }
 
+if (!confirm(`Add ${amount} coins to ${username}?`)) {
+  return;
+}
   try {
     const res = await fetch('/api/admin/withdraw-coins', {
       method: 'POST',
