@@ -222,7 +222,7 @@ if (selectedUsername) {
   }
 
   usersList.innerHTML = filtered.map(user => `
-    <div onclick="selectUser('${user.username}')" style="background:${selectedUsername === user.username ? '#1a2a44' : '#111827'};border:1px solid ${selectedUsername === user.username ? '#ffd54a' : '#243041'};border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer;">
+    <div onclick="selectUser('${user.username}')" style="background:${selectedUsername === user.username ? '#1a2a44' : '#111827'};border:1px solid ${selectedUsername === user.username ? '#ffd54a' : '#243041'};border-radius:14px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all 0.2s ease;box-shadow:${selectedUsername === user.username ? '0 0 16px rgba(255,213,74,0.12)' : '0 0 0 rgba(0,0,0,0)'};" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
       <div><strong>Username:</strong> ${user.username}</div>
       <div><strong>Wallet:</strong> ${user.walletBalance}</div>
       <div><strong>Total Played:</strong> ${user.totalPlayed}</div>
