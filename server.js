@@ -718,6 +718,49 @@ app.get('/api/admin/users', adminOnly, (req, res) => {
   }
 });
 
+app.post('/api/admin/add-coins', adminOnly, (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const amount = Number(req.body?.amount);
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username required' });
+    }
+
+    if (!Number.isInteger(amount) || amount <= 0 || amount > 1000000) {
+      return res.status(400).json({ error: 'Valid amount required' });
+    }
+
+    const user = db.users.find(
+      u => String(u.username).toLowerCase() === username.toLowerCase()
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.wallet_balance = Number(user.wallet_balance || 0) + amount;
+
+    addTransaction(user.id, 'admin_add_coin', amount, {
+      by: req.user.username
+    });
+
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: `${amount} coins added to ${user.username}`,
+      user: {
+        id: user.id,
+        username: user.username,
+        walletBalance: user.wallet_balance
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to add coins' });
+  }
+});
+
 app.get('*', (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
