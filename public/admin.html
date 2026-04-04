@@ -82,6 +82,9 @@
 
     <div id="panelSection" class="hidden">
       <button onclick="loadUsers()">Load Users</button>
+<div id="selectedUserInfo" style="margin:12px 0;padding:10px 12px;background:#0b1220;border:1px solid #243041;border-radius:10px;color:#ffd54a;">
+  No user selected
+</div>
 <input id="coinUsername" type="text" placeholder="Username to add coins" />
 <input id="coinAmount" type="number" placeholder="Coins amount" />
 <button onclick="addCoins()">Add Coins</button>
@@ -193,6 +196,22 @@
 
 function selectUser(username) {
   document.getElementById('coinUsername').value = username;
+
+  const userCards = document.querySelectorAll('#usersList > div');
+  let walletText = '';
+
+  userCards.forEach(card => {
+    const text = card.innerText || '';
+    if (text.includes('Username: ' + username)) {
+      const lines = text.split('\n');
+      const walletLine = lines.find(line => line.includes('Wallet:'));
+      walletText = walletLine ? walletLine.trim() : '';
+    }
+  });
+
+  document.getElementById('selectedUserInfo').textContent =
+    walletText ? `Selected user: ${username} | ${walletText}` : `Selected user: ${username}`;
+
   document.getElementById('output').textContent = 'Selected user: ' + username;
 }
 async function addCoins() {
