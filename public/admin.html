@@ -58,22 +58,33 @@
 
   <script>
     async function loadUsers() {
-      const token = localStorage.getItem('sessionToken') || '';
-      const output = document.getElementById('output');
+  const token = localStorage.getItem('sessionToken');
+  const output = document.getElementById('output');
 
-      try {
-        const res = await fetch('/api/admin/users', {
-          headers: {
-            'x-auth-token': token
-          }
-        });
+  if (!token) {
+    output.textContent = '❌ Admin login required. Pehle main site par login karo.';
+    return;
+  }
 
-        const data = await res.json();
-        output.textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        output.textContent = 'Failed to load admin users';
+  try {
+    const res = await fetch('/api/admin/users', {
+      headers: {
+        'x-auth-token': token
       }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = '❌ ' + (data.error || 'Access denied');
+      return;
     }
+
+    output.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    output.textContent = '❌ Server error';
+  }
+}
   </script>
 </body>
 </html>
