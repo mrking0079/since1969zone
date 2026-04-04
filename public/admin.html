@@ -8,94 +8,173 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #0b0f19;
+      background: #060b16;
       color: #fff;
       padding: 20px;
     }
-
     .box {
       max-width: 900px;
-      margin: auto;
-      background: #121a2a;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 0 25px rgba(0,0,0,0.35);
+      margin: 40px auto;
+      background: #10192b;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.35);
     }
-
     h1 {
-      margin-top: 0;
       text-align: center;
       color: gold;
+      margin-top: 0;
+      margin-bottom: 24px;
     }
-
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      border: 1px solid #2a3550;
+      background: #0a1020;
+      color: #fff;
+      font-size: 15px;
+    }
     button {
-      padding: 10px 16px;
+      padding: 12px 16px;
       border: none;
       border-radius: 10px;
       background: linear-gradient(45deg, gold, orange);
       color: #111;
       font-weight: bold;
       cursor: pointer;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
-
+    .full {
+      width: 100%;
+    }
+    .hidden {
+      display: none;
+    }
     pre {
-      background: #0a0f18;
+      background: #070c18;
       padding: 14px;
       border-radius: 12px;
       overflow: auto;
       white-space: pre-wrap;
       word-break: break-word;
+      min-height: 120px;
+    }
+    #loginMsg {
+      margin-bottom: 12px;
+      color: #ffd54a;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
   <div class="box">
     <h1>Since1969Zone Admin Panel</h1>
-    <button onclick="loadUsers()">Load Users</button>
-<div id="tokenInfo" style="margin:10px 0 14px;color:#ffd54a;font-size:14px;">Token check yaha dikhega...</div>
-    <pre id="output">Admin data yaha dikhega...</pre>
+
+    <div id="loginSection">
+      <input id="adminUsername" type="text" placeholder="Admin username" />
+      <input id="adminPassword" type="password" placeholder="Admin password" />
+      <button class="full" onclick="adminLogin()">Admin Login</button>
+      <div id="loginMsg">Pehle admin login karo.</div>
+    </div>
+
+    <div id="panelSection" class="hidden">
+      <button onclick="loadUsers()">Load Users</button>
+      <button onclick="adminLogout()">Logout</button>
+      <pre id="output">Admin data yaha dikhega...</pre>
+    </div>
   </div>
 
   <script>
-    async function loadUsers() {
-  const token = localStorage.getItem('sessionToken') || sessionStorage.getItem('sessionToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
-  const output = document.getElementById('output');
-const tokenInfo = document.getElementById('tokenInfo');
-tokenInfo.textContent = 'Token on admin page: ' + (token || 'NOT FOUND');
-
-  if (!token) {
-    output.textContent = '❌ Admin login required. Pehle main site par login karo.';
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/admin/users', {
-      headers: {
-        'x-auth-token': token
-      }
-    });
-
-    const data = await res.json();
-
-if (data.user?.sessionToken) {
-  localStorage.setItem('sessionToken', data.user.sessionToken);
-  localStorage.setItem('username', data.user.username || '');
-}
-if (data.user?.sessionToken) {
-  localStorage.setItem('sessionToken', data.user.sessionToken);
-  localStorage.setItem('username', data.user.username || '');
-}
-    if (!res.ok) {
-      output.textContent = '❌ ' + (data.error || 'Access denied');
-      return;
+    function checkAdminLogin() {
+      const token = localStorage.getItem('adminSessionToken') || '';
+      document.getElementById('loginSection').classList.toggle('hidden', !!token);
+      document.getElementById('panelSection').classList.toggle('hidden', !token);
     }
 
-    output.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    output.textContent = '❌ Server error';
-  }
-}
+    async function adminLogin() {
+      const username = document.getElementById('adminUsername').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
+      const loginMsg = document.getElementById('loginMsg');
+
+      if (!username) {
+        loginMsg.textContent = 'Username required';
+        return;
+      }
+
+      if (!password) {
+        loginMsg.textContent = 'Password required';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          loginMsg.textContent = data.error || 'Login failed';
+          return;
+        }
+
+        if (String(data.user?.username || '').toLowerCase() !== 'admin') {
+          loginMsg.textContent = 'Admin account only';
+          return;
+        }
+
+        localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
+        loginMsg.textContent = 'Admin login successful';
+        checkAdminLogin();
+      } catch (err) {
+        loginMsg.textContent = 'Server error';
+      }
+    }
+
+    async function loadUsers() {
+      const token = localStorage.getItem('adminSessionToken') || '';
+      const output = document.getElementById('output');
+
+      if (!token) {
+        output.textContent = 'Admin login required';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/users', {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          output.textContent = data.error || 'Access denied';
+          return;
+        }
+
+        output.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        output.textContent = 'Failed to load users';
+      }
+    }
+
+    function adminLogout() {
+      localStorage.removeItem('adminSessionToken');
+      checkAdminLogin();
+      document.getElementById('output').textContent = 'Admin data yaha dikhega...';
+      document.getElementById('loginMsg').textContent = 'Logged out';
+    }
+
+    checkAdminLogin();
   </script>
 </body>
 </html>
