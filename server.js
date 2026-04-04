@@ -751,6 +751,27 @@ function getLast10SettledRounds() {
   }));
 }
 
+app.get('/api/admin/users', adminOnly, (req, res) => {
+  try {
+    const users = db.users.map(user => ({
+      id: user.id,
+      username: user.username,
+      walletBalance: user.wallet_balance || 0,
+      totalPlayed: user.total_played || 0,
+      totalWins: user.total_wins || 0,
+      bonusClaimed: user.bonus_claimed || 0,
+      createdAt: user.created_at || null
+    }));
+
+    return res.json({
+      success: true,
+      users
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load users' });
+  }
+});
+
 app.get('*', (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
