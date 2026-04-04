@@ -728,6 +728,50 @@ app.post('/api/deposit-request', (req, res) => {
   }
 });
 
+app.post('/api/withdrawal-request', (req, res) => {
+  try {
+    const userId = getUserIdFromReq(req);
+    const user = getUser(userId);
+    const amount = Number(req.body?.amount);
+
+    if (!user) {
+      return res.status(401).json({ error: 'Login required' });
+    }
+
+    if (!Number.isInteger(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount required' });
+    }
+
+    if (Number(user.wallet_balance || 0) < amount) {
+      return res.status(400).json({ error: 'Insufficient balance' });
+    }
+
+    const request = {
+      id: db.counters.depositRequestId++,
+      user_id: user.id,
+      username: user.username,
+      amount,
+      method: '',
+      utr: '',
+      type: 'withdrawal',
+      status: 'pending',
+      created_at: nowMs(),
+      updated_at: nowMs()
+    };
+
+    db.deposit_requests.push(request);
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: 'Withdrawal request submitted successfully',
+      request
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to submit withdrawal request' });
+  }
+});
+
 app.post('/api/bonus', (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
@@ -841,12 +885,28 @@ app.post('/api/admin/deposit-requests/action', adminOnly, (req, res) => {
     }
 
     if (action === 'approve') {
-      user.wallet_balance = Number(user.wallet_balance || 0) + Number(request.amount || 0);
+      if (request.type === 'withdrawal') {
+        const currentBalance = Number(user.wallet_balance || 0);
+        const withdrawAmount = Number(request.amount || 0);
 
-      addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
-        by: req.user.username,
-        depositRequestId: request.id
-      });
+        if (currentBalance < withdrawAmount) {
+          return res.status(400).json({ error: 'Insufficient user wallet balance' });
+        }
+
+        user.wallet_balance = currentBalance - withdrawAmount;
+
+        addTransaction(user.id, 'withdrawal_approved', -withdrawAmount, {
+          by: req.user.username,
+          depositRequestId: request.id
+        });
+      } else {
+        user.wallet_balance = Number(user.wallet_balance || 0) + Number(request.amount || 0);
+
+        addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
+          by: req.user.username,
+          depositRequestId: request.id
+        });
+      }
 
       request.status = 'approved';
     } else {
@@ -859,11 +919,12 @@ app.post('/api/admin/deposit-requests/action', adminOnly, (req, res) => {
     return res.json({
       success: true,
       message: action === 'approve'
-        ? 'Deposit request approved successfully'
-        : 'Deposit request rejected successfully',
+        ? 'Request approved successfully'
+        : 'Request rejected successfully',
       request: {
         id: request.id,
-        status: request.status
+        status: request.status,
+        type: request.type || 'deposit'
       },
       user: {
         id: user.id,

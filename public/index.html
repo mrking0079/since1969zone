@@ -929,7 +929,7 @@ function renderDepositRequests(requests = []) {
         </div>
 
         <div style="margin-top:6px;color:#888;font-size:12px;">
-          Type: ${item.type || 'deposit'}
+          Type: ${item.type === 'withdrawal' ? 'withdrawal' : 'deposit'}
         </div>
       `;
 
@@ -1257,10 +1257,11 @@ els.submitWithdrawCoin.addEventListener('click', () => {
     return;
   }
 
-  const username = currentUser?.username || 'Unknown User';
-
-  pendingTelegramMessage = `Hello bhai\nUsername: ${username}\nWithdrawal Request: ${amount} coins`;
-  els.confirmActionText.textContent = `Do you want to send Withdrawal request for ${amount} coins?`;
+  els.confirmActionText.textContent = `Do you want to send Withdrawal Request for ${amount} coins?`;
+  pendingTelegramMessage = JSON.stringify({
+    type: 'withdrawal',
+    amount
+  });
   els.confirmActionModal.style.display = 'flex';
 });
 
@@ -1288,6 +1289,18 @@ els.confirmActionBtn.addEventListener('click', async () => {
       await loadState();
     }
 
+if (payload.type === 'withdrawal') {
+  await api('/api/withdrawal-request', {
+    method: 'POST',
+    body: JSON.stringify({
+      amount: payload.amount
+    })
+  });
+
+  showMessage(`Withdrawal Request sent for ${payload.amount} coins`);
+  els.withdrawCoinInput.value = '';
+  await loadState();
+}
     els.confirmActionModal.style.display = 'none';
     els.addCoinModal.style.display = 'none';
     els.withdrawCoinModal.style.display = 'none';
