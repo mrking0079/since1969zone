@@ -181,15 +181,7 @@ allUsers = users;
       return;
     }
 
-    usersList.innerHTML = users.map(user => `
-  <div onclick="selectUser('${user.username}')" style="background:#111827;border:1px solid #243041;border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer;">
-    <div><strong>Username:</strong> ${user.username}</div>
-    <div><strong>Wallet:</strong> ${user.walletBalance}</div>
-    <div><strong>Total Played:</strong> ${user.totalPlayed}</div>
-    <div><strong>Total Wins:</strong> ${user.totalWins}</div>
-    <div><strong>Bonus Claimed:</strong> ${user.bonusClaimed}</div>
-  </div>
-`).join('');
+    filterUsers();
 
   } catch (err) {
     output.textContent = 'Failed to load users: ' + err.message;
