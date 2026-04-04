@@ -144,6 +144,7 @@ let selectedUsername = '';
         localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
         loginMsg.textContent = 'Admin login successful';
         checkAdminLogin();
+loadUsers();
       } catch (err) {
         loginMsg.textContent = 'Server error';
       }
