@@ -335,6 +335,10 @@ loadUsers();
       localStorage.removeItem('adminSessionToken');
       checkAdminLogin();
       document.getElementById('output').textContent = 'Admin data yaha dikhega...';
+document.getElementById('usersList').innerHTML = '';
+document.getElementById('selectedUserInfo').textContent = 'No user selected';
+document.getElementById('userSearch').value = '';
+selectedUsername = '';
       document.getElementById('loginMsg').textContent = 'Logged out';
     }
 
