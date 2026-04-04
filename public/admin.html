@@ -82,14 +82,16 @@
 
     <div id="panelSection" class="hidden">
       <button onclick="loadUsers()">Load Users</button>
-<div id="selectedUserInfo" style="margin:12px 0;padding:10px 12px;background:#0b1220;border:1px solid #243041;border-radius:10px;color:#ffd54a;">
+<div id="selectedUserInfo" style="margin:12px 0;padding:12px 14px;background:linear-gradient(135deg,#111827,#0b1220);border:1px solid #3a4b63;border-radius:12px;color:#ffd54a;box-shadow:0 0 14px rgba(255,213,74,0.08);font-weight:600;">
   No user selected
 </div>
 <input id="coinUsername" type="text" placeholder="Username to add coins" />
 <input id="coinAmount" type="number" placeholder="Coins amount" />
-<button onclick="addCoins()">Add Coins</button>
-<button onclick="withdrawCoins()">Withdraw Coins</button>
-      <button onclick="adminLogout()">Logout</button>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+  <button onclick="addCoins()" style="margin-bottom:0;">Add Coins</button>
+  <button onclick="withdrawCoins()" style="margin-bottom:0;">Withdraw Coins</button>
+  <button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
+</div>
 <input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
       <div id="usersList" style="margin-top:16px;"></div>
 <pre id="output">Admin action result yaha dikhega...</pre>
