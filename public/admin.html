@@ -254,8 +254,8 @@ async function addCoins() {
 
     output.textContent = JSON.stringify(data, null, 2);
 
-    document.getElementById('coinUsername').value = '';
-    document.getElementById('coinAmount').value = '';
+document.getElementById('coinAmount').value = '';
+loadUsers();
   } catch (err) {
     output.textContent = 'Failed to add coins: ' + err.message;
   }
@@ -300,8 +300,8 @@ async function withdrawCoins() {
 
     output.textContent = JSON.stringify(data, null, 2);
 
-    document.getElementById('coinUsername').value = '';
-    document.getElementById('coinAmount').value = '';
+document.getElementById('coinAmount').value = '';
+loadUsers();
   } catch (err) {
     output.textContent = 'Failed to withdraw coins: ' + err.message;
   }
