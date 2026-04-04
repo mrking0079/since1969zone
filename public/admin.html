@@ -82,9 +82,11 @@
 
     <div id="panelSection" class="hidden">
       <button onclick="loadUsers()">Load Users</button>
-<div id="selectedUserInfo" style="margin:12px 0;padding:12px 14px;background:linear-gradient(135deg,#111827,#0b1220);border:1px solid #3a4b63;border-radius:12px;color:#ffd54a;box-shadow:0 0 14px rgba(255,213,74,0.08);font-weight:600;">
-  No user selected
-</div>
+<div id="selectedUserInfo" style="margin:12px 0;padding:12px 14px;background:linear-gradient(135deg,#111827,#0b1220);border:1px solid #3a4b63;border-radius:12px;color:#ffd54a;box-shadow:0 0 14px rgba(255,213,74,0.08);font-weight:600;">No user selected</div>
+
+<button onclick="toggleBlockUser()" style="margin-bottom:10px;background:#ff4d4f;color:#fff;">
+  Block / Unblock User
+</button>
 <input id="coinUsername" type="text" placeholder="Username to add coins" />
 <input id="coinAmount" type="number" placeholder="Coins amount" />
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
@@ -228,12 +230,13 @@ if (selectedUsername) {
   }
 
   usersList.innerHTML = filtered.map(user => `
-    <div onclick="selectUser('${user.username}')" style="background:${selectedUsername === user.username ? '#1a2a44' : '#111827'};border:1px solid ${selectedUsername === user.username ? '#ffd54a' : '#243041'};border-radius:14px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all 0.2s ease;box-shadow:${selectedUsername === user.username ? '0 0 16px rgba(255,213,74,0.12)' : '0 0 0 rgba(0,0,0,0)'};" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+    <div onclick="selectUser('${user.username}')" style="background:${selectedUsername === user.username ? '#1a2a44' : user.blocked ? '#2a1014' : '#111827'};border:1px solid ${selectedUsername === user.username ? '#ffd54a' : user.blocked ? '#ff4d4f' : '#243041'};border-radius:14px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all 0.2s ease;box-shadow:${selectedUsername === user.username ? '0 0 16px rgba(255,213,74,0.12)' : user.blocked ? '0 0 12px rgba(255,77,79,0.10)' : '0 0 0 rgba(0,0,0,0)'};" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
       <div><strong>Username:</strong> ${user.username}</div>
       <div><strong>Wallet:</strong> ${user.walletBalance}</div>
       <div><strong>Total Played:</strong> ${user.totalPlayed}</div>
       <div><strong>Total Wins:</strong> ${user.totalWins}</div>
       <div><strong>Bonus Claimed:</strong> ${user.bonusClaimed}</div>
+      <div><strong>Status:</strong> ${user.blocked ? 'Blocked' : 'Active'}</div>
     </div>
   `).join('');
 }
@@ -253,10 +256,19 @@ selectedUsername = username;
     }
   });
 
+    const selectedUser = allUsers.find(
+    user => String(user.username) === String(username)
+  );
+
+  const blockedText = selectedUser && selectedUser.blocked ? 'Blocked' : 'Active';
+
   document.getElementById('selectedUserInfo').textContent =
-    walletText ? `Selected user: ${username} | ${walletText}` : `Selected user: ${username}`;
+    walletText
+      ? `Selected user: ${username} | ${walletText} | Blocked: ${blockedText}`
+      : `Selected user: ${username} | Blocked: ${blockedText}`;
 
   document.getElementById('output').textContent = 'Selected user: ' + username;
+document.querySelector('button[onclick="toggleBlockUser()"]').textContent = blockedText === 'Blocked' ? 'Unblock User' : 'Block User';
 filterUsers();
 }
 async function addCoins() {
@@ -361,6 +373,70 @@ document.getElementById('userSearch').value = '';
 loadUsers();
   } catch (err) {
     output.textContent = 'Failed to withdraw coins: ' + err.message;
+  }
+}
+
+async function toggleBlockUser() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const username = document.getElementById('coinUsername').value.trim();
+  const output = document.getElementById('output');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!username) {
+    output.textContent = 'Select a user first';
+    return;
+  }
+
+  const selectedUser = allUsers.find(
+    user => String(user.username).toLowerCase() === username.toLowerCase()
+  );
+
+  if (!selectedUser) {
+    output.textContent = 'User not found in list';
+    return;
+  }
+
+  const newBlockedState = !selectedUser.blocked;
+
+  if (!confirm(`${newBlockedState ? 'Block' : 'Unblock'} user ${username}?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/toggle-block-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token
+      },
+      body: JSON.stringify({
+        username,
+        blocked: newBlockedState
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = data.message;
+
+        document.getElementById('selectedUserInfo').textContent =
+      `Selected user: ${data.user.username} | Blocked: ${data.user.blocked ? 'Blocked' : 'Active'}`;
+
+document.querySelector('button[onclick="toggleBlockUser()"]').textContent =
+      data.user.blocked ? 'Unblock User' : 'Block User';
+
+    loadUsers();
+  } catch (err) {
+    output.textContent = 'Failed to update block status: ' + err.message;
   }
 }
 

@@ -550,6 +550,10 @@ app.post('/api/login', (req, res) => {
       return res.status(401).json({ error: 'Wrong password' });
     }
 
+if (user.blocked) {
+  return res.status(403).json({ error: 'Your account is blocked by admin' });
+}
+
 user.session_token = crypto.randomUUID();
     return res.json({
       success: true,
@@ -706,6 +710,7 @@ app.get('/api/admin/users', adminOnly, (req, res) => {
       totalPlayed: user.total_played || 0,
       totalWins: user.total_wins || 0,
       bonusClaimed: user.bonus_claimed || 0,
+      blocked: !!user.blocked,
       createdAt: user.created_at || null
     }));
 
@@ -810,6 +815,50 @@ app.post('/api/admin/withdraw-coins', adminOnly, (req, res) => {
   }
 });
 
+app.post('/api/admin/toggle-block-user', adminOnly, (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const blocked = Boolean(req.body?.blocked);
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username required' });
+    }
+
+    const user = db.users.find(
+      u => String(u.username).toLowerCase() === username.toLowerCase()
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (String(user.username).toLowerCase() === 'admin') {
+      return res.status(400).json({ error: 'Admin user cannot be blocked' });
+    }
+
+    user.blocked = blocked;
+
+    addTransaction(user.id, blocked ? 'admin_block_user' : 'admin_unblock_user', 0, {
+      by: req.user.username
+    });
+
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: blocked
+        ? `${user.username} blocked successfully`
+        : `${user.username} unblocked successfully`,
+      user: {
+        id: user.id,
+        username: user.username,
+        blocked: !!user.blocked
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to update block status' });
+  }
+});
 app.get('/api/admin/transactions', adminOnly, (req, res) => {
   try {
     const transactions = [...db.transactions]
