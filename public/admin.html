@@ -53,6 +53,7 @@
   <div class="box">
     <h1>Since1969Zone Admin Panel</h1>
     <button onclick="loadUsers()">Load Users</button>
+<div id="tokenInfo" style="margin:10px 0 14px;color:#ffd54a;font-size:14px;">Token check yaha dikhega...</div>
     <pre id="output">Admin data yaha dikhega...</pre>
   </div>
 
@@ -60,6 +61,8 @@
     async function loadUsers() {
   const token = localStorage.getItem('sessionToken');
   const output = document.getElementById('output');
+const tokenInfo = document.getElementById('tokenInfo');
+tokenInfo.textContent = 'Token on admin page: ' + (token || 'NOT FOUND');
 
   if (!token) {
     output.textContent = '❌ Admin login required. Pehle main site par login karo.';
