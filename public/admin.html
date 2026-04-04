@@ -254,6 +254,8 @@ async function addCoins() {
 
     output.textContent = data.message + ' | New Wallet: ' + data.user.walletBalance;
 
+document.getElementById('selectedUserInfo').textContent =
+  'Selected user: ' + data.user.username + ' | Wallet: ' + data.user.walletBalance;
 document.getElementById('coinAmount').value = '';
 loadUsers();
   } catch (err) {
@@ -300,6 +302,8 @@ async function withdrawCoins() {
 
     output.textContent = data.message + ' | New Wallet: ' + data.user.walletBalance;
 
+document.getElementById('selectedUserInfo').textContent =
+  'Selected user: ' + data.user.username + ' | Wallet: ' + data.user.walletBalance;
 document.getElementById('coinAmount').value = '';
 loadUsers();
   } catch (err) {
