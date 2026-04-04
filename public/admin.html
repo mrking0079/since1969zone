@@ -144,33 +144,52 @@
     }
 
     async function loadUsers() {
-      const token = localStorage.getItem('adminSessionToken') || '';
-      const output = document.getElementById('output');
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const usersList = document.getElementById('usersList');
 
-      if (!token) {
-        output.textContent = 'Admin login required';
-        return;
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/users', {
+      headers: {
+        'x-auth-token': token
       }
+    });
 
-      try {
-        const res = await fetch('/api/admin/users', {
-          headers: {
-            'x-auth-token': token
-          }
-        });
+    const data = await res.json();
 
-        const data = await res.json();
-
-        if (!res.ok) {
-  output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Access denied');
-  return;
-}
-
-        output.textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        output.textContent = 'Failed to load users: ' + err.message;
-      }
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Access denied');
+      return;
     }
+
+    const users = Array.isArray(data.users) ? data.users : [];
+
+    if (!users.length) {
+      usersList.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No users found</div>';
+      output.textContent = 'Users loaded';
+      return;
+    }
+
+    usersList.innerHTML = users.map(user => `
+      <div style="background:#111827;border:1px solid #243041;border-radius:12px;padding:12px;margin-bottom:10px;">
+        <div><strong>Username:</strong> ${user.username}</div>
+        <div><strong>Wallet:</strong> ${user.walletBalance}</div>
+        <div><strong>Total Played:</strong> ${user.totalPlayed}</div>
+        <div><strong>Total Wins:</strong> ${user.totalWins}</div>
+        <div><strong>Bonus Claimed:</strong> ${user.bonusClaimed}</div>
+      </div>
+    `).join('');
+
+    output.textContent = 'Users loaded successfully';
+  } catch (err) {
+    output.textContent = 'Failed to load users: ' + err.message;
+  }
+}
 
 async function addCoins() {
   const token = localStorage.getItem('adminSessionToken') || '';
