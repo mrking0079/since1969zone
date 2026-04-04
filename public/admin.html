@@ -82,6 +82,9 @@
 
     <div id="panelSection" class="hidden">
       <button onclick="loadUsers()">Load Users</button>
+<input id="coinUsername" type="text" placeholder="Username to add coins" />
+<input id="coinAmount" type="number" placeholder="Coins amount" />
+<button onclick="addCoins()">Add Coins</button>
       <button onclick="adminLogout()">Logout</button>
       <pre id="output">Admin data yaha dikhega...</pre>
     </div>
@@ -167,6 +170,52 @@
       }
     }
 
+async function addCoins() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const username = document.getElementById('coinUsername').value.trim();
+  const amount = Number(document.getElementById('coinAmount').value);
+  const output = document.getElementById('output');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!username) {
+    output.textContent = 'Username required';
+    return;
+  }
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    output.textContent = 'Valid amount required';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/add-coins', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token
+      },
+      body: JSON.stringify({ username, amount })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = JSON.stringify(data, null, 2);
+
+    document.getElementById('coinUsername').value = '';
+    document.getElementById('coinAmount').value = '';
+  } catch (err) {
+    output.textContent = 'Failed to add coins: ' + err.message;
+  }
+}
     function adminLogout() {
       localStorage.removeItem('adminSessionToken');
       checkAdminLogin();
