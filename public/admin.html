@@ -100,6 +100,7 @@
 <div id="selectedUserInfo" style="margin:12px 0;padding:12px 14px;background:linear-gradient(135deg,#111827,#0b1220);border:1px solid #3a4b63;border-radius:12px;color:#ffd54a;box-shadow:0 0 14px rgba(255,213,74,0.08);font-weight:600;">No user selected</div>
 
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+  <button onclick="openLiveUpdatesPanel()" style="margin-bottom:0;background:#22c55e;color:#111;">LIVE UPDATES</button>
   <button onclick="addCoins()" style="margin-bottom:0;">Add Coins</button>
   <button onclick="withdrawCoins()" style="margin-bottom:0;">Withdraw Coins</button>
   <button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
@@ -156,13 +157,28 @@
 </div>
 <div id="depositRequestsPanel" style="margin-top:16px;display:none;">
   <h3 style="margin:0 0 10px 0;color:#ffd54a;">Deposit Requests</h3>
-<div id="pendingRequestCount" style="margin-bottom:10px;font-weight:700;color:#ff4d4f;">
-  Pending: 0
-</div>
   <div id="depositRequestsList" style="display:grid;gap:10px;"></div>
+</div>
+
+<div id="liveUpdatesPanel" style="margin-top:16px;display:none;">
+  <h3 style="margin:0 0 10px 0;color:#22c55e;">LIVE UPDATES</h3>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    <button onclick="showLiveUpdateSection('payment-method')" style="margin-bottom:0;background:#22c55e;color:#111;">
+      Payment Method
+    </button>
+    <button onclick="showLiveUpdateSection('offer')" style="margin-bottom:0;background:#2563eb;color:#fff;">
+      Offer
+    </button>
+  </div>
+
+  <div id="liveUpdatesContent" style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;line-height:1.8;">
+    Live update options will appear here...
+  </div>
 </div>
     </div>
   </div>
+
 
 <script>
   let allUsers = [];
@@ -234,6 +250,7 @@ function hideAllAdminSections() {
   document.getElementById('transactionsPanel').style.display = 'none';
   document.getElementById('roundPanel').style.display = 'none';
   document.getElementById('depositRequestsPanel').style.display = 'none';
+  document.getElementById('liveUpdatesPanel').style.display = 'none';
 document.getElementById('userHistoryPanel').style.display = 'none';
 }
 
@@ -262,6 +279,326 @@ function clearAllSelections() {
   document.getElementById('userHistoryContent').innerHTML = '';
   document.getElementById('transactionsList').innerHTML = '';
   document.getElementById('depositRequestsList').innerHTML = '';
+}
+function openLiveUpdatesPanel() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const panel = document.getElementById('liveUpdatesPanel');
+  const content = document.getElementById('liveUpdatesContent');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  hideAllAdminSections();
+  panel.style.display = 'block';
+  content.innerHTML = 'Loading live updates...';
+  output.textContent = 'Live updates opened';
+
+  showLiveUpdateSection('payment-method');
+}
+
+function showLiveUpdateSection(section) {
+  const content = document.getElementById('liveUpdatesContent');
+
+  if (section === 'payment-method') {
+    content.innerHTML = `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <button onclick="showPaymentMethodType('upi-id')" style="margin-bottom:0;background:#22c55e;color:#111;">
+          UPI ID
+        </button>
+        <button onclick="showPaymentMethodType('qr-code')" style="margin-bottom:0;background:#22c55e;color:#111;">
+          QR Code
+        </button>
+        <button onclick="showPaymentMethodType('bank-account')" style="margin-bottom:0;background:#22c55e;color:#111;">
+          Bank Account
+        </button>
+      </div>
+
+      <div id="paymentMethodTypeContent" style="background:#0f172a;border:1px solid #243041;border-radius:12px;padding:14px;">
+        Select payment method type
+      </div>
+    `;
+    return;
+  }
+
+  if (section === 'offer') {
+    content.innerHTML = `
+      <div style="display:grid;gap:12px;">
+        <textarea id="offerInput" placeholder="Offer text yaha type karo" style="width:100%;min-height:120px;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"></textarea>
+        <button onclick="saveOfferUpdate()" style="margin-bottom:0;background:#2563eb;color:#fff;width:fit-content;">
+          Update Offer
+        </button>
+      </div>
+    `;
+    loadLiveUpdatesData();
+  }
+}
+function showPaymentMethodType(type) {
+  const content = document.getElementById('paymentMethodTypeContent');
+
+  if (type === 'upi-id') {
+    content.innerHTML = `
+      <div style="display:grid;gap:12px;">
+        <input id="liveUpiIdInput" type="text" placeholder="Enter UPI ID" />
+        <button onclick="saveLiveUpiId()" style="margin-bottom:0;background:#22c55e;color:#111;width:fit-content;">
+          Update UPI ID
+        </button>
+      </div>
+    `;
+    loadLiveUpdatesData();
+    return;
+  }
+
+  if (type === 'qr-code') {
+    content.innerHTML = `
+      <div style="display:grid;gap:12px;">
+        <input id="liveQrCodeInput" type="file" accept="image/*" />
+        <button onclick="saveLiveQrCode()" style="margin-bottom:0;background:#22c55e;color:#111;width:fit-content;">
+          Update QR Code
+        </button>
+        <div id="liveQrPreviewBox" style="display:none;">
+          <img id="liveQrPreviewImage" src="" alt="QR Preview" style="width:100%;max-width:260px;border-radius:10px;border:1px solid #243041;background:#000;padding:6px;" />
+        </div>
+      </div>
+    `;
+    loadLiveUpdatesData();
+    return;
+  }
+
+  if (type === 'bank-account') {
+    content.innerHTML = `
+      <div style="display:grid;gap:12px;">
+        <textarea id="liveBankAccountInput" placeholder="Enter bank account details" style="width:100%;min-height:140px;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"></textarea>
+        <button onclick="saveLiveBankAccount()" style="margin-bottom:0;background:#22c55e;color:#111;width:fit-content;">
+          Update Bank Account
+        </button>
+      </div>
+    `;
+    loadLiveUpdatesData();
+  }
+}
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read file'));
+
+    reader.readAsDataURL(file);
+  });
+}
+
+async function saveLiveUpiId() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const upiId = document.getElementById('liveUpiIdInput')?.value.trim() || '';
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/live-updates', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        section: 'payment-method',
+        type: 'upi-id',
+        upiId
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to update UPI ID';
+      return;
+    }
+
+    output.textContent = data.message || 'UPI ID updated successfully';
+  } catch (err) {
+    output.textContent = 'Failed to update UPI ID: ' + err.message;
+  }
+}
+
+async function saveLiveQrCode() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const fileInput = document.getElementById('liveQrCodeInput');
+  const file = fileInput?.files?.[0];
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!file) {
+    output.textContent = 'Select QR code image first';
+    return;
+  }
+
+  try {
+    const qrCodeImage = await fileToBase64(file);
+
+    const res = await fetch('/api/admin/live-updates', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        section: 'payment-method',
+        type: 'qr-code',
+        qrCodeImage
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to update QR code';
+      return;
+    }
+
+    const previewBox = document.getElementById('liveQrPreviewBox');
+    const previewImage = document.getElementById('liveQrPreviewImage');
+
+    if (previewBox && previewImage) {
+      previewImage.src = qrCodeImage;
+      previewBox.style.display = 'block';
+    }
+
+    output.textContent = data.message || 'QR code updated successfully';
+  } catch (err) {
+    output.textContent = 'Failed to update QR code: ' + err.message;
+  }
+}
+
+async function saveLiveBankAccount() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const bankAccount = document.getElementById('liveBankAccountInput')?.value.trim() || '';
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/live-updates', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        section: 'payment-method',
+        type: 'bank-account',
+        bankAccount
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to update bank account';
+      return;
+    }
+
+    output.textContent = data.message || 'Bank account updated successfully';
+  } catch (err) {
+    output.textContent = 'Failed to update bank account: ' + err.message;
+  }
+}
+
+async function saveOfferUpdate() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const offer = document.getElementById('offerInput')?.value.trim() || '';
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/live-updates', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        section: 'offer',
+        offer
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to update offer';
+      return;
+    }
+
+    output.textContent = data.message || 'Offer updated successfully';
+  } catch (err) {
+    output.textContent = 'Failed to update offer: ' + err.message;
+  }
+}
+async function loadLiveUpdatesData() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+
+  if (!token) return;
+
+  try {
+    const res = await fetch('/api/admin/live-updates', {
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return;
+    }
+
+    const live = data.liveUpdates || {};
+
+    // UPI
+    if (document.getElementById('liveUpiIdInput')) {
+      document.getElementById('liveUpiIdInput').value =
+        live.paymentMethod?.upiId || '';
+    }
+
+    // Bank
+    if (document.getElementById('liveBankAccountInput')) {
+      document.getElementById('liveBankAccountInput').value =
+        live.paymentMethod?.bankAccount || '';
+    }
+
+    // QR preview
+    if (live.paymentMethod?.qrCodeImage) {
+      const previewBox = document.getElementById('liveQrPreviewBox');
+      const previewImage = document.getElementById('liveQrPreviewImage');
+
+      if (previewBox && previewImage) {
+        previewImage.src = live.paymentMethod.qrCodeImage;
+        previewBox.style.display = 'block';
+      }
+    }
+
+    // Offer
+    if (document.getElementById('offerInput')) {
+      document.getElementById('offerInput').value =
+        live.offer || '';
+    }
+
+  } catch (err) {
+    console.log('Live updates load failed');
+  }
 }
 
     function checkAdminLogin() {
@@ -435,8 +772,8 @@ document.getElementById('historyUsername').value = username;
 
   document.getElementById('selectedUserInfo').textContent =
     walletText
-      ? `Selected user: ${username} | ${walletText} | Blocked: ${blockedText}`
-      : `Selected user: ${username} | Blocked: ${blockedText}`;
+      ? `Selected user: ${username} | ${walletText} | Account Status: ${blockedText}`
+      : `Selected user: ${username} | Account Status: ${blockedText}`;
 
   document.getElementById('output').textContent = 'Selected user: ' + username;
 document.querySelector('button[onclick="toggleBlockUser()"]').textContent = blockedText === 'Blocked' ? 'Unblock User' : 'Block User';
@@ -536,7 +873,7 @@ if (!confirm(`Withdraw ${amount} coins to ${username}?`)) {
     output.textContent = data.message + ' | New Wallet: ' + data.user.walletBalance;
 
 document.getElementById('selectedUserInfo').textContent =
-  'Selected user: ' + data.user.username + ' | Wallet: ' + data.user.walletBalance;
+  `Selected user: ${data.user.username} | Account Status: ${data.user.blocked ? 'Blocked' : 'Active'}`;
 document.getElementById('coinAmount').value = '';
 document.getElementById('userSearch').value = '';
 loadUsers();
@@ -597,7 +934,7 @@ async function toggleBlockUser() {
     output.textContent = data.message;
 
         document.getElementById('selectedUserInfo').textContent =
-      `Selected user: ${data.user.username} | Blocked: ${data.user.blocked ? 'Blocked' : 'Active'}`;
+      `Selected user: ${data.user.username} | Account Status: ${data.user.blocked ? 'Blocked' : 'Active'}`;
 
 document.querySelector('button[onclick="toggleBlockUser()"]').textContent =
       data.user.blocked ? 'Unblock User' : 'Block User';
@@ -1185,7 +1522,10 @@ document.getElementById('coinUsername').value = '';
 document.getElementById('coinAmount').value = '';
 document.getElementById('transactionsPanel').style.display = 'none';
 document.getElementById('roundPanel').style.display = 'none';
-document.getElementById('depositRequestsPanel').style.display = 'none';document.getElementById('depositRequestsBtn').style.background = '';
+document.getElementById('depositRequestsPanel').style.display = 'none';
+document.getElementById('liveUpdatesPanel').style.display = 'none';
+document.getElementById('liveUpdatesContent').innerHTML = 'Live update options will appear here...';
+document.getElementById('depositRequestsBtn').style.background = '';
 document.getElementById('depositRequestsBtn').style.color = '';
 
 document.getElementById('withdrawalRequestsBtn').style.background = '';

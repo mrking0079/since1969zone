@@ -130,6 +130,14 @@ function createDefaultData() {
     bets: [],
 deposit_requests: [],
     transactions: [],
+    live_updates: {
+      paymentMethod: {
+        upiId: '',
+        qrCodeImage: '',
+        bankAccount: ''
+      },
+      offer: ''
+    },
     counters: {
       roundId: 1,
       betId: 1,
@@ -187,6 +195,30 @@ if (!Array.isArray(db.deposit_requests)) {
   db.deposit_requests = [];
 }
 
+if (!db.live_updates) {
+  db.live_updates = {};
+}
+
+if (!db.live_updates.paymentMethod) {
+  db.live_updates.paymentMethod = {};
+}
+
+if (typeof db.live_updates.paymentMethod.upiId !== 'string') {
+  db.live_updates.paymentMethod.upiId = '';
+}
+
+if (typeof db.live_updates.paymentMethod.qrCodeImage !== 'string') {
+  db.live_updates.paymentMethod.qrCodeImage = '';
+}
+
+if (typeof db.live_updates.paymentMethod.bankAccount !== 'string') {
+  db.live_updates.paymentMethod.bankAccount = '';
+}
+
+if (typeof db.live_updates.offer !== 'string') {
+  db.live_updates.offer = '';
+}
+
 if (!db.counters) {
   db.counters = {};
 }
@@ -194,6 +226,8 @@ if (!db.counters) {
 if (typeof db.counters.depositRequestId !== 'number') {
   db.counters.depositRequestId = 1;
 }
+
+saveData(db);
 
 const adminExists = db.users.find(
   u => String(u.username).toLowerCase() === 'admin'
@@ -1430,6 +1464,109 @@ app.get('/api/admin/dashboard-stats', adminOnly, (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to load dashboard stats' });
+  }
+});
+
+app.get('/api/admin/live-updates', adminOnly, (req, res) => {
+  try {
+    return res.json({
+      success: true,
+      liveUpdates: {
+        paymentMethod: {
+          upiId: db.live_updates?.paymentMethod?.upiId || '',
+          qrCodeImage: db.live_updates?.paymentMethod?.qrCodeImage || '',
+          bankAccount: db.live_updates?.paymentMethod?.bankAccount || ''
+        },
+        offer: db.live_updates?.offer || ''
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load live updates' });
+  }
+});
+
+app.post('/api/admin/live-updates', adminOnly, (req, res) => {
+  try {
+    const section = String(req.body?.section || '').trim();
+    const type = String(req.body?.type || '').trim();
+
+    if (section === 'payment-method') {
+      if (!db.live_updates) {
+        db.live_updates = {};
+      }
+
+      if (!db.live_updates.paymentMethod) {
+        db.live_updates.paymentMethod = {};
+      }
+
+      if (type === 'upi-id') {
+        const upiId = String(req.body?.upiId || '').trim();
+
+        db.live_updates.paymentMethod.upiId = upiId;
+        saveData(db);
+
+        return res.json({
+          success: true,
+          message: 'UPI ID updated successfully',
+          liveUpdates: db.live_updates
+        });
+      }
+
+      if (type === 'qr-code') {
+        const qrCodeImage = String(req.body?.qrCodeImage || '').trim();
+
+        if (
+          qrCodeImage &&
+          !qrCodeImage.startsWith('data:image/jpeg;base64,') &&
+          !qrCodeImage.startsWith('data:image/jpg;base64,') &&
+          !qrCodeImage.startsWith('data:image/png;base64,') &&
+          !qrCodeImage.startsWith('data:image/webp;base64,')
+        ) {
+          return res.status(400).json({ error: 'Valid QR code image required' });
+        }
+
+        db.live_updates.paymentMethod.qrCodeImage = qrCodeImage;
+        saveData(db);
+
+        return res.json({
+          success: true,
+          message: 'QR code updated successfully',
+          liveUpdates: db.live_updates
+        });
+      }
+
+      if (type === 'bank-account') {
+        const bankAccount = String(req.body?.bankAccount || '').trim();
+
+        db.live_updates.paymentMethod.bankAccount = bankAccount;
+        saveData(db);
+
+        return res.json({
+          success: true,
+          message: 'Bank account updated successfully',
+          liveUpdates: db.live_updates
+        });
+      }
+
+      return res.status(400).json({ error: 'Invalid payment method type' });
+    }
+
+    if (section === 'offer') {
+      const offer = String(req.body?.offer || '').trim();
+
+      db.live_updates.offer = offer;
+      saveData(db);
+
+      return res.json({
+        success: true,
+        message: 'Offer updated successfully',
+        liveUpdates: db.live_updates
+      });
+    }
+
+    return res.status(400).json({ error: 'Invalid live updates section' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to update live updates' });
   }
 });
 
