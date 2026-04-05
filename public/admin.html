@@ -110,7 +110,9 @@
   <button onclick="withdrawCoins()" style="margin-bottom:0;">Withdraw Coins</button>
 <button onclick="loadTransactions()" style="margin-bottom:0;">Transaction History</button>
 <button onclick="loadCurrentRound()" style="margin-bottom:0;">Round Control</button>
-<button onclick="loadDepositRequests()" style="margin-bottom:0;">Deposit Requests</button>
+<button id="depositRequestsBtn" onclick="loadDepositRequests()" style="margin-bottom:0;">
+  Deposit Requests (0)
+</button>
   <button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
 </div>
 <input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
@@ -133,6 +135,9 @@
 </div>
 <div id="depositRequestsPanel" style="margin-top:16px;display:none;">
   <h3 style="margin:0 0 10px 0;color:#ffd54a;">Deposit Requests</h3>
+<div id="pendingRequestCount" style="margin-bottom:10px;font-weight:700;color:#ff4d4f;">
+  Pending: 0
+</div>
   <div id="depositRequestsList" style="display:grid;gap:10px;"></div>
 </div>
     </div>
@@ -146,9 +151,7 @@ async function loadDashboardStats() {
 
   try {
     const res = await fetch('/api/admin/dashboard-stats', {
-      headers: {
-        'x-auth-token': token
-      }
+      headers: getAdminHeaders()
     });
 
     const data = await res.json();
@@ -157,17 +160,35 @@ async function loadDashboardStats() {
     document.getElementById('totalDepositsStat').textContent = data.stats?.totalDeposits || 0;
     document.getElementById('totalWithdrawalsStat').textContent = data.stats?.totalWithdrawals || 0;
     document.getElementById('profitLossStat').textContent = data.stats?.profitLoss || 0;
+const profit = Number(data.stats?.profitLoss || 0);
+const el = document.getElementById('profitLossStat');
+
+if (profit > 0) {
+  el.style.color = '#22c55e'; // green
+} else if (profit < 0) {
+  el.style.color = '#ff4d4f'; // red
+} else {
+  el.style.color = '#ffd54a'; // neutral
+}
   } catch (err) {
     console.log('Dashboard stats load failed');
   }
 }
 
 let selectedUsername = '';
+let dashboardRefreshInterval = null;
+let depositRefreshInterval = null;
     function checkAdminLogin() {
-      const token = localStorage.getItem('adminSessionToken') || '';
-      document.getElementById('loginSection').classList.toggle('hidden', !!token);
-      document.getElementById('panelSection').classList.toggle('hidden', !token);
-    }
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const adminKey = new URLSearchParams(window.location.search).get('key') || '';
+
+  if (adminKey) {
+    localStorage.setItem('adminRouteKey', adminKey);
+  }
+
+  document.getElementById('loginSection').classList.toggle('hidden', !!token);
+  document.getElementById('panelSection').classList.toggle('hidden', !token);
+}
 
     async function adminLogin() {
       const username = document.getElementById('adminUsername').value.trim();
@@ -185,10 +206,11 @@ let selectedUsername = '';
       }
 
       try {
-        const res = await fetch('/api/login', {
+        const res = await fetch('/api/admin-login', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+'x-admin-key': currentAdminKey
           },
           body: JSON.stringify({ username, password })
         });
@@ -210,6 +232,11 @@ let selectedUsername = '';
         checkAdminLogin();
 loadUsers();
 loadDashboardStats();
+if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+if (depositRefreshInterval) clearInterval(depositRefreshInterval);
+
+dashboardRefreshInterval = setInterval(loadDashboardStats, 10000);
+depositRefreshInterval = setInterval(loadDepositRequests, 10000);
       } catch (err) {
         loginMsg.textContent = 'Server error';
       }
@@ -227,9 +254,7 @@ loadDashboardStats();
 
   try {
     const res = await fetch('/api/admin/users', {
-      headers: {
-        'x-auth-token': token
-      }
+      headers: getAdminHeaders()
     });
 
     const data = await res.json();
@@ -353,10 +378,9 @@ if (!confirm(`Add ${amount} coins to ${username}?`)) {
   try {
     const res = await fetch('/api/admin/add-coins', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-auth-token': token
-      },
+      headers: getAdminHeaders({
+  'Content-Type': 'application/json'
+}),
       body: JSON.stringify({ username, amount })
     });
 
@@ -405,10 +429,9 @@ if (!confirm(`Withdraw ${amount} coins to ${username}?`)) {
   try {
     const res = await fetch('/api/admin/withdraw-coins', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-auth-token': token
-      },
+      headers: getAdminHeaders({
+  'Content-Type': 'application/json'
+}),
       body: JSON.stringify({ username, amount })
     });
 
@@ -464,10 +487,9 @@ async function toggleBlockUser() {
   try {
     const res = await fetch('/api/admin/toggle-block-user', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-auth-token': token
-      },
+      headers: getAdminHeaders({
+  'Content-Type': 'application/json'
+}),
       body: JSON.stringify({
         username,
         blocked: newBlockedState
@@ -511,9 +533,7 @@ async function loadCurrentRound() {
 
   try {
     const res = await fetch('/api/admin/current-round', {
-      headers: {
-        'x-auth-token': token
-      }
+      headers: getAdminHeaders()
     });
 
     const data = await res.json();
@@ -560,9 +580,7 @@ async function forceSettleRound() {
   try {
     const res = await fetch('/api/admin/settle', {
       method: 'POST',
-      headers: {
-        'x-auth-token': token
-      }
+      headers: getAdminHeaders()
     });
 
     const data = await res.json();
@@ -596,10 +614,9 @@ async function handleDepositRequest(requestId, action) {
   try {
     const res = await fetch('/api/admin/deposit-requests/action', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-auth-token': token
-      },
+      headers: getAdminHeaders({
+  'Content-Type': 'application/json'
+}),
       body: JSON.stringify({
         requestId,
         action
@@ -639,12 +656,15 @@ async function loadDepositRequests() {
 
   try {
     const res = await fetch('/api/admin/deposit-requests', {
-      headers: {
-        'x-auth-token': token
-      }
+      headers: getAdminHeaders()
     });
 
     const data = await res.json();
+
+const pendingCount = (data.requests || []).filter(r => r.status === 'pending').length;
+document.getElementById('pendingRequestCount').textContent = 'Pending: ' + pendingCount;
+
+document.getElementById('depositRequestsBtn').textContent = `Deposit Requests (${pendingCount})`;
 
     if (!res.ok) {
       output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
@@ -653,6 +673,7 @@ async function loadDepositRequests() {
     }
 
     if (!data.requests || !data.requests.length) {
+document.getElementById('pendingRequestCount').textContent = 'Pending: 0';
       list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No deposit requests found</div>';
       output.textContent = 'Deposit requests loaded';
       return;
@@ -674,11 +695,17 @@ async function loadDepositRequests() {
 <div><strong>Time:</strong> ${dateText}</div>
 ${reqItem.screenshot ? `
   <div style="margin-top:10px;">
-    <a href="${reqItem.screenshot}" target="_blank" style="color:#60a5fa;text-decoration:none;font-weight:700;">
-      View Payment Proof
-    </a>
+    <img src="${reqItem.screenshot}" 
+         alt="Payment Proof"
+         style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;border:1px solid #333;background:#000;padding:6px;cursor:pointer;"
+         onclick="window.open('${reqItem.screenshot}', '_blank')"
+    />
   </div>
-` : ''}
+` : `
+  <div style="margin-top:10px;color:#888;font-size:13px;">
+    No payment proof image
+  </div>
+`}
           ${reqItem.status === 'pending' ? `
   <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
     <button onclick="handleDepositRequest(${reqItem.id}, 'approve')" style="background:#22c55e;color:#111;">Approve</button>
@@ -712,9 +739,7 @@ async function loadTransactions() {
 
   try {
     const res = await fetch('/api/admin/transactions', {
-      headers: {
-        'x-auth-token': token
-      }
+      headers: getAdminHeaders()
     });
 
     const data = await res.json();
@@ -754,7 +779,14 @@ async function loadTransactions() {
 }
 
     function adminLogout() {
+if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+if (depositRefreshInterval) clearInterval(depositRefreshInterval);
+
+dashboardRefreshInterval = null;
+depositRefreshInterval = null;
+
       localStorage.removeItem('adminSessionToken');
+localStorage.removeItem('adminRouteKey');
       checkAdminLogin();
       document.getElementById('output').textContent = 'Admin action results will appear here....';
 document.getElementById('usersList').innerHTML = '';
@@ -769,6 +801,22 @@ document.getElementById('depositRequestsPanel').style.display = 'none';
       document.getElementById('loginMsg').textContent = 'Logged out';
     }
 
+const currentAdminKey = new URLSearchParams(window.location.search).get('key') || localStorage.getItem('adminRouteKey') || '';
+
+function getAdminHeaders(extra = {}) {
+  const token = localStorage.getItem('adminSessionToken') || '';
+
+  return {
+    ...extra,
+    'x-auth-token': token,
+    'x-admin-key': currentAdminKey
+  };
+}
+
+if (!currentAdminKey) {
+  document.body.innerHTML = '<div style="color:#fff;text-align:center;padding:40px;font-family:Arial;">Not found</div>';
+  throw new Error('Admin key missing');
+}
     checkAdminLogin();
 loadDashboardStats();
   </script>

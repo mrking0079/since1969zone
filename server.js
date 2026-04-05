@@ -14,6 +14,7 @@ app.set('trust proxy', 1);
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = process.env.ADMIN_KEY;
+const ADMIN_ROUTE = process.env.ADMIN_ROUTE || '/secure-admin-1969';
 const ROUND_SECONDS = 60;
 const BETTING_CLOSE_SECONDS = 10;
 const BONUS_AMOUNT = 50;
@@ -25,14 +26,37 @@ const DATA_FILE = path.join(__dirname, 'data.json');
 app.use(helmet({
   contentSecurityPolicy: false
 }));
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '5mb' }));
 app.use(rateLimit({
   windowMs: 60 * 1000,
   max: 120,
   standardHeaders: true,
   legacyHeaders: false
 }));
+
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many admin login attempts. Try again later.' }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get(ADMIN_ROUTE, (req, res) => {
+  const key = String(req.query.key || '').trim();
+
+  if (!ADMIN_KEY || key !== ADMIN_KEY) {
+    return res.status(404).send('Not found');
+  }
+
+  return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/admin.html', (req, res) => {
+  return res.status(404).send('Not found');
+});
 
 function nowMs() {
   return Date.now();
@@ -548,6 +572,7 @@ app.post('/api/login', (req, res) => {
   try {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '').trim();
+const isAdminLoginAttempt = username.toLowerCase() === 'admin';
 
     if (!username) {
       return res.status(400).json({ error: 'Username required' });
@@ -590,6 +615,57 @@ user.session_token = crypto.randomUUID();
     return res.status(500).json({ error: 'Login failed' });
   }
 });
+
+app.post('/api/admin-login', adminLoginLimiter, (req, res) => {
+  try {
+    const adminKey = String(req.header('x-admin-key') || '').trim();
+    const password = String(req.body?.password || '').trim();
+
+    if (!ADMIN_KEY || adminKey !== ADMIN_KEY) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ error: 'Password required' });
+    }
+
+    const user = db.users.find(
+      u => String(u.username).toLowerCase() === 'admin'
+    );
+
+    if (!user) {
+      return res.status(401).json({ error: 'Admin account not found' });
+    }
+
+    if (user.blocked) {
+      return res.status(403).json({ error: 'Your account is blocked by admin' });
+    }
+
+    if (String(user.password || '') !== password) {
+      return res.status(401).json({ error: 'Invalid admin password' });
+    }
+
+    user.session_token = crypto.randomUUID();
+    saveData(db);
+
+    return res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        sessionToken: user.session_token,
+        walletBalance: user.wallet_balance,
+        totalPlayed: user.total_played,
+        totalWins: user.total_wins,
+        bonusClaimed: user.bonus_claimed,
+        lastBonusTime: user.last_bonus_time
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Admin login failed' });
+  }
+});
+
 app.post('/api/signup', (req, res) => {
   try {
     const username = String(req.body?.username || '').trim();
@@ -696,6 +772,16 @@ app.post('/api/deposit-request', (req, res) => {
     const utr = String(req.body?.utr || '').trim();
 
 const screenshot = String(req.body?.screenshot || '').trim();
+
+const isValidScreenshot =
+  screenshot.startsWith('data:image/jpeg;base64,') ||
+  screenshot.startsWith('data:image/jpg;base64,') ||
+  screenshot.startsWith('data:image/png;base64,') ||
+  screenshot.startsWith('data:image/webp;base64,');
+
+if (!isValidScreenshot) {
+  return res.status(400).json({ error: 'Valid payment proof image required' });
+}
     if (!user) {
       return res.status(401).json({ error: 'Login required' });
     }

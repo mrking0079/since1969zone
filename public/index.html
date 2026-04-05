@@ -476,7 +476,11 @@ button.secondary:hover {
 
 <input id="depositUtrInput" type="text" placeholder="Enter UTR / Transaction ID" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:12px;" />
 
-<input id="depositScreenshotInput" type="text" placeholder="Paste payment proof image URL" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
+<input id="depositScreenshotInput" type="file" accept="image/*" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:10px;" />
+
+<div id="depositScreenshotPreview" style="display:none;margin-bottom:14px;">
+  <img id="depositScreenshotPreviewImg" src="" alt="Payment Proof Preview" style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;border:1px solid #333;background:#0b0b0b;padding:8px;" />
+</div>
 
     <div id="addCoinQuickOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
       <button type="button" class="add-coin-option secondary" data-coin="100">100</button>
@@ -577,6 +581,8 @@ addCoinInput: document.getElementById('addCoinInput'),
 depositMethodInput: document.getElementById('depositMethodInput'),
 depositUtrInput: document.getElementById('depositUtrInput'),
 depositScreenshotInput: document.getElementById('depositScreenshotInput'),
+depositScreenshotPreview: document.getElementById('depositScreenshotPreview'),
+depositScreenshotPreviewImg: document.getElementById('depositScreenshotPreviewImg'),
 withdrawCoinInput: document.getElementById('withdrawCoinInput'),
 submitAddCoin: document.getElementById('submitAddCoin'),
 submitWithdrawCoin: document.getElementById('submitWithdrawCoin'),
@@ -593,6 +599,7 @@ server: null,
 };
 
 let pendingTelegramMessage = '';
+let depositScreenshotBase64 = '';
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playTone(freq = 440, duration = 120, type = 'sine', volume = 0.04) {
@@ -1185,6 +1192,12 @@ function openTelegramMessage(text) {
 els.addCoinBtn.addEventListener('click', () => {
   els.addCoinModal.style.display = 'flex';
   els.addCoinInput.value = '';
+  els.depositMethodInput.value = '';
+  els.depositUtrInput.value = '';
+  els.depositScreenshotInput.value = '';
+  depositScreenshotBase64 = '';
+  els.depositScreenshotPreview.style.display = 'none';
+  els.depositScreenshotPreviewImg.src = '';
 });
 
 // open withdraw modal
@@ -1216,6 +1229,27 @@ els.withdrawCoinModal.addEventListener('click', (e) => {
   }
 });
 
+els.depositScreenshotInput.addEventListener('change', () => {
+  const file = els.depositScreenshotInput.files && els.depositScreenshotInput.files[0];
+
+  if (!file) {
+    depositScreenshotBase64 = '';
+    els.depositScreenshotPreview.style.display = 'none';
+    els.depositScreenshotPreviewImg.src = '';
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    depositScreenshotBase64 = String(reader.result || '');
+    els.depositScreenshotPreviewImg.src = depositScreenshotBase64;
+    els.depositScreenshotPreview.style.display = 'block';
+  };
+
+  reader.readAsDataURL(file);
+});
+
 // quick add coin buttons
 document.querySelectorAll('.add-coin-option').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1238,7 +1272,7 @@ els.submitAddCoin.addEventListener('click', async () => {
   const amount = Number(els.addCoinInput.value);
   const method = String(els.depositMethodInput.value || '').trim();
   const utr = String(els.depositUtrInput.value || '').trim();
-  const screenshot = String(els.depositScreenshotInput.value || '').trim();
+  const screenshot = depositScreenshotBase64;
 
   if (!amount || amount <= 0) {
     alert('Please enter valid deposit coins');
@@ -1256,7 +1290,7 @@ els.submitAddCoin.addEventListener('click', async () => {
   }
 
   if (!screenshot) {
-    alert('Please paste payment proof image URL');
+    alert('Please paste payment proof image');
     return;
   }
 
@@ -1322,7 +1356,10 @@ els.confirmActionBtn.addEventListener('click', async () => {
 els.depositMethodInput.value = '';
 els.depositUtrInput.value = '';
 els.depositScreenshotInput.value = '';
-      await loadState();
+depositScreenshotBase64 = '';
+els.depositScreenshotPreview.style.display = 'none';
+els.depositScreenshotPreviewImg.src = '';
+await loadState();
     }
 
 if (payload.type === 'withdrawal') {
