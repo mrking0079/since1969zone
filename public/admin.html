@@ -110,10 +110,13 @@
   <button onclick="withdrawCoins()" style="margin-bottom:0;">Withdraw Coins</button>
 <button onclick="loadTransactions()" style="margin-bottom:0;">Transaction History</button>
 <button onclick="loadCurrentRound()" style="margin-bottom:0;">Round Control</button>
-<button id="depositRequestsBtn" onclick="loadDepositRequests()" style="margin-bottom:0;">
+<button id="depositRequestsBtn" onclick="loadDepositRequests('deposit')" style="margin-bottom:0;">
   Deposit Requests (0)
 </button>
-  <button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
+<button id="withdrawalRequestsBtn" onclick="loadDepositRequests('withdrawal')" style="margin-bottom:0;">
+  Withdrawal Requests (0)
+</button>
+<button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
 </div>
 <input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
       <div id="usersList" style="margin-top:16px;"></div>
@@ -178,6 +181,7 @@ if (profit > 0) {
 let selectedUsername = '';
 let dashboardRefreshInterval = null;
 let depositRefreshInterval = null;
+let currentRequestTab = 'deposit';
     function checkAdminLogin() {
   const token = localStorage.getItem('adminSessionToken') || '';
   const adminKey = new URLSearchParams(window.location.search).get('key') || '';
@@ -236,7 +240,9 @@ if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
 if (depositRefreshInterval) clearInterval(depositRefreshInterval);
 
 dashboardRefreshInterval = setInterval(loadDashboardStats, 10000);
-depositRefreshInterval = setInterval(loadDepositRequests, 10000);
+depositRefreshInterval = setInterval(() => {
+  loadDepositRequests(currentRequestTab);
+}, 10000);
       } catch (err) {
         loginMsg.textContent = 'Server error';
       }
@@ -631,7 +637,7 @@ async function handleDepositRequest(requestId, action) {
     }
 
     output.textContent = data.message || 'Deposit request updated';
-    loadDepositRequests();
+    loadDepositRequests(currentRequestTab);
 loadDashboardStats();
     loadUsers();
     loadTransactions();
@@ -640,10 +646,14 @@ loadDashboardStats();
   }
 }
 
-async function loadDepositRequests() {
+async function loadDepositRequests(requestType = 'deposit') {
   const token = localStorage.getItem('adminSessionToken') || '';
   const output = document.getElementById('output');
+currentRequestTab = requestType;
   const panel = document.getElementById('depositRequestsPanel');
+const panelTitle = document.querySelector('#depositRequestsPanel h3');
+const depositBtn = document.getElementById('depositRequestsBtn');
+const withdrawalBtn = document.getElementById('withdrawalRequestsBtn');
   const list = document.getElementById('depositRequestsList');
 
   if (!token) {
@@ -652,7 +662,15 @@ async function loadDepositRequests() {
   }
 
   panel.style.display = 'block';
-  list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading deposit requests...</div>';
+panelTitle.textContent = requestType === 'withdrawal' ? 'Withdrawal Requests' : 'Deposit Requests';
+
+depositBtn.style.background = requestType === 'deposit' ? '#ffd54a' : '';
+depositBtn.style.color = requestType === 'deposit' ? '#111' : '';
+
+withdrawalBtn.style.background = requestType === 'withdrawal' ? '#ffd54a' : '';
+withdrawalBtn.style.color = requestType === 'withdrawal' ? '#111' : '';
+
+list.innerHTML = `<div style="padding:12px;background:#111827;border-radius:10px;">Loading ${requestType} requests...</div>`;
 
   try {
     const res = await fetch('/api/admin/deposit-requests', {
@@ -661,10 +679,28 @@ async function loadDepositRequests() {
 
     const data = await res.json();
 
-const pendingCount = (data.requests || []).filter(r => r.status === 'pending').length;
-document.getElementById('pendingRequestCount').textContent = 'Pending: ' + pendingCount;
+const allRequests = Array.isArray(data.requests) ? data.requests : [];
 
-document.getElementById('depositRequestsBtn').textContent = `Deposit Requests (${pendingCount})`;
+const depositPendingCount = allRequests.filter(
+  r => (r.type || 'deposit') === 'deposit' && r.status === 'pending'
+).length;
+
+const withdrawalPendingCount = allRequests.filter(
+  r => (r.type || 'deposit') === 'withdrawal' && r.status === 'pending'
+).length;
+
+document.getElementById('depositRequestsBtn').textContent = `Deposit Requests (${depositPendingCount})`;
+document.getElementById('withdrawalRequestsBtn').textContent = `Withdrawal Requests (${withdrawalPendingCount})`;
+
+const filteredRequests = allRequests.filter(
+  r => (r.type || 'deposit') === requestType
+);
+
+const filteredPendingCount = filteredRequests.filter(
+  r => r.status === 'pending'
+).length;
+
+document.getElementById('pendingRequestCount').textContent = 'Pending: ' + filteredPendingCount;
 
     if (!res.ok) {
       output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
@@ -672,14 +708,14 @@ document.getElementById('depositRequestsBtn').textContent = `Deposit Requests ($
       return;
     }
 
-    if (!data.requests || !data.requests.length) {
+    if (!filteredRequests.length) {
 document.getElementById('pendingRequestCount').textContent = 'Pending: 0';
-      list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No deposit requests found</div>';
+      list.innerHTML = `<div style="padding:12px;background:#111827;border-radius:10px;">No ${requestType} requests found</div>`;
       output.textContent = 'Deposit requests loaded';
       return;
     }
 
-    list.innerHTML = data.requests.map(reqItem => {
+    list.innerHTML = filteredRequests.map(reqItem => {
       const dateText = reqItem.createdAt
         ? new Date(reqItem.createdAt).toLocaleString()
         : '-';
@@ -797,7 +833,11 @@ document.getElementById('coinUsername').value = '';
 document.getElementById('coinAmount').value = '';
 document.getElementById('transactionsPanel').style.display = 'none';
 document.getElementById('roundPanel').style.display = 'none';
-document.getElementById('depositRequestsPanel').style.display = 'none';
+document.getElementById('depositRequestsPanel').style.display = 'none';document.getElementById('depositRequestsBtn').style.background = '';
+document.getElementById('depositRequestsBtn').style.color = '';
+
+document.getElementById('withdrawalRequestsBtn').style.background = '';
+document.getElementById('withdrawalRequestsBtn').style.color = '';
       document.getElementById('loginMsg').textContent = 'Logged out';
     }
 
