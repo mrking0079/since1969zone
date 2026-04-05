@@ -1570,6 +1570,24 @@ app.post('/api/admin/live-updates', adminOnly, (req, res) => {
   }
 });
 
+app.get('/api/live-updates', (req, res) => {
+  try {
+    return res.json({
+      success: true,
+      liveUpdates: {
+        paymentMethod: {
+          upiId: db.live_updates?.paymentMethod?.upiId || '',
+          qrCodeImage: db.live_updates?.paymentMethod?.qrCodeImage || '',
+          bankAccount: db.live_updates?.paymentMethod?.bankAccount || ''
+        },
+        offer: db.live_updates?.offer || ''
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load live updates' });
+  }
+});
+
 app.get('*', (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

@@ -269,6 +269,16 @@ button.secondary:hover {
     }
     .hidden { display: none; }
     .muted { color: var(--muted); }
+@keyframes offerBlink {
+  0% {
+    opacity: 0.85;
+    text-shadow: 0 0 8px rgba(255,215,0,0.25);
+  }
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 18px rgba(255,215,0,0.65), 0 0 28px rgba(255,140,0,0.22);
+  }
+}
     @media (max-width: 900px) {
   .topbar, .grid { grid-template-columns: 1fr; }
   .numbers { grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -448,6 +458,15 @@ button.secondary:hover {
           </div>
         </div>
 
+<div class="card" id="liveOfferCard" style="position:relative;overflow:hidden;">
+  <div style="font-size:18px;font-weight:900;color:#ffd700;text-align:center;letter-spacing:1px;margin-bottom:12px;text-shadow:0 0 10px rgba(255,215,0,0.35);animation:offerBlink 1.2s infinite alternate;">
+    LIVE TODAY OFFER
+  </div>
+
+  <div id="liveOfferText" style="text-align:center;font-size:16px;font-weight:800;line-height:1.7;color:#ffffff;background:linear-gradient(180deg,#111,#0a0a0a);border:1px solid #3a2d00;border-radius:14px;padding:16px;box-shadow:inset 0 0 18px rgba(255,215,0,0.05),0 8px 20px rgba(0,0,0,0.25);">
+    Loading today offer...
+  </div>
+</div>
         <div class="card">
   <div class="mini-label">Deposit Request History</div>
 
@@ -470,9 +489,42 @@ button.secondary:hover {
       <button id="closeAddCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
     </div>
 
-    <input id="addCoinInput" type="number" placeholder="Enter deposit coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
+    <div style="margin-bottom:12px;">
+  <div style="font-size:13px;color:#aaaaaa;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;">
+    Select Payment Method
+  </div>
 
-<input id="depositMethodInput" type="text" placeholder="Enter payment method (e.g. UPI / Bank)" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:12px;" />
+  <div id="depositMethodOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+    <button type="button" class="deposit-method-option secondary" data-method="UPI">UPI</button>
+    <button type="button" class="deposit-method-option secondary" data-method="QR Code">QR Code</button>
+    <button type="button" class="deposit-method-option secondary" data-method="Bank Account">Bank Account</button>
+  </div>
+
+  <input id="depositMethodInput" type="text" placeholder="Selected payment method" readonly style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#050505;color:#ffd700;font-size:16px;margin-bottom:12px;" />
+
+  <div id="livePaymentInfoBox" style="display:none;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;margin-bottom:12px;">
+    <div id="livePaymentText" style="display:none;color:#fff;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;"></div>
+
+    <div id="livePaymentQrBox" style="display:none;text-align:center;">
+      <img id="livePaymentQrImg" src="" alt="Payment QR" style="max-width:100%;max-height:220px;object-fit:contain;border-radius:12px;border:1px solid #333;background:#000;padding:8px;" />
+    </div>
+
+    <button id="copyPaymentDetailsBtn" type="button" class="secondary" style="display:none;width:100%;margin-top:10px;">
+      Copy Details
+    </button>
+  </div>
+</div>
+
+<div id="addCoinQuickOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+  <button type="button" class="add-coin-option secondary" data-coin="100">100</button>
+  <button type="button" class="add-coin-option secondary" data-coin="200">200</button>
+  <button type="button" class="add-coin-option secondary" data-coin="500">500</button>
+  <button type="button" class="add-coin-option secondary" data-coin="1000">1000</button>
+  <button type="button" class="add-coin-option secondary" data-coin="2000">2000</button>
+  <button type="button" class="add-coin-option secondary" data-coin="5000">5000</button>
+</div>
+
+<input id="addCoinInput" type="number" placeholder="Enter deposit coins manually" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:12px;" />
 
 <input id="depositUtrInput" type="text" placeholder="Enter UTR / Transaction ID" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:12px;" />
 
@@ -482,16 +534,7 @@ button.secondary:hover {
   <img id="depositScreenshotPreviewImg" src="" alt="Payment Proof Preview" style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;border:1px solid #333;background:#0b0b0b;padding:8px;" />
 </div>
 
-    <div id="addCoinQuickOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-      <button type="button" class="add-coin-option secondary" data-coin="100">100</button>
-      <button type="button" class="add-coin-option secondary" data-coin="200">200</button>
-      <button type="button" class="add-coin-option secondary" data-coin="500">500</button>
-      <button type="button" class="add-coin-option secondary" data-coin="1000">1000</button>
-      <button type="button" class="add-coin-option secondary" data-coin="2000">2000</button>
-      <button type="button" class="add-coin-option secondary" data-coin="5000">5000</button>
-    </div>
-
-    <button id="submitAddCoin" class="primary" style="width:100%;">Send Deposit Request</button>
+<button id="submitAddCoin" class="primary" style="width:100%;">Send Deposit Request</button>
   </div>
 </div>
 
@@ -590,12 +633,27 @@ confirmActionModal: document.getElementById('confirmActionModal'),
 confirmActionText: document.getElementById('confirmActionText'),
 cancelConfirmAction: document.getElementById('cancelConfirmAction'),
 confirmActionBtn: document.getElementById('confirmActionBtn'),
+depositMethodOptions: document.getElementById('depositMethodOptions'),
+livePaymentInfoBox: document.getElementById('livePaymentInfoBox'),
+livePaymentText: document.getElementById('livePaymentText'),
+livePaymentQrBox: document.getElementById('livePaymentQrBox'),
+livePaymentQrImg: document.getElementById('livePaymentQrImg'),
+copyPaymentDetailsBtn: document.getElementById('copyPaymentDetailsBtn'),
+liveOfferText: document.getElementById('liveOfferText'),
 };
 
 const state = {
-server: null,
+  server: null,
   selections: new Set(),
-  amounts: {}
+  amounts: {},
+  liveUpdates: {
+    paymentMethod: {
+      upiId: '',
+      qrCodeImage: '',
+      bankAccount: ''
+    },
+    offer: ''
+  }
 };
 
 let pendingTelegramMessage = '';
@@ -686,6 +744,133 @@ async function api(url, options = {}) {
   return data;
 }
 
+async function loadLiveUpdates() {
+  try {
+    const data = await api('/api/live-updates');
+    state.liveUpdates = {
+      paymentMethod: {
+        upiId: data.liveUpdates?.paymentMethod?.upiId || '',
+        qrCodeImage: data.liveUpdates?.paymentMethod?.qrCodeImage || '',
+        bankAccount: data.liveUpdates?.paymentMethod?.bankAccount || ''
+      },
+      offer: data.liveUpdates?.offer || ''
+    };
+
+    renderLiveOffer();
+  } catch (error) {
+    state.liveUpdates = {
+      paymentMethod: {
+        upiId: '',
+        qrCodeImage: '',
+        bankAccount: ''
+      },
+      offer: ''
+    };
+
+    renderLiveOffer();
+  }
+}
+
+function renderLiveOffer() {
+  if (!els.liveOfferText) return;
+
+  const offer = String(state.liveUpdates?.offer || '').trim();
+  els.liveOfferText.textContent = offer || 'No live offer available right now';
+}
+
+function resetLivePaymentDisplay() {
+  if (els.depositMethodInput) {
+    els.depositMethodInput.value = '';
+  }
+
+  if (els.livePaymentInfoBox) {
+    els.livePaymentInfoBox.style.display = 'none';
+  }
+
+  if (els.livePaymentText) {
+    els.livePaymentText.style.display = 'none';
+    els.livePaymentText.textContent = '';
+  }
+
+  if (els.livePaymentQrBox) {
+    els.livePaymentQrBox.style.display = 'none';
+  }
+
+  if (els.livePaymentQrImg) {
+    els.livePaymentQrImg.src = '';
+  }
+
+  if (els.copyPaymentDetailsBtn) {
+    els.copyPaymentDetailsBtn.style.display = 'none';
+    els.copyPaymentDetailsBtn.textContent = 'Copy Details';
+  }
+
+  document.querySelectorAll('.deposit-method-option').forEach(btn => {
+    btn.style.outline = 'none';
+    btn.style.background = '#232323';
+    btn.style.color = '#fff';
+  });
+}
+
+function showLivePaymentMethod(method) {
+  const live = state.liveUpdates?.paymentMethod || {};
+
+  if (!els.depositMethodInput || !els.livePaymentInfoBox) return;
+
+  els.depositMethodInput.value = method;
+  els.livePaymentInfoBox.style.display = 'block';
+
+  document.querySelectorAll('.deposit-method-option').forEach(btn => {
+    btn.style.outline = 'none';
+    btn.style.background = '#232323';
+    btn.style.color = '#fff';
+  });
+
+  const activeBtn = document.querySelector(`.deposit-method-option[data-method="${method}"]`);
+  if (activeBtn) {
+    activeBtn.style.outline = '2px solid #ffd700';
+    activeBtn.style.background = '#ffd700';
+    activeBtn.style.color = '#111';
+  }
+
+  if (method === 'UPI') {
+    const upiId = String(live.upiId || '').trim();
+
+    els.livePaymentText.style.display = 'block';
+    els.livePaymentText.textContent = upiId || 'UPI ID not available';
+    els.livePaymentQrBox.style.display = 'none';
+    els.livePaymentQrImg.src = '';
+    els.copyPaymentDetailsBtn.style.display = upiId ? 'block' : 'none';
+    return;
+  }
+
+  if (method === 'QR Code') {
+    const qr = String(live.qrCodeImage || '').trim();
+
+    els.livePaymentText.style.display = 'none';
+    els.livePaymentText.textContent = '';
+    els.livePaymentQrBox.style.display = qr ? 'block' : 'none';
+    els.livePaymentQrImg.src = qr || '';
+    els.copyPaymentDetailsBtn.style.display = 'none';
+
+    if (!qr) {
+      els.livePaymentText.style.display = 'block';
+      els.livePaymentText.textContent = 'QR Code not available';
+    }
+    return;
+  }
+
+  if (method === 'Bank Account') {
+    const bank = String(live.bankAccount || '').trim();
+
+    els.livePaymentText.style.display = 'block';
+    els.livePaymentText.textContent = bank || 'Bank account not available';
+    els.livePaymentQrBox.style.display = 'none';
+    els.livePaymentQrImg.src = '';
+    els.copyPaymentDetailsBtn.style.display = bank ? 'block' : 'none';
+  }
+}
+
 async function login() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -713,6 +898,7 @@ async function login() {
     document.querySelector('.wrap').style.display = 'block';
 
     await loadState();
+await loadLiveUpdates();
     showMessage(`Welcome ${data.user.username}`);
   } catch (error) {
     alert(error.message);
@@ -746,6 +932,7 @@ async function signup() {
     document.querySelector('.wrap').style.display = 'block';
 
     await loadState();
+await loadLiveUpdates();
     showMessage(`Signup successful. Welcome ${data.user.username}`);
   } catch (error) {
     alert(error.message);
@@ -1129,6 +1316,8 @@ els.logoutBtn.addEventListener('click', () => {
   document.querySelector('.wrap').style.display = 'none';
   document.getElementById('username').value = '';
   document.getElementById('password').value = '';
+resetLivePaymentDisplay();
+renderLiveOffer();
   showMessage('');
 });
 
@@ -1189,7 +1378,7 @@ function openTelegramMessage(text) {
 }
 
 // open add modal
-els.addCoinBtn.addEventListener('click', () => {
+els.addCoinBtn.addEventListener('click', async () => {
   els.addCoinModal.style.display = 'flex';
   els.addCoinInput.value = '';
   els.depositMethodInput.value = '';
@@ -1198,6 +1387,9 @@ els.addCoinBtn.addEventListener('click', () => {
   depositScreenshotBase64 = '';
   els.depositScreenshotPreview.style.display = 'none';
   els.depositScreenshotPreviewImg.src = '';
+
+  resetLivePaymentDisplay();
+  await loadLiveUpdates();
 });
 
 // open withdraw modal
@@ -1250,6 +1442,43 @@ els.depositScreenshotInput.addEventListener('change', () => {
   reader.readAsDataURL(file);
 });
 
+document.querySelectorAll('.deposit-method-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const method = String(btn.dataset.method || '').trim();
+    showLivePaymentMethod(method);
+  });
+});
+
+if (els.copyPaymentDetailsBtn) {
+  els.copyPaymentDetailsBtn.addEventListener('click', async () => {
+    const selectedMethod = String(els.depositMethodInput?.value || '').trim();
+    let textToCopy = '';
+
+    if (selectedMethod === 'UPI') {
+      textToCopy = String(state.liveUpdates?.paymentMethod?.upiId || '').trim();
+    } else if (selectedMethod === 'Bank Account') {
+      textToCopy = String(state.liveUpdates?.paymentMethod?.bankAccount || '').trim();
+    }
+
+    if (!textToCopy) {
+      showMessage('Nothing to copy');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      els.copyPaymentDetailsBtn.textContent = 'Copied Successfully';
+      setTimeout(() => {
+        if (els.copyPaymentDetailsBtn) {
+          els.copyPaymentDetailsBtn.textContent = 'Copy Details';
+        }
+      }, 1500);
+    } catch (error) {
+      showMessage('Copy failed');
+    }
+  });
+}
+
 // quick add coin buttons
 document.querySelectorAll('.add-coin-option').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1280,7 +1509,22 @@ els.submitAddCoin.addEventListener('click', async () => {
   }
 
   if (!method) {
-    alert('Please enter payment method');
+    alert('Please select payment method first');
+    return;
+  }
+
+  if (method === 'UPI' && !String(state.liveUpdates?.paymentMethod?.upiId || '').trim()) {
+    alert('UPI ID not available right now');
+    return;
+  }
+
+  if (method === 'QR Code' && !String(state.liveUpdates?.paymentMethod?.qrCodeImage || '').trim()) {
+    alert('QR Code not available right now');
+    return;
+  }
+
+  if (method === 'Bank Account' && !String(state.liveUpdates?.paymentMethod?.bankAccount || '').trim()) {
+    alert('Bank account not available right now');
     return;
   }
 
@@ -1290,11 +1534,11 @@ els.submitAddCoin.addEventListener('click', async () => {
   }
 
   if (!screenshot) {
-    alert('Please paste payment proof image');
+    alert('Please upload payment proof image');
     return;
   }
 
-  els.confirmActionText.textContent = `Do you want to send Deposit Request for ${amount} coins?`;
+  els.confirmActionText.textContent = `Do you want to send Deposit Request for ${amount} coins by ${method}?`;
   pendingTelegramMessage = JSON.stringify({
     type: 'deposit',
     amount,
@@ -1425,7 +1669,7 @@ if (els.historyNextBtn) {
     }
   });
 }
-
+loadLiveUpdates();
 setInterval(updateTimer, 1000);
 setInterval(loadState, 1000);
 </script>
