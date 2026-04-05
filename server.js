@@ -22,6 +22,7 @@ const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const PAYOUT_MULTIPLIER = 8;
 const DEMO_USER_ID = 1;
 const DATA_FILE = path.join(__dirname, 'data.json');
+const DELETED_USERS_FILE = path.join(__dirname, 'deleted-users.json');
 
 app.use(helmet({
   contentSecurityPolicy: false
@@ -155,6 +156,29 @@ function loadData() {
 
 function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+function loadDeletedUsersData() {
+  if (!fs.existsSync(DELETED_USERS_FILE)) {
+    fs.writeFileSync(DELETED_USERS_FILE, JSON.stringify({ deletedUsers: [] }, null, 2), 'utf8');
+    return { deletedUsers: [] };
+  }
+
+  try {
+    const raw = fs.readFileSync(DELETED_USERS_FILE, 'utf8');
+    const parsed = jsonParseSafe(raw, { deletedUsers: [] });
+
+    if (!Array.isArray(parsed.deletedUsers)) {
+      parsed.deletedUsers = [];
+    }
+
+    return parsed;
+  } catch {
+    return { deletedUsers: [] };
+  }
+}
+
+function saveDeletedUsersData(data) {
+  fs.writeFileSync(DELETED_USERS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
 let db = loadData();
@@ -1049,6 +1073,91 @@ app.get('/api/admin/users', adminOnly, (req, res) => {
   }
 });
 
+app.get('/api/admin/user-history/:username', adminOnly, (req, res) => {
+  try {
+    const username = String(req.params.username || '').trim();
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username required' });
+    }
+
+    const user = db.users.find(
+      u => String(u.username).toLowerCase() === username.toLowerCase()
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userBets = db.bets
+      .filter(b => b.user_id === user.id)
+      .sort((a, b) => b.created_at - a.created_at)
+      .map(bet => {
+        const round = db.rounds.find(r => r.id === bet.round_id);
+
+        return {
+          id: bet.id,
+          roundId: bet.round_id,
+          roundNumber: round ? round.round_number : null,
+          roundCode: round ? (round.round_code || '-') : '-',
+          betMap: bet.bet_map || {},
+          totalCoins: bet.total_coins || 0,
+          matchedNumber: bet.matched_number,
+          payout: bet.payout || 0,
+          result: bet.result || '-',
+          createdAt: bet.created_at || null
+        };
+      });
+
+    const userTransactions = db.transactions
+      .filter(tx => tx.user_id === user.id)
+      .sort((a, b) => b.created_at - a.created_at)
+      .map(tx => ({
+        id: tx.id,
+        type: tx.type || '-',
+        amount: tx.amount || 0,
+        meta: tx.meta || {},
+        createdAt: tx.created_at || null
+      }));
+
+    const userRequests = db.deposit_requests
+      .filter(r => r.user_id === user.id)
+      .sort((a, b) => b.created_at - a.created_at)
+      .map(r => ({
+        id: r.id,
+        type: r.type || 'deposit',
+        amount: r.amount || 0,
+        method: r.method || '-',
+        utr: r.utr || '-',
+        status: r.status || 'pending',
+        screenshot: r.screenshot || '',
+        createdAt: r.created_at || null,
+        updatedAt: r.updated_at || null
+      }));
+
+    return res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        walletBalance: user.wallet_balance || 0,
+        totalPlayed: user.total_played || 0,
+        totalWins: user.total_wins || 0,
+        bonusClaimed: user.bonus_claimed || 0,
+        blocked: !!user.blocked,
+        createdAt: user.created_at || null
+      },
+      history: {
+        bets: userBets,
+        transactions: userTransactions,
+        requests: userRequests
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load user history' });
+  }
+});
+
 app.post('/api/admin/add-coins', adminOnly, (req, res) => {
   try {
     const username = String(req.body?.username || '').trim();
@@ -1141,6 +1250,75 @@ app.post('/api/admin/withdraw-coins', adminOnly, (req, res) => {
   }
 });
 
+app.post('/api/admin/delete-user', adminOnly, (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const backupBeforeDelete = Boolean(req.body?.backupBeforeDelete);
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username required' });
+    }
+
+    const user = db.users.find(
+      u => String(u.username).toLowerCase() === username.toLowerCase()
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (String(user.username).toLowerCase() === 'admin') {
+      return res.status(400).json({ error: 'Admin user cannot be deleted' });
+    }
+
+    const userBets = db.bets.filter(b => b.user_id === user.id);
+    const userTransactions = db.transactions.filter(tx => tx.user_id === user.id);
+    const userRequests = db.deposit_requests.filter(r => r.user_id === user.id);
+
+    if (backupBeforeDelete) {
+      const deletedUsersData = loadDeletedUsersData();
+
+      deletedUsersData.deletedUsers.push({
+        deletedAt: nowMs(),
+        deletedBy: req.user.username,
+        user: {
+          id: user.id,
+          username: user.username,
+          walletBalance: user.wallet_balance || 0,
+          totalPlayed: user.total_played || 0,
+          totalWins: user.total_wins || 0,
+          bonusClaimed: user.bonus_claimed || 0,
+          blocked: !!user.blocked,
+          createdAt: user.created_at || null
+        },
+        history: {
+          bets: userBets,
+          transactions: userTransactions,
+          requests: userRequests
+        }
+      });
+
+      saveDeletedUsersData(deletedUsersData);
+    }
+
+    db.bets = db.bets.filter(b => b.user_id !== user.id);
+    db.transactions = db.transactions.filter(tx => tx.user_id !== user.id);
+    db.deposit_requests = db.deposit_requests.filter(r => r.user_id !== user.id);
+    db.users = db.users.filter(u => u.id !== user.id);
+
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: backupBeforeDelete
+        ? 'User deleted and backup saved successfully'
+        : 'User deleted successfully'
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
 app.post('/api/admin/toggle-block-user', adminOnly, (req, res) => {
   try {
     const username = String(req.body?.username || '').trim();
@@ -1185,9 +1363,20 @@ app.post('/api/admin/toggle-block-user', adminOnly, (req, res) => {
     return res.status(500).json({ error: 'Failed to update block status' });
   }
 });
+
 app.get('/api/admin/transactions', adminOnly, (req, res) => {
   try {
+    const allowedTypes = [
+      'admin_add_coin',
+      'admin_withdraw_coin',
+      'admin_block_user',
+      'admin_unblock_user',
+      'deposit_approved',
+      'withdrawal_approved'
+    ];
+
     const transactions = [...db.transactions]
+      .filter(tx => allowedTypes.includes(String(tx.type || '')))
       .sort((a, b) => b.created_at - a.created_at)
       .slice(0, 200)
       .map(tx => {
