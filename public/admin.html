@@ -182,6 +182,35 @@ let selectedUsername = '';
 let dashboardRefreshInterval = null;
 let depositRefreshInterval = null;
 let currentRequestTab = 'deposit';
+async function refreshRequestCounts() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  if (!token) return;
+
+  try {
+    const res = await fetch('/api/admin/deposit-requests', {
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+    if (!res.ok) return;
+
+    const allRequests = Array.isArray(data.requests) ? data.requests : [];
+
+    const depositPendingCount = allRequests.filter(
+      r => (r.type || 'deposit') === 'deposit' && r.status === 'pending'
+    ).length;
+
+    const withdrawalPendingCount = allRequests.filter(
+      r => (r.type || 'deposit') === 'withdrawal' && r.status === 'pending'
+    ).length;
+
+    document.getElementById('depositRequestsBtn').textContent = `Deposit Requests (${depositPendingCount})`;
+    document.getElementById('withdrawalRequestsBtn').textContent = `Withdrawal Requests (${withdrawalPendingCount})`;
+  } catch (err) {
+    console.log('Request counts load failed');
+  }
+}
+
 function hideAllAdminSections() {
   document.getElementById('usersList').innerHTML = '';
   document.getElementById('transactionsPanel').style.display = 'none';
@@ -240,15 +269,15 @@ function hideAllAdminSections() {
         localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
         loginMsg.textContent = 'Admin login successful';
         checkAdminLogin();
-loadUsers();
 loadDashboardStats();
-loadDepositRequests(currentRequestTab);
+refreshRequestCounts();
+
 if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
 if (depositRefreshInterval) clearInterval(depositRefreshInterval);
 
 dashboardRefreshInterval = setInterval(loadDashboardStats, 10000);
 depositRefreshInterval = setInterval(() => {
-  loadDepositRequests(currentRequestTab);
+  refreshRequestCounts();
 }, 10000);
       } catch (err) {
         loginMsg.textContent = 'Server error';
@@ -607,7 +636,7 @@ async function forceSettleRound() {
 
     output.textContent = data.message || 'Round settled successfully';
     loadCurrentRound();
-    loadTransactions();
+
   } catch (err) {
     output.textContent = 'Failed to settle round: ' + err.message;
   }
@@ -648,6 +677,7 @@ async function handleDepositRequest(requestId, action) {
     output.textContent = data.message || 'Deposit request updated';
     loadDepositRequests(currentRequestTab);
 loadDashboardStats();
+refreshRequestCounts();
     
   } catch (err) {
     output.textContent = 'Failed to update deposit request: ' + err.message;
@@ -850,6 +880,9 @@ document.getElementById('depositRequestsBtn').style.color = '';
 
 document.getElementById('withdrawalRequestsBtn').style.background = '';
 document.getElementById('withdrawalRequestsBtn').style.color = '';
+
+document.getElementById('depositRequestsBtn').textContent = 'Deposit Requests (0)';
+document.getElementById('withdrawalRequestsBtn').textContent = 'Withdrawal Requests (0)';
       document.getElementById('loginMsg').textContent = 'Logged out';
     }
 
