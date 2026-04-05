@@ -182,6 +182,12 @@ let selectedUsername = '';
 let dashboardRefreshInterval = null;
 let depositRefreshInterval = null;
 let currentRequestTab = 'deposit';
+function hideAllAdminSections() {
+  document.getElementById('usersList').innerHTML = '';
+  document.getElementById('transactionsPanel').style.display = 'none';
+  document.getElementById('roundPanel').style.display = 'none';
+  document.getElementById('depositRequestsPanel').style.display = 'none';
+}
     function checkAdminLogin() {
   const token = localStorage.getItem('adminSessionToken') || '';
   const adminKey = new URLSearchParams(window.location.search).get('key') || '';
@@ -236,6 +242,7 @@ let currentRequestTab = 'deposit';
         checkAdminLogin();
 loadUsers();
 loadDashboardStats();
+loadDepositRequests(currentRequestTab);
 if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
 if (depositRefreshInterval) clearInterval(depositRefreshInterval);
 
@@ -252,6 +259,7 @@ depositRefreshInterval = setInterval(() => {
   const token = localStorage.getItem('adminSessionToken') || '';
   const output = document.getElementById('output');
   const usersList = document.getElementById('usersList');
+hideAllAdminSections();
 
   if (!token) {
     output.textContent = 'Admin login required';
@@ -528,6 +536,7 @@ async function loadCurrentRound() {
   const output = document.getElementById('output');
   const roundPanel = document.getElementById('roundPanel');
   const roundInfo = document.getElementById('roundInfo');
+hideAllAdminSections();
 
   if (!token) {
     output.textContent = 'Admin login required';
@@ -639,8 +648,7 @@ async function handleDepositRequest(requestId, action) {
     output.textContent = data.message || 'Deposit request updated';
     loadDepositRequests(currentRequestTab);
 loadDashboardStats();
-    loadUsers();
-    loadTransactions();
+    
   } catch (err) {
     output.textContent = 'Failed to update deposit request: ' + err.message;
   }
@@ -655,6 +663,8 @@ const panelTitle = document.querySelector('#depositRequestsPanel h3');
 const depositBtn = document.getElementById('depositRequestsBtn');
 const withdrawalBtn = document.getElementById('withdrawalRequestsBtn');
   const list = document.getElementById('depositRequestsList');
+
+hideAllAdminSections();
 
   if (!token) {
     output.textContent = 'Admin login required';
@@ -764,6 +774,8 @@ async function loadTransactions() {
   const output = document.getElementById('output');
   const panel = document.getElementById('transactionsPanel');
   const list = document.getElementById('transactionsList');
+
+hideAllAdminSections();
 
   if (!token) {
     output.textContent = 'Admin login required';
