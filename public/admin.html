@@ -81,7 +81,6 @@
     </div>
 
     <div id="panelSection" class="hidden">
-      <button onclick="loadUsers()">Load Users</button>
 <div id="dashboardStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0 16px 0;">
   <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
     <div style="color:#9ca3af;font-size:13px;">Total Deposits</div>
@@ -100,24 +99,32 @@
 </div>
 <div id="selectedUserInfo" style="margin:12px 0;padding:12px 14px;background:linear-gradient(135deg,#111827,#0b1220);border:1px solid #3a4b63;border-radius:12px;color:#ffd54a;box-shadow:0 0 14px rgba(255,213,74,0.08);font-weight:600;">No user selected</div>
 
-<button onclick="toggleBlockUser()" style="margin-bottom:10px;background:#ff4d4f;color:#fff;">
-  Block / Unblock User
-</button>
-<input id="coinUsername" type="text" placeholder="Username to add coins" />
-<input id="coinAmount" type="number" placeholder="Coins amount" />
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
   <button onclick="addCoins()" style="margin-bottom:0;">Add Coins</button>
   <button onclick="withdrawCoins()" style="margin-bottom:0;">Withdraw Coins</button>
-<button onclick="loadTransactions()" style="margin-bottom:0;">Transaction History</button>
-<button onclick="loadCurrentRound()" style="margin-bottom:0;">Round Control</button>
-<button id="depositRequestsBtn" onclick="loadDepositRequests('deposit')" style="margin-bottom:0;">
-  Deposit Requests (0)
-</button>
-<button id="withdrawalRequestsBtn" onclick="loadDepositRequests('withdrawal')" style="margin-bottom:0;">
-  Withdrawal Requests (0)
-</button>
-<button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
+  <button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
 </div>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+  <button onclick="loadUsers()" style="margin-bottom:0;">Load Users</button>
+  <button onclick="loadTransactions()" style="margin-bottom:0;">Transaction History</button>
+  <button id="depositRequestsBtn" onclick="loadDepositRequests('deposit')" style="margin-bottom:0;">
+    Deposit Requests (0)
+  </button>
+  <button id="withdrawalRequestsBtn" onclick="loadDepositRequests('withdrawal')" style="margin-bottom:0;">
+    Withdrawal Requests (0)
+  </button>
+  <button onclick="loadCurrentRound()" style="margin-bottom:0;">Round Control</button>
+  <button onclick="clearAllSelections()" style="margin-bottom:0;background:#374151;color:#fff;">Clear All Selections</button>
+</div>
+
+<button onclick="toggleBlockUser()" style="margin-bottom:10px;background:#ff4d4f;color:#fff;">
+  Block / Unblock User
+</button>
+
+<input id="coinUsername" type="text" placeholder="Username to add coins" />
+<input id="coinAmount" type="number" placeholder="Coins amount" />
+
 <input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
 
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
@@ -229,6 +236,34 @@ function hideAllAdminSections() {
   document.getElementById('depositRequestsPanel').style.display = 'none';
 document.getElementById('userHistoryPanel').style.display = 'none';
 }
+
+function clearAllSelections() {
+  hideAllAdminSections();
+
+  selectedUsername = '';
+  allUsers = [];
+
+  document.getElementById('coinUsername').value = '';
+  document.getElementById('coinAmount').value = '';
+  document.getElementById('historyUsername').value = '';
+  document.getElementById('userSearch').value = '';
+
+  document.getElementById('selectedUserInfo').textContent = 'No user selected';
+  document.getElementById('output').textContent = 'All selections cleared';
+
+  document.querySelector('button[onclick="toggleBlockUser()"]').textContent = 'Block / Unblock User';
+
+  document.getElementById('depositRequestsBtn').style.background = '';
+  document.getElementById('depositRequestsBtn').style.color = '';
+
+  document.getElementById('withdrawalRequestsBtn').style.background = '';
+  document.getElementById('withdrawalRequestsBtn').style.color = '';
+
+  document.getElementById('userHistoryContent').innerHTML = '';
+  document.getElementById('transactionsList').innerHTML = '';
+  document.getElementById('depositRequestsList').innerHTML = '';
+}
+
     function checkAdminLogin() {
   const token = localStorage.getItem('adminSessionToken') || '';
   const adminKey = new URLSearchParams(window.location.search).get('key') || '';
