@@ -305,7 +305,371 @@ button.secondary:hover {
     font-size: 14px;
   }
 }
-  </style>
+  
+/* ===== Welcome / Auth Page ===== */
+body.auth-open {
+  background:
+    radial-gradient(circle at top, rgba(255,215,0,0.12), transparent 34%),
+    linear-gradient(180deg, #040404, #0b0b0b 40%, #050505 100%);
+}
+
+.landing-shell {
+  min-height: 100vh;
+  padding: 28px 18px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-wrap {
+  width: 100%;
+  max-width: 1240px;
+  display: grid;
+  gap: 22px;
+}
+
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 34px 30px;
+  border: 1px solid rgba(255,215,0,0.16);
+  background:
+    radial-gradient(circle at top right, rgba(255,215,0,0.15), transparent 28%),
+    linear-gradient(180deg, rgba(18,18,18,0.98), rgba(7,7,7,0.98));
+  box-shadow: 0 24px 60px rgba(0,0,0,0.38);
+}
+
+.landing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,215,0,0.08);
+  border: 1px solid rgba(255,215,0,0.2);
+  color: #ffe27a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.landing-hero-grid {
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: 24px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+.landing-title {
+  margin: 0 0 12px;
+  font-size: 56px;
+  line-height: 1.05;
+  color: #fff;
+  font-weight: 900;
+}
+
+.landing-title .gold {
+  color: var(--gold);
+  text-shadow: 0 0 14px rgba(255,215,0,0.28);
+}
+
+.landing-text {
+  margin: 0;
+  max-width: 740px;
+  color: #dddddd;
+  line-height: 1.75;
+  font-size: 17px;
+}
+
+.landing-points {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.landing-point {
+  border-radius: 18px;
+  border: 1px solid rgba(255,215,0,0.12);
+  background: rgba(255,255,255,0.02);
+  padding: 14px;
+}
+
+.landing-point h4 {
+  margin: 0 0 8px;
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+
+.landing-point p {
+  margin: 0;
+  color: #d5d5d5;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.auth-card {
+  border-radius: 24px;
+  border: 1px solid rgba(255,215,0,0.18);
+  background: linear-gradient(180deg, #111, #090909);
+  box-shadow: 0 20px 44px rgba(0,0,0,0.4);
+  padding: 24px;
+}
+
+.auth-card h2 {
+  margin: 0 0 6px;
+  color: var(--gold);
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.auth-subtext {
+  color: #cfcfcf;
+  line-height: 1.7;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.auth-tab {
+  border: 1px solid #3a3a3a;
+  background: linear-gradient(180deg, #1a1a1a, #101010);
+  color: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-tab.active {
+  background: linear-gradient(180deg, #ffd700, #dfb100);
+  color: #111;
+  border-color: #ffd700;
+  box-shadow: 0 8px 22px rgba(255,215,0,0.22);
+}
+
+.auth-input {
+  width: 100%;
+  padding: 14px 16px;
+  margin: 0 0 12px;
+  border-radius: 14px;
+  border: 1px solid #343434;
+  background: #0b0b0b;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+}
+
+.auth-input:focus {
+  border-color: rgba(255,215,0,0.7);
+  box-shadow: 0 0 0 3px rgba(255,215,0,0.08);
+}
+
+.auth-main-btn {
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #ffd700, #e0b400);
+  color: #111;
+  font-size: 16px;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(255,215,0,0.2);
+}
+
+.auth-alt-btn {
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 10px;
+  border-radius: 14px;
+  border: 1px solid #3a3a3a;
+  background: linear-gradient(180deg, #1d1d1d, #111);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.auth-helper {
+  margin-top: 14px;
+  color: #bdbdbd;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.quick-link-btn {
+  border: 1px solid rgba(255,215,0,0.18);
+  background: rgba(255,255,255,0.03);
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.info-card {
+  border-radius: 22px;
+  border: 1px solid rgba(255,215,0,0.14);
+  background: linear-gradient(180deg, #121212, #090909);
+  padding: 22px;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.28);
+}
+
+.info-card h3 {
+  margin: 0 0 10px;
+  color: var(--gold);
+  font-size: 20px;
+}
+
+.info-card p,
+.info-card li {
+  color: #dfdfdf;
+  line-height: 1.75;
+  font-size: 14px;
+}
+
+.info-card ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.support-card {
+  border-radius: 24px;
+  border: 1px solid rgba(255,215,0,0.16);
+  background: linear-gradient(180deg, #121212, #090909);
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+}
+
+.support-card h3 {
+  margin: 0 0 8px;
+  color: var(--gold);
+  font-size: 24px;
+}
+
+.support-card p {
+  margin: 0;
+  color: #dddddd;
+  line-height: 1.7;
+}
+
+.support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.support-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 170px;
+  padding: 13px 18px;
+  text-decoration: none;
+  border-radius: 14px;
+  font-weight: 900;
+  border: 1px solid #3a3a3a;
+}
+
+.support-btn.primary {
+  background: linear-gradient(180deg, #ffd700, #dfb100);
+  color: #111;
+  border-color: #ffd700;
+}
+
+.support-btn.secondary {
+  background: linear-gradient(180deg, #1d1d1d, #101010);
+  color: #fff;
+}
+
+.hero-note {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255,215,0,0.06);
+  border: 1px solid rgba(255,215,0,0.12);
+  color: #efefef;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.auth-mobile-note {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .landing-hero-grid,
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-points {
+    grid-template-columns: 1fr;
+  }
+
+  .support-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .landing-shell {
+    padding: 18px 12px 26px;
+  }
+
+  .landing-hero {
+    padding: 24px 18px;
+    border-radius: 22px;
+  }
+
+  .landing-title {
+    font-size: 38px;
+  }
+
+  .auth-card {
+    padding: 18px;
+  }
+
+  .quick-links {
+    gap: 8px;
+  }
+
+  .quick-link-btn,
+  .support-btn {
+    width: 100%;
+  }
+}
+
+</style>
 </head>
 <body>
 <div id="resultFlash" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;">
@@ -318,21 +682,136 @@ button.secondary:hover {
   <div id="flashSubMessage" style="margin-top:14px;font-size:24px;font-weight:800;color:#ffd700;text-shadow:0 0 12px rgba(255,215,0,0.35);letter-spacing:1px;">
   </div>
 </div>
-<div id="loginBox" style="max-width:400px;margin:40px auto;padding:20px;background:#111;border-radius:16px;border:1px solid #333;text-align:center;">
-  <h2 style="color:#ffd700;">Login</h2>
 
-  <input id="username" placeholder="Enter username" style="width:100%;padding:10px;margin:10px 0;border-radius:10px;border:none;" />
+<div id="loginBox" class="landing-shell">
+  <div class="landing-wrap">
+    <section class="landing-hero">
+      <div class="landing-badge">Since1969Zone • Premium Live Game</div>
 
-  <input id="password" type="password" placeholder="Enter password" style="width:100%;padding:10px;margin:10px 0;border-radius:10px;border:none;" />
+      <div class="landing-hero-grid">
+        <div>
+          <h1 class="landing-title">
+            Welcome to <span class="gold">Since1969Zone</span>
+          </h1>
 
-  <button onclick="login()" style="padding:12px;width:100%;background:#ffd700;border:none;border-radius:10px;font-weight:bold;">
-    Enter Game
-  </button>
+          <p class="landing-text">
+            Secure live game experience with a clean black and gold interface. Create your account,
+            log in in seconds, then enter the main game page to place bets, watch live lucky numbers,
+            track wallet history, and manage deposit or withdrawal requests.
+          </p>
 
-  <button onclick="signup()" style="padding:12px;width:100%;background:#444;color:#fff;border:none;border-radius:10px;font-weight:bold;margin-top:10px;">
-    Signup
-  </button>
+          <div class="quick-links">
+            <button type="button" class="quick-link-btn" onclick="setAuthMode('login')">Login</button>
+            <button type="button" class="quick-link-btn" onclick="setAuthMode('signup')">Create Account</button>
+            <button type="button" class="quick-link-btn" onclick="document.getElementById('rulesSection').scrollIntoView({ behavior: 'smooth' })">Game Rules</button>
+            <button type="button" class="quick-link-btn" onclick="document.getElementById('supportSection').scrollIntoView({ behavior: 'smooth' })">Contact Support</button>
+          </div>
+
+          <div class="landing-points">
+            <div class="landing-point">
+              <h4>Signup / Login</h4>
+              <p><strong>Create an account in seconds.</strong> Existing users can log in instantly with a username and password to enter the game.</p>
+            </div>
+            <div class="landing-point">
+              <h4>How to Play</h4>
+              <p><strong>After login, select your numbers, enter coins, place your bet during the live round,</strong> and then track results and history.</p>
+            </div>
+            <div class="landing-point">
+              <h4>Support</h4>
+              <p><strong>Need help with deposit, withdrawal, login, payment proof, or account issues?</strong> Use the support button for fast assistance.</p>
+            </div>
+          </div>
+
+          <div class="hero-note">
+            <strong>Flow:</strong> Site open → welcome page → login/signup → main game page open.
+            The existing game system will remain the same; only the entry page has been upgraded to look more professional.
+          </div>
+        </div>
+
+        <div class="auth-card">
+          <h2 id="authTitle">Account Access</h2>
+          <div id="authSubtext" class="auth-subtext">
+            <strong>Existing users can log in with their username and password</strong> and open the main game page instantly.
+          </div>
+
+          <div class="auth-tabs">
+            <button type="button" id="loginTabBtn" class="auth-tab active" onclick="setAuthMode('login')">Login</button>
+            <button type="button" id="signupTabBtn" class="auth-tab" onclick="setAuthMode('signup')">Signup</button>
+          </div>
+
+          <input id="username" class="auth-input" placeholder="Enter username" autocomplete="username" />
+          <input id="password" class="auth-input" type="password" placeholder="Enter password" autocomplete="current-password" />
+
+          <button id="authMainBtn" type="button" class="auth-main-btn" onclick="handleAuthAction()">
+            Enter Game
+          </button>
+
+          <button id="authSwitchBtn" type="button" class="auth-alt-btn" onclick="toggleAuthMode()">
+            New user? Create account
+          </button>
+
+          <div id="authHelper" class="auth-helper">
+            <strong>Create your account using a username and password.</strong> Once your account is ready, you can instantly access the game.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="info-grid">
+      <div class="info-card">
+        <h3>How Signup / Login Works</h3>
+        <p>
+          <strong>New users only need a username and password to create an account.</strong> Once signup is successful,
+          the account is created and the user is taken directly to the main game page.
+        </p>
+        <p>
+          <strong>Existing users can use the same box to log in.</strong> If you already have an account, choose
+          <strong>Login</strong> mode. If you are here for the first time, choose <strong>Signup</strong> mode.
+        </p>
+      </div>
+
+      <div class="info-card">
+        <h3>How to Use the Game</h3>
+        <ul>
+          <li><strong>After login, the wallet, round timer, lucky number display, and betting section will appear.</strong></li>
+          <li>Select one or multiple numbers from 0 to 9.</li>
+          <li>Enter the coin amount for each selected number.</li>
+          <li>Place your bet during the open round and wait for the live result.</li>
+          <li>Recent game history, wallet history, and bonus features will be available on the game page.</li>
+        </ul>
+      </div>
+
+      <div class="info-card" id="rulesSection">
+        <h3>Game Rules</h3>
+        <ul>
+          <li>Bets can only be placed during the open round.</li>
+          <li>Once the round is closed, the result is settled automatically.</li>
+          <li>The lucky number is generated by the backend round logic.</li>
+          <li><strong>Payout is 1x8.</strong> Example: a ₹10 winning bet returns ₹80.</li>
+          <li>Winning payouts are credited directly to the wallet.</li>
+          <li>Deposit and withdrawal requests are submitted using their separate buttons.</li>
+          <li>Invalid amounts, duplicate bets, or blocked-account actions may be rejected.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="supportSection" class="support-card">
+      <div>
+        <h3>Contact Support</h3>
+        <p>
+          <strong>Contact support for deposit issues, withdrawal issues, signup/login problems, payment proof issues,
+          or general game help.</strong> For faster assistance, use the Telegram support button.
+        </p>
+      </div>
+
+      <div class="support-actions">
+        <a class="support-btn primary" href="https://t.me/x_snny" target="_blank" rel="noopener noreferrer">Open Telegram Support</a>
+        <button type="button" class="support-btn secondary" onclick="setAuthMode('login'); window.scrollTo({ top: 0, behavior: 'smooth' });">Go To Login</button>
+      </div>
+    </section>
+  </div>
 </div>
+
   <div class="wrap" style="display:none;">
     <div style="text-align:center; margin-bottom: 20px; padding: 20px; border-radius: 18px; background: linear-gradient(180deg, #111, #050505); box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 1px solid #2c2c2c;">
   <div style="font-size: 46px; font-weight: 900; color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.4);">
@@ -384,7 +863,7 @@ button.secondary:hover {
       <div>
         <div class="card">
           <div class="mini-label">Choose Your Numbers</div>
-          <div class="muted">0 se 9 tak multiple numbers select karo. Har number ke liye alag coin amount do.</div>
+          <div class="muted">Select one or more numbers from 0 to 9. Enter a separate coin amount for each selected number.</div>
 
           <div class="numbers" id="numbers"></div>
 
@@ -1067,6 +1546,65 @@ function showWithdrawMethodForm(method) {
   }
 }
 
+let authMode = 'login';
+
+function setAuthMode(mode) {
+  authMode = mode === 'signup' ? 'signup' : 'login';
+
+  const authTitle = document.getElementById('authTitle');
+  const authSubtext = document.getElementById('authSubtext');
+  const authMainBtn = document.getElementById('authMainBtn');
+  const authSwitchBtn = document.getElementById('authSwitchBtn');
+  const authHelper = document.getElementById('authHelper');
+  const loginTabBtn = document.getElementById('loginTabBtn');
+  const signupTabBtn = document.getElementById('signupTabBtn');
+  const passwordInput = document.getElementById('password');
+
+  if (loginTabBtn) loginTabBtn.classList.toggle('active', authMode === 'login');
+  if (signupTabBtn) signupTabBtn.classList.toggle('active', authMode === 'signup');
+
+  if (authMode === 'login') {
+    if (authTitle) authTitle.textContent = 'Login';
+    if (authSubtext) authSubtext.textContent = 'Existing users can log in with their username and password and open the main game page directly.';
+    if (authMainBtn) authMainBtn.textContent = 'Enter Game';
+    if (authSwitchBtn) authSwitchBtn.textContent = 'New user? Create account';
+    if (authHelper) authHelper.textContent = 'After login, you will enter the main game page. After signup, your account will be logged in automatically.';
+    if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
+  } else {
+    if (authTitle) authTitle.textContent = 'Create Account';
+    if (authSubtext) authSubtext.textContent = 'New users can create an account here. Once signup is successful, you will automatically enter the main game page.';
+    if (authMainBtn) authMainBtn.textContent = 'Create Account';
+    if (authSwitchBtn) authSwitchBtn.textContent = 'Already have account? Login';
+    if (authHelper) authHelper.textContent = 'Create your account using a username and password. Once your account is ready, you can access the game immediately.';
+    if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
+  }
+}
+
+function toggleAuthMode() {
+  setAuthMode(authMode === 'login' ? 'signup' : 'login');
+}
+
+function showLandingView() {
+  document.body.classList.add('auth-open');
+  document.getElementById('loginBox').style.display = 'flex';
+  document.querySelector('.wrap').style.display = 'none';
+}
+
+function showGameView() {
+  document.body.classList.remove('auth-open');
+  document.getElementById('loginBox').style.display = 'none';
+  document.querySelector('.wrap').style.display = 'block';
+}
+
+function handleAuthAction() {
+  if (authMode === 'signup') {
+    signup();
+    return;
+  }
+  login();
+}
+
+
 async function login() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -1090,8 +1628,7 @@ async function login() {
     currentUser = data.user;
     localStorage.setItem('user', JSON.stringify(data.user));
 
-    document.getElementById('loginBox').style.display = 'none';
-    document.querySelector('.wrap').style.display = 'block';
+    showGameView();
 
     await loadState();
 await loadLiveUpdates();
@@ -1124,8 +1661,7 @@ async function signup() {
     currentUser = data.user;
     localStorage.setItem('user', JSON.stringify(data.user));
 
-    document.getElementById('loginBox').style.display = 'none';
-    document.querySelector('.wrap').style.display = 'block';
+    showGameView();
 
     await loadState();
 await loadLiveUpdates();
@@ -1229,7 +1765,7 @@ function renderHistory(history = []) {
 
   if (!pageItems.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="5" class="muted">Abhi koi history nahi hai</td>';
+    tr.innerHTML = '<td colspan="5" class="muted">No history available yet</td>';
     els.historyBody.appendChild(tr);
 
     const pageInfo = document.getElementById('historyPageInfo');
@@ -1491,8 +2027,7 @@ els.soundToggleBtn.addEventListener('click', () => {
 els.logoutBtn.addEventListener('click', () => {
   currentUser = null;
   localStorage.removeItem('user');
-  document.getElementById('loginBox').style.display = 'block';
-  document.querySelector('.wrap').style.display = 'none';
+  showLandingView();
   document.getElementById('username').value = '';
   document.getElementById('password').value = '';
 resetLivePaymentDisplay();
@@ -1536,7 +2071,7 @@ els.clearBtn.addEventListener('click', () => {
   state.selections.clear();
   state.amounts = {};
   renderSelections();
-  showMessage('Selections clear ho gaye');
+  showMessage('Selections cleared');
 });
 
 els.bonusBtn.addEventListener('click', async () => {
@@ -1992,17 +2527,27 @@ els.confirmActionModal.addEventListener('click', (e) => {
   }
 });
 
+
+document.getElementById('username').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') handleAuthAction();
+});
+document.getElementById('password').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') handleAuthAction();
+});
+
 buildNumbers();
 
+setAuthMode('login');
+
 if (currentUser) {
-  document.getElementById('loginBox').style.display = 'none';
-  document.querySelector('.wrap').style.display = 'block';
+  showGameView();
   loadState().catch(() => {
     localStorage.removeItem('user');
     currentUser = null;
-    document.getElementById('loginBox').style.display = 'block';
-    document.querySelector('.wrap').style.display = 'none';
+    showLandingView();
   });
+} else {
+  showLandingView();
 }
 
 if (els.historyPrevBtn) {

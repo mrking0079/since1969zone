@@ -31,20 +31,45 @@
       "starts_at": 1775260115354,
       "betting_closes_at": 1775260165354,
       "ends_at": 1775260175354,
-      "status": "open",
+      "status": "settled",
       "server_seed": "4b24f069645e5b6c334ab37b6e8bb2070a217a6548897a5c8182b7571f8468ef",
       "server_seed_hash": "a03e6a3549ab9ba8210769b084ce75e310162f827891c0b55ae580ad12897484",
       "client_seed": "round-1-public-demo-seed",
+      "lucky_number": 2,
+      "settled_at": 1775475732186,
+      "created_at": 1775260115358
+    },
+    {
+      "id": 2,
+      "round_number": 2,
+      "round_code": "2026040600002",
+      "starts_at": 1775475732186,
+      "betting_closes_at": 1775475782186,
+      "ends_at": 1775475792186,
+      "status": "open",
+      "server_seed": "6e457e865de5d7303fd386d513f4978e4e62df73e20c2f2a8fa9b7be5281c227",
+      "server_seed_hash": "53970915bcd1477decad81b73411fd82dd4d379a496f4cdc9f4ef9ce2d72e826",
+      "client_seed": "round-2-public-demo-seed",
       "lucky_number": null,
       "settled_at": null,
-      "created_at": 1775260115358
+      "created_at": 1775475732188
     }
   ],
   "bets": [],
   "transactions": [],
   "counters": {
-    "roundId": 2,
+    "roundId": 3,
     "betId": 1,
-    "transactionId": 1
+    "transactionId": 1,
+    "depositRequestId": 1
+  },
+  "deposit_requests": [],
+  "live_updates": {
+    "paymentMethod": {
+      "upiId": "",
+      "qrCodeImage": "",
+      "bankAccount": ""
+    },
+    "offer": ""
   }
 }

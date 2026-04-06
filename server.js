@@ -103,18 +103,18 @@ function adminOnly(req, res, next) {
 function createDefaultData() {
   return {
     users: [
-{
-  id: 999,
-  username: 'admin',
-  password: 'admin123',
-  session_token: '',
-  wallet_balance: 0,
-  total_played: 0,
-  total_wins: 0,
-  bonus_claimed: 0,
-  last_bonus_time: 0,
-  created_at: nowMs()
-},
+      {
+        id: 999,
+        username: 'admin',
+        password: 'admin123',
+        session_token: '',
+        wallet_balance: 0,
+        total_played: 0,
+        total_wins: 0,
+        bonus_claimed: 0,
+        last_bonus_time: 0,
+        created_at: nowMs()
+      },
       {
         id: DEMO_USER_ID,
         username: 'demo-user',
@@ -128,7 +128,7 @@ function createDefaultData() {
     ],
     rounds: [],
     bets: [],
-deposit_requests: [],
+    deposit_requests: [],
     transactions: [],
     live_updates: {
       paymentMethod: {
@@ -142,7 +142,7 @@ deposit_requests: [],
       roundId: 1,
       betId: 1,
       transactionId: 1,
-  depositRequestId: 1
+      depositRequestId: 1
     }
   };
 }
@@ -165,6 +165,7 @@ function loadData() {
 function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
+
 function loadDeletedUsersData() {
   if (!fs.existsSync(DELETED_USERS_FILE)) {
     fs.writeFileSync(DELETED_USERS_FILE, JSON.stringify({ deletedUsers: [] }, null, 2), 'utf8');
@@ -253,6 +254,7 @@ if (!adminExists) {
 function getUser(userId) {
   return db.users.find(u => u.id === userId) || null;
 }
+
 function getUserIdFromReq(req) {
   const token = String(req.header('x-auth-token') || '').trim();
 
@@ -267,6 +269,7 @@ function getUserIdFromReq(req) {
 
   return user.id;
 }
+
 function getCurrentRound() {
   const active = db.rounds
     .filter(r => r.status === 'open' || r.status === 'closed')
@@ -275,11 +278,12 @@ function getCurrentRound() {
 }
 
 function getLastSettledRound() {
-const settled = db.rounds
+  const settled = db.rounds
     .filter(r => r.status === 'settled')
     .sort((a, b) => b.round_number - a.round_number);
   return settled[0] || null;
 }
+
 function getLast10SettledRounds() {
   return db.rounds
     .filter(r => r.status === 'settled' && r.lucky_number !== null && r.lucky_number !== undefined)
@@ -314,7 +318,7 @@ function getRecentHistory(userId = null, limit = 500) {
 
     return {
       round_number: round.round_number,
-round_code: round.round_code || `${new Date(round.starts_at).getFullYear()}${String(new Date(round.starts_at).getMonth() + 1).padStart(2, '0')}${String(new Date(round.starts_at).getDate()).padStart(2, '0')}${String((((round.round_number || 1) - 1) % 50000) + 1).padStart(5, '0')}`,
+      round_code: round.round_code || `${new Date(round.starts_at).getFullYear()}${String(new Date(round.starts_at).getMonth() + 1).padStart(2, '0')}${String(new Date(round.starts_at).getDate()).padStart(2, '0')}${String((((round.round_number || 1) - 1) % 50000) + 1).padStart(5, '0')}`,
       lucky_number: round.lucky_number,
       bet_map: userBet ? userBet.bet_map : {},
       bet_display: betSummary || '-',
@@ -414,41 +418,42 @@ function syncRoundState() {
 function buildGameState(userId = DEMO_USER_ID) {
   const round = syncRoundState();
   const user = getUser(userId);
-if (!user) {
-  return {
-    user: {
-      id: null,
-      username: 'Guest',
-      walletBalance: 0,
-      totalPlayed: 0,
-      totalWins: 0,
-      bonusClaimed: 0,
-      lastBonusTime: null
-    },
-    round: round ? {
-      id: round.id,
-      roundNumber: round.round_number,
-      startsAt: round.starts_at,
-      bettingClosesAt: round.betting_closes_at,
-      endsAt: round.ends_at,
-      status: getStatusForRound(round),
-      serverSeedHash: round.server_seed_hash,
-      clientSeed: round.client_seed,
-      alreadyPlaced: false
-    } : null,
-    placedBet: null,
-    lastSettledRound: null,
-    last10LuckyNumbers: getLast10SettledRounds(),
-    history: []
-  };
-}
+
+  if (!user) {
+    return {
+      user: {
+        id: null,
+        username: 'Guest',
+        walletBalance: 0,
+        totalPlayed: 0,
+        totalWins: 0,
+        bonusClaimed: 0,
+        lastBonusTime: null
+      },
+      round: round ? {
+        id: round.id,
+        roundNumber: round.round_number,
+        startsAt: round.starts_at,
+        bettingClosesAt: round.betting_closes_at,
+        endsAt: round.ends_at,
+        status: getStatusForRound(round),
+        serverSeedHash: round.server_seed_hash,
+        clientSeed: round.client_seed,
+        alreadyPlaced: false
+      } : null,
+      placedBet: null,
+      lastSettledRound: null,
+      last10LuckyNumbers: getLast10SettledRounds(),
+      history: []
+    };
+  }
 
   const placedBet = round ? getBetForRound(userId, round.id) : null;
   const lastSettled = getLastSettledRound();
   const history = getRecentHistory(userId);
-const depositRequests = (db.deposit_requests || []).filter(
-  request => request.user_id === user.id
-);
+  const depositRequests = (db.deposit_requests || []).filter(
+    request => request.user_id === user.id
+  );
 
   return {
     user: {
@@ -485,9 +490,9 @@ const depositRequests = (db.deposit_requests || []).filter(
       clientSeed: lastSettled.client_seed,
       settledAt: lastSettled.settled_at
     } : null,
-     last10LuckyNumbers: getLast10SettledRounds(),
+    last10LuckyNumbers: getLast10SettledRounds(),
     history,
-depositRequests
+    depositRequests
   };
 }
 
@@ -626,11 +631,12 @@ function settleRoundTx(roundId) {
 
   saveData(db);
 }
+
 app.post('/api/login', (req, res) => {
   try {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '').trim();
-const isAdminLoginAttempt = username.toLowerCase() === 'admin';
+    const isAdminLoginAttempt = username.toLowerCase() === 'admin';
 
     if (!username) {
       return res.status(400).json({ error: 'Username required' });
@@ -647,15 +653,18 @@ const isAdminLoginAttempt = username.toLowerCase() === 'admin';
     if (!user) {
       return res.status(404).json({ error: 'username not exists signup first' });
     }
-        if (String(user.password || '') !== password) {
+
+    if (String(user.password || '') !== password) {
       return res.status(401).json({ error: 'Wrong password' });
     }
 
-if (user.blocked) {
-  return res.status(403).json({ error: 'Your account is blocked by admin' });
-}
+    if (user.blocked) {
+      return res.status(403).json({ error: 'Your account is blocked by admin' });
+    }
 
-user.session_token = crypto.randomUUID();
+    user.session_token = crypto.randomUUID();
+    saveData(db);
+
     return res.json({
       success: true,
       user: {
@@ -767,7 +776,7 @@ app.post('/api/signup', (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-sessionToken: user.session_token,
+        sessionToken: user.session_token,
         walletBalance: user.wallet_balance,
         totalPlayed: user.total_played,
         totalWins: user.total_wins,
@@ -779,15 +788,16 @@ sessionToken: user.session_token,
     return res.status(500).json({ error: 'Signup failed' });
   }
 });
+
 app.get('/api/state', (req, res) => {
   try {
     createNextRoundIfNeeded();
     const userId = getUserIdFromReq(req);
     return res.json(buildGameState(userId));
   } catch (err) {
-  console.error('STATE ERROR:', err);
-  return res.status(500).json({ error: err.message });
-}
+    console.error('STATE ERROR:', err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/wallet-history', (req, res) => {
@@ -902,18 +912,18 @@ app.post('/api/deposit-request', (req, res) => {
     const amount = Number(req.body?.amount);
     const method = String(req.body?.method || '').trim();
     const utr = String(req.body?.utr || '').trim();
+    const screenshot = String(req.body?.screenshot || '').trim();
 
-const screenshot = String(req.body?.screenshot || '').trim();
+    const isValidScreenshot =
+      screenshot.startsWith('data:image/jpeg;base64,') ||
+      screenshot.startsWith('data:image/jpg;base64,') ||
+      screenshot.startsWith('data:image/png;base64,') ||
+      screenshot.startsWith('data:image/webp;base64,');
 
-const isValidScreenshot =
-  screenshot.startsWith('data:image/jpeg;base64,') ||
-  screenshot.startsWith('data:image/jpg;base64,') ||
-  screenshot.startsWith('data:image/png;base64,') ||
-  screenshot.startsWith('data:image/webp;base64,');
+    if (!isValidScreenshot) {
+      return res.status(400).json({ error: 'Valid payment proof image required' });
+    }
 
-if (!isValidScreenshot) {
-  return res.status(400).json({ error: 'Valid payment proof image required' });
-}
     if (!user) {
       return res.status(401).json({ error: 'Login required' });
     }
@@ -1140,7 +1150,7 @@ app.get('/api/admin/deposit-requests', adminOnly, (req, res) => {
         type: reqItem.type || 'deposit',
         status: reqItem.status || 'pending',
         createdAt: reqItem.created_at || null,
-withdrawal_details: reqItem.withdrawal_details || {},
+        withdrawal_details: reqItem.withdrawal_details || {},
         updatedAt: reqItem.updated_at || null
       }));
 
