@@ -5,19 +5,9 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import 'dotenv/config';
-import pg from 'pg';
-const { Pool } = pg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
 
 const app = express();
 app.set('trust proxy', 1);
@@ -40,7 +30,7 @@ app.use(helmet({
 app.use(express.json({ limit: '5mb' }));
 app.use(rateLimit({
   windowMs: 60 * 1000,
-  max: 5000,
+  max: 120,
   standardHeaders: true,
   legacyHeaders: false
 }));
@@ -81,27 +71,6 @@ function randomHex(size = 32) {
   return crypto.randomBytes(size).toString('hex');
 }
 
-function hashPassword(password) {
-  return sha256(`secure-live-game-password:${String(password || '')}`);
-}
-
-function isPasswordMatch(user, plainPassword) {
-  const entered = String(plainPassword || '');
-  const stored = String(user?.password || '');
-
-  if (!stored) {
-    return false;
-  }
-
-  // New hashed password format
-  if (stored.startsWith('sha256$')) {
-    return stored === `sha256$${hashPassword(entered)}`;
-  }
-
-  // Fallback for old plain-text users
-  return stored === entered;
-}
-
 function jsonParseSafe(value, fallback) {
   try {
     return JSON.parse(value);
@@ -116,7 +85,7 @@ function createDefaultData() {
       {
         id: 999,
         username: 'admin',
-        password: `sha256$${hashPassword('admin123')}`,
+        password: 'admin123',
         session_token: '',
         wallet_balance: 0,
         total_played: 0,
@@ -141,9 +110,8 @@ function createDefaultData() {
       }
     ],
     rounds: [],
-        bets: [],
+    bets: [],
     deposit_requests: [],
-    withdraw_requests: [],
     transactions: [],
     live_updates: {
       paymentMethod: {
@@ -157,28 +125,9 @@ function createDefaultData() {
       roundId: 1,
       betId: 1,
       transactionId: 1,
-      depositRequestId: 1,
-      withdrawRequestId: 1
+      depositRequestId: 1
     }
   };
-}
-
-async function testDB() {
-  try {
-    const res = await pool.query('SELECT NOW()');
-    console.log('✅ DB Connected:', res.rows[0]);
-  } catch (err) {
-    console.error('❌ DB Error:', err);
-  }
-}
-
-async function testDB() {
-  try {
-    const res = await pool.query('SELECT NOW()');
-    console.log('DB Connected:', res.rows[0]);
-  } catch (err) {
-    console.error('DB Error:', err);
-  }
 }
 
 function loadData() {
@@ -230,19 +179,11 @@ if (!Array.isArray(db.users)) {
   db.users = [];
 }
 
-db.users = db.users.map(user => {
-  const normalizedUser = {
-    blocked: false,
-    is_admin: false,
-    ...user
-  };
-
-  if (typeof normalizedUser.password === 'string' && normalizedUser.password && !normalizedUser.password.startsWith('sha256$')) {
-    normalizedUser.password = `sha256$${hashPassword(normalizedUser.password)}`;
-  }
-
-  return normalizedUser;
-});
+db.users = db.users.map(user => ({
+  blocked: false,
+  is_admin: false,
+  ...user
+}));
 
 if (!Array.isArray(db.deposit_requests)) {
   db.deposit_requests = [];
@@ -254,10 +195,6 @@ if (!Array.isArray(db.transactions)) {
 
 if (!Array.isArray(db.rounds)) {
   db.rounds = [];
-}
-
-if (!Array.isArray(db.withdraw_requests)) {
-  db.withdraw_requests = [];
 }
 
 if (!Array.isArray(db.bets)) {
@@ -308,23 +245,14 @@ if (typeof db.counters.depositRequestId !== 'number') {
   db.counters.depositRequestId = 1;
 }
 
-if (typeof db.counters.withdrawRequestId !== 'number') {
-  db.counters.withdrawRequestId = 1;
-}
-
 const existingAdmin = db.users.find(
   u => String(u.username || '').toLowerCase() === 'admin'
 );
 
 if (existingAdmin) {
   existingAdmin.is_admin = true;
-
   if (typeof existingAdmin.blocked !== 'boolean') {
     existingAdmin.blocked = false;
-  }
-
-  if (typeof existingAdmin.password === 'string' && !existingAdmin.password.startsWith('sha256$')) {
-    existingAdmin.password = `sha256$${hashPassword(existingAdmin.password)}`;
   }
 }
 
@@ -334,7 +262,7 @@ if (!hasAnyAdmin) {
   db.users.unshift({
     id: 999,
     username: 'admin',
-    password: `sha256$${hashPassword('admin123')}`,
+    password: 'admin123',
     session_token: '',
     wallet_balance: 0,
     total_played: 0,
@@ -613,10 +541,6 @@ function buildGameState(userId = DEMO_USER_ID) {
     request => request.user_id === user.id
   );
 
-    const withdrawRequests = (db.withdraw_requests || []).filter(
-    request => request.user_id === user.id
-  );
-
   return {
     user: {
       id: user.id,
@@ -654,8 +578,7 @@ function buildGameState(userId = DEMO_USER_ID) {
     } : null,
     last10LuckyNumbers: getLast10SettledRounds(),
     history,
-    depositRequests,
-    withdrawRequests
+    depositRequests
   };
 }
 
@@ -776,9 +699,9 @@ app.post('/api/login', (req, res) => {
       return res.status(404).json({ error: 'Username does not exist. Please sign up first.' });
     }
 
-    if (!isPasswordMatch(user, password)) {
-  return res.status(401).json({ error: 'Wrong password' });
-}
+    if (String(user.password || '') !== password) {
+      return res.status(401).json({ error: 'Wrong password' });
+    }
 
     if (user.blocked) {
       return res.status(403).json({ error: 'Your account is blocked by admin' });
@@ -835,9 +758,9 @@ app.post('/api/admin-login', adminLoginLimiter, (req, res) => {
       return res.status(403).json({ error: 'Your account is blocked by admin' });
     }
 
-    if (!isPasswordMatch(user, password)) {
-  return res.status(401).json({ error: 'Invalid admin password' });
-}
+    if (String(user.password || '') !== password) {
+      return res.status(401).json({ error: 'Invalid admin password' });
+    }
 
     user.session_token = crypto.randomUUID();
     saveData(db);
@@ -885,7 +808,7 @@ app.post('/api/signup', (req, res) => {
     const user = {
       id: db.users.length ? Math.max(...db.users.map(u => u.id)) + 1 : 1,
       username,
-      password: `sha256$${hashPassword(password)}`,
+      password,
       session_token: crypto.randomUUID(),
       wallet_balance: 1000,
       total_played: 0,
@@ -1050,31 +973,9 @@ app.post('/api/withdraw', (req, res) => {
       return res.status(400).json({ error: 'Insufficient wallet balance' });
     }
 
-    const hasPendingRequest = (db.withdraw_requests || []).some(
-      request => request.user_id === user.id && request.status === 'pending'
-    );
-
-    if (hasPendingRequest) {
-      return res.status(400).json({ error: 'You already have a pending withdraw request' });
-    }
-
     user.wallet_balance -= amount;
 
-    const request = {
-      id: db.counters.withdrawRequestId++,
-      user_id: user.id,
-      username: user.username,
-      amount,
-      upiId,
-      status: 'pending',
-      created_at: nowMs(),
-      updated_at: null
-    };
-
-    db.withdraw_requests.push(request);
-
     addTransaction(user.id, 'withdraw_request', -amount, {
-      requestId: request.id,
       upiId
     });
 
@@ -1267,7 +1168,6 @@ app.post('/api/admin/delete-user', adminOnly, (req, res) => {
     db.bets = db.bets.filter(b => b.user_id !== userId);
     db.transactions = db.transactions.filter(t => t.user_id !== userId);
     db.deposit_requests = db.deposit_requests.filter(r => r.user_id !== userId);
-    db.withdraw_requests = db.withdraw_requests.filter(r => r.user_id !== userId);
 
     saveData(db);
 
@@ -1558,12 +1458,6 @@ app.get('/api/wallet-history', (req, res) => {
         } else if (tx.type === 'withdraw_request') {
           title = 'Withdrawal Request';
           details = tx.meta?.upiId ? `UPI ID: ${tx.meta.upiId}` : 'Withdrawal request submitted';
-        } else if (tx.type === 'withdrawal_approved') {
-          title = 'Withdrawal Approved';
-          details = tx.meta?.upiId ? `UPI ID: ${tx.meta.upiId}` : 'Withdrawal approved by admin';
-        } else if (tx.type === 'withdraw_rejected_refund') {
-          title = 'Withdrawal Rejected Refund';
-          details = tx.meta?.upiId ? `UPI ID: ${tx.meta.upiId}` : 'Rejected withdrawal refunded';
         }
 
         return {
@@ -1588,17 +1482,7 @@ app.get('/api/wallet-history', (req, res) => {
 /* Compatibility aliases for existing frontend/admin */
 app.post('/api/bet', (req, res) => app._router.handle({ ...req, url: '/api/place-bet', method: 'POST' }, res, () => {}));
 app.post('/api/bonus', (req, res) => app._router.handle({ ...req, url: '/api/claim-bonus', method: 'POST' }, res, () => {}));
-app.post('/api/withdrawal-request', (req, res) => {
-  return req.app._router.handle(
-    Object.assign(Object.create(req), {
-      url: '/api/withdraw',
-      originalUrl: '/api/withdraw',
-      method: 'POST'
-    }),
-    res,
-    () => {}
-  );
-});
+app.post('/api/withdrawal-request', (req, res) => app._router.handle({ ...req, url: '/api/withdraw', method: 'POST' }, res, () => {}));
 
 app.get('/api/admin/users', (req, res) => app._router.handle({ ...req, url: '/api/admin/load-users', method: 'GET' }, res, () => {}));
 app.post('/api/admin/add-coins', (req, res) => {
@@ -1634,6 +1518,6 @@ app.get('*', (req, res) => {
 ensureActiveRound();
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  testDB();
+  console.log(`Secure game server running on http://localhost:${PORT}`);
+  console.log('Set ADMIN_KEY env var before production use.');
 });
