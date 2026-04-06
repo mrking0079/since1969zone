@@ -1789,35 +1789,6 @@ const withdrawalHistory = db.withdraw_requests
     updatedAt: r.updated_at || null
   }));
 
-const depositHistory = db.deposit_requests
-  .filter(r => r.user_id === user.id)
-  .map(r => ({
-    id: r.id,
-    type: 'deposit',
-    amount: r.amount,
-    method: r.method || '',
-    utr: r.utr || '',
-    screenshot: r.screenshot || '',
-    status: r.status,
-    createdAt: r.created_at || null,
-    updatedAt: r.updated_at || null
-  }));
-
-const withdrawalHistory = db.withdraw_requests
-  .filter(r => r.user_id === user.id)
-  .map(r => ({
-    id: r.id,
-    type: 'withdrawal',
-    amount: r.amount,
-    method: r.method || '',
-    utr: '',
-    screenshot: '',
-    status: r.status,
-    withdrawal_details: r.details || {},
-    createdAt: r.created_at || null,
-    updatedAt: r.updated_at || null
-  }));
-
 const requests = [...depositHistory, ...withdrawalHistory]
   .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
