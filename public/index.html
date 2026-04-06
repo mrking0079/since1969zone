@@ -1452,7 +1452,7 @@ document.body.classList.toggle('bet-closed', !state.server?.round || state.serve
 
 els.placeBetBtn.disabled = !state.server?.round || state.server.round.status !== 'open';
 }
-<div class="mini-label">Recent Game History</div>
+
 function updateTimer() {
   if (!state.server?.round) {
     els.timer.textContent = '--:--';
