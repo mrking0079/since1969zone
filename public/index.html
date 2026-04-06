@@ -539,13 +539,57 @@ button.secondary:hover {
 </div>
 
 <div id="withdrawCoinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
-  <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;">
+  <div style="width:100%;max-width:520px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;max-height:92vh;overflow:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="margin:0;color:#ffd700;">Withdrawal Request</h3>
       <button id="closeWithdrawCoinModal" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
     </div>
 
-    <input id="withdrawCoinInput" type="number" placeholder="Enter withdrawal request coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:16px;" />
+    <input id="withdrawCoinInput" type="number" placeholder="Enter withdrawal request coins" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;color:#fff;font-size:16px;margin-bottom:14px;" />
+
+    <div style="font-size:13px;color:#aaaaaa;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;">
+      Select Payment Receive Method
+    </div>
+
+    <div id="withdrawMethodOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+      <button type="button" class="withdraw-method-option secondary" data-method="UPI">UPI</button>
+      <button type="button" class="withdraw-method-option secondary" data-method="QR Code">QR Code</button>
+      <button type="button" class="withdraw-method-option secondary" data-method="Bank Account">Bank Account</button>
+    </div>
+
+    <input id="withdrawMethodInput" type="text" placeholder="Selected withdraw method" readonly style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#050505;color:#ffd700;font-size:16px;margin-bottom:12px;" />
+
+    <div id="withdrawMethodFormBox" style="display:none;padding:12px;border-radius:12px;border:1px solid #333;background:#0b0b0b;margin-bottom:14px;">
+
+      <div id="withdrawUpiForm" style="display:none;">
+        <input id="withdrawUpiInput" type="text" placeholder="Enter your UPI ID" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#050505;color:#fff;font-size:15px;margin-bottom:10px;" />
+      </div>
+
+      <div id="withdrawQrForm" style="display:none;">
+        <input id="withdrawQrInput" type="file" accept="image/*" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#050505;color:#fff;font-size:15px;margin-bottom:10px;" />
+        <div id="withdrawQrPreviewBox" style="display:none;">
+          <img id="withdrawQrPreviewImg" src="" alt="Withdrawal QR Preview" style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;border:1px solid #333;background:#000;padding:8px;" />
+        </div>
+      </div>
+
+      <div id="withdrawBankForm" style="display:none;">
+        <input id="withdrawBankHolderInput" type="text" placeholder="Enter account holder name" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#050505;color:#fff;font-size:15px;margin-bottom:10px;" />
+        <input id="withdrawBankNameInput" type="text" placeholder="Enter bank name" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#050505;color:#fff;font-size:15px;margin-bottom:10px;" />
+
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px;">
+          <input id="withdrawIfscInput" type="text" placeholder="Enter IFSC code" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#050505;color:#fff;font-size:15px;" />
+          <button type="button" id="findIfscBtn" class="secondary" style="white-space:nowrap;">Find IFSC</button>
+        </div>
+
+        <input id="withdrawAccountNumberInput" type="text" placeholder="Enter bank account number" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#050505;color:#fff;font-size:15px;margin-bottom:10px;" />
+        <input id="withdrawReAccountNumberInput" type="text" placeholder="Re-enter bank account number" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#050505;color:#fff;font-size:15px;margin-bottom:10px;" />
+      </div>
+
+      <button id="saveWithdrawDetailsBtn" type="button" class="secondary" style="width:100%;">Save Details</button>
+      <div id="withdrawSavedStatus" style="display:none;margin-top:10px;color:#7ef0b1;font-size:14px;font-weight:700;text-align:center;">
+        Details saved successfully
+      </div>
+    </div>
 
     <button id="submitWithdrawCoin" class="danger" style="width:100%;">Send Withdrawal Request</button>
   </div>
@@ -640,6 +684,24 @@ livePaymentQrBox: document.getElementById('livePaymentQrBox'),
 livePaymentQrImg: document.getElementById('livePaymentQrImg'),
 copyPaymentDetailsBtn: document.getElementById('copyPaymentDetailsBtn'),
 liveOfferText: document.getElementById('liveOfferText'),
+withdrawMethodOptions: document.getElementById('withdrawMethodOptions'),
+withdrawMethodInput: document.getElementById('withdrawMethodInput'),
+withdrawMethodFormBox: document.getElementById('withdrawMethodFormBox'),
+withdrawUpiForm: document.getElementById('withdrawUpiForm'),
+withdrawQrForm: document.getElementById('withdrawQrForm'),
+withdrawBankForm: document.getElementById('withdrawBankForm'),
+withdrawUpiInput: document.getElementById('withdrawUpiInput'),
+withdrawQrInput: document.getElementById('withdrawQrInput'),
+withdrawQrPreviewBox: document.getElementById('withdrawQrPreviewBox'),
+withdrawQrPreviewImg: document.getElementById('withdrawQrPreviewImg'),
+withdrawBankHolderInput: document.getElementById('withdrawBankHolderInput'),
+withdrawBankNameInput: document.getElementById('withdrawBankNameInput'),
+withdrawIfscInput: document.getElementById('withdrawIfscInput'),
+findIfscBtn: document.getElementById('findIfscBtn'),
+withdrawAccountNumberInput: document.getElementById('withdrawAccountNumberInput'),
+withdrawReAccountNumberInput: document.getElementById('withdrawReAccountNumberInput'),
+saveWithdrawDetailsBtn: document.getElementById('saveWithdrawDetailsBtn'),
+withdrawSavedStatus: document.getElementById('withdrawSavedStatus'),
 };
 
 const state = {
@@ -658,6 +720,17 @@ const state = {
 
 let pendingTelegramMessage = '';
 let depositScreenshotBase64 = '';
+let withdrawQrBase64 = '';
+let withdrawDetailsSaved = false;
+let savedWithdrawDetails = {
+  method: '',
+  upiId: '',
+  qrImage: '',
+  bankHolderName: '',
+  bankName: '',
+  ifscCode: '',
+  accountNumber: ''
+};
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playTone(freq = 440, duration = 120, type = 'sine', volume = 0.04) {
@@ -868,6 +941,129 @@ function showLivePaymentMethod(method) {
     els.livePaymentQrBox.style.display = 'none';
     els.livePaymentQrImg.src = '';
     els.copyPaymentDetailsBtn.style.display = bank ? 'block' : 'none';
+  }
+}
+
+function resetWithdrawMethodDisplay() {
+  if (els.withdrawMethodInput) {
+    els.withdrawMethodInput.value = '';
+  }
+
+  if (els.withdrawMethodFormBox) {
+    els.withdrawMethodFormBox.style.display = 'none';
+  }
+
+  if (els.withdrawUpiForm) {
+    els.withdrawUpiForm.style.display = 'none';
+  }
+
+  if (els.withdrawQrForm) {
+    els.withdrawQrForm.style.display = 'none';
+  }
+
+  if (els.withdrawBankForm) {
+    els.withdrawBankForm.style.display = 'none';
+  }
+
+  if (els.withdrawUpiInput) {
+    els.withdrawUpiInput.value = '';
+  }
+
+  if (els.withdrawQrInput) {
+    els.withdrawQrInput.value = '';
+  }
+
+  if (els.withdrawQrPreviewBox) {
+    els.withdrawQrPreviewBox.style.display = 'none';
+  }
+
+  if (els.withdrawQrPreviewImg) {
+    els.withdrawQrPreviewImg.src = '';
+  }
+
+  if (els.withdrawBankHolderInput) {
+    els.withdrawBankHolderInput.value = '';
+  }
+
+  if (els.withdrawBankNameInput) {
+    els.withdrawBankNameInput.value = '';
+  }
+
+  if (els.withdrawIfscInput) {
+    els.withdrawIfscInput.value = '';
+  }
+
+  if (els.withdrawAccountNumberInput) {
+    els.withdrawAccountNumberInput.value = '';
+  }
+
+  if (els.withdrawReAccountNumberInput) {
+    els.withdrawReAccountNumberInput.value = '';
+  }
+
+  if (els.withdrawSavedStatus) {
+    els.withdrawSavedStatus.style.display = 'none';
+  }
+
+  withdrawQrBase64 = '';
+  withdrawDetailsSaved = false;
+  savedWithdrawDetails = {
+    method: '',
+    upiId: '',
+    qrImage: '',
+    bankHolderName: '',
+    bankName: '',
+    ifscCode: '',
+    accountNumber: ''
+  };
+
+  document.querySelectorAll('.withdraw-method-option').forEach(btn => {
+    btn.style.outline = 'none';
+    btn.style.background = '#232323';
+    btn.style.color = '#fff';
+  });
+}
+
+function showWithdrawMethodForm(method) {
+  if (!els.withdrawMethodInput || !els.withdrawMethodFormBox) return;
+
+  withdrawDetailsSaved = false;
+  if (els.withdrawSavedStatus) {
+    els.withdrawSavedStatus.style.display = 'none';
+  }
+
+  els.withdrawMethodInput.value = method;
+  els.withdrawMethodFormBox.style.display = 'block';
+
+  if (els.withdrawUpiForm) els.withdrawUpiForm.style.display = 'none';
+  if (els.withdrawQrForm) els.withdrawQrForm.style.display = 'none';
+  if (els.withdrawBankForm) els.withdrawBankForm.style.display = 'none';
+
+  document.querySelectorAll('.withdraw-method-option').forEach(btn => {
+    btn.style.outline = 'none';
+    btn.style.background = '#232323';
+    btn.style.color = '#fff';
+  });
+
+  const activeBtn = document.querySelector(`.withdraw-method-option[data-method="${method}"]`);
+  if (activeBtn) {
+    activeBtn.style.outline = '2px solid #ffd700';
+    activeBtn.style.background = '#ffd700';
+    activeBtn.style.color = '#111';
+  }
+
+  if (method === 'UPI' && els.withdrawUpiForm) {
+    els.withdrawUpiForm.style.display = 'block';
+    return;
+  }
+
+  if (method === 'QR Code' && els.withdrawQrForm) {
+    els.withdrawQrForm.style.display = 'block';
+    return;
+  }
+
+  if (method === 'Bank Account' && els.withdrawBankForm) {
+    els.withdrawBankForm.style.display = 'block';
   }
 }
 
@@ -1396,6 +1592,7 @@ els.addCoinBtn.addEventListener('click', async () => {
 els.withdrawCoinBtn.addEventListener('click', () => {
   els.withdrawCoinModal.style.display = 'flex';
   els.withdrawCoinInput.value = '';
+  resetWithdrawMethodDisplay();
 });
 
 // close add modal
@@ -1406,6 +1603,7 @@ els.closeAddCoinModal.addEventListener('click', () => {
 // close withdraw modal
 els.closeWithdrawCoinModal.addEventListener('click', () => {
   els.withdrawCoinModal.style.display = 'none';
+  resetWithdrawMethodDisplay();
 });
 
 // outside click close
@@ -1418,6 +1616,7 @@ els.addCoinModal.addEventListener('click', (e) => {
 els.withdrawCoinModal.addEventListener('click', (e) => {
   if (e.target === els.withdrawCoinModal) {
     els.withdrawCoinModal.style.display = 'none';
+    resetWithdrawMethodDisplay();
   }
 });
 
@@ -1475,6 +1674,159 @@ if (els.copyPaymentDetailsBtn) {
       }, 1500);
     } catch (error) {
       showMessage('Copy failed');
+    }
+  });
+}
+
+document.querySelectorAll('.withdraw-method-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const method = String(btn.dataset.method || '').trim();
+    showWithdrawMethodForm(method);
+  });
+});
+
+if (els.withdrawQrInput) {
+  els.withdrawQrInput.addEventListener('change', () => {
+    const file = els.withdrawQrInput.files && els.withdrawQrInput.files[0];
+
+    if (!file) {
+      withdrawQrBase64 = '';
+      if (els.withdrawQrPreviewBox) els.withdrawQrPreviewBox.style.display = 'none';
+      if (els.withdrawQrPreviewImg) els.withdrawQrPreviewImg.src = '';
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      withdrawQrBase64 = String(reader.result || '');
+      if (els.withdrawQrPreviewImg) {
+        els.withdrawQrPreviewImg.src = withdrawQrBase64;
+      }
+      if (els.withdrawQrPreviewBox) {
+        els.withdrawQrPreviewBox.style.display = 'block';
+      }
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+if (els.findIfscBtn) {
+  els.findIfscBtn.addEventListener('click', () => {
+    const bankName = String(els.withdrawBankNameInput?.value || '').trim();
+
+    if (!bankName) {
+      alert('Please enter bank name first');
+      return;
+    }
+
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(bankName + ' IFSC code')}`, '_blank');
+  });
+}
+
+if (els.saveWithdrawDetailsBtn) {
+  els.saveWithdrawDetailsBtn.addEventListener('click', () => {
+    const method = String(els.withdrawMethodInput?.value || '').trim();
+
+    if (!method) {
+      alert('Please select withdraw method first');
+      return;
+    }
+
+    if (method === 'UPI') {
+      const upiId = String(els.withdrawUpiInput?.value || '').trim();
+
+      if (!upiId) {
+        alert('Please enter your UPI ID');
+        return;
+      }
+
+      savedWithdrawDetails = {
+        method: 'UPI',
+        upiId,
+        qrImage: '',
+        bankHolderName: '',
+        bankName: '',
+        ifscCode: '',
+        accountNumber: ''
+      };
+
+      withdrawDetailsSaved = true;
+      if (els.withdrawSavedStatus) els.withdrawSavedStatus.style.display = 'block';
+      return;
+    }
+
+    if (method === 'QR Code') {
+      if (!withdrawQrBase64) {
+        alert('Please upload your QR code image');
+        return;
+      }
+
+      savedWithdrawDetails = {
+        method: 'QR Code',
+        upiId: '',
+        qrImage: withdrawQrBase64,
+        bankHolderName: '',
+        bankName: '',
+        ifscCode: '',
+        accountNumber: ''
+      };
+
+      withdrawDetailsSaved = true;
+      if (els.withdrawSavedStatus) els.withdrawSavedStatus.style.display = 'block';
+      return;
+    }
+
+    if (method === 'Bank Account') {
+      const bankHolderName = String(els.withdrawBankHolderInput?.value || '').trim();
+      const bankName = String(els.withdrawBankNameInput?.value || '').trim();
+      const ifscCode = String(els.withdrawIfscInput?.value || '').trim();
+      const accountNumber = String(els.withdrawAccountNumberInput?.value || '').trim();
+      const reAccountNumber = String(els.withdrawReAccountNumberInput?.value || '').trim();
+
+      if (!bankHolderName) {
+        alert('Please enter account holder name');
+        return;
+      }
+
+      if (!bankName) {
+        alert('Please enter bank name');
+        return;
+      }
+
+      if (!ifscCode) {
+        alert('Please enter IFSC code');
+        return;
+      }
+
+      if (!accountNumber) {
+        alert('Please enter bank account number');
+        return;
+      }
+
+      if (!reAccountNumber) {
+        alert('Please re-enter bank account number');
+        return;
+      }
+
+      if (accountNumber !== reAccountNumber) {
+        alert('Bank account number does not match');
+        return;
+      }
+
+      savedWithdrawDetails = {
+        method: 'Bank Account',
+        upiId: '',
+        qrImage: '',
+        bankHolderName,
+        bankName,
+        ifscCode,
+        accountNumber
+      };
+
+      withdrawDetailsSaved = true;
+      if (els.withdrawSavedStatus) els.withdrawSavedStatus.style.display = 'block';
     }
   });
 }
@@ -1554,6 +1906,7 @@ els.submitAddCoin.addEventListener('click', async () => {
 els.submitWithdrawCoin.addEventListener('click', () => {
   const amount = Number(els.withdrawCoinInput.value);
   const walletBalance = Number(state.server?.user?.walletBalance || 0);
+  const method = String(els.withdrawMethodInput?.value || '').trim();
 
   if (!amount || amount <= 0) {
     alert('Please enter valid withdrawal coins');
@@ -1565,10 +1918,27 @@ els.submitWithdrawCoin.addEventListener('click', () => {
     return;
   }
 
-  els.confirmActionText.textContent = `Do you want to send Withdrawal Request for ${amount} coins?`;
+  if (!method) {
+    alert('Please select withdrawal method first');
+    return;
+  }
+
+  if (!withdrawDetailsSaved) {
+    alert('Please save withdrawal details first');
+    return;
+  }
+
+  if (savedWithdrawDetails.method !== method) {
+    alert('Please save details again for selected withdrawal method');
+    return;
+  }
+
+  els.confirmActionText.textContent = `Do you want to send Withdrawal Request for ${amount} coins by ${method}?`;
   pendingTelegramMessage = JSON.stringify({
     type: 'withdrawal',
-    amount
+    amount,
+    method,
+    details: savedWithdrawDetails
   });
   els.confirmActionModal.style.display = 'flex';
 });
@@ -1610,12 +1980,15 @@ if (payload.type === 'withdrawal') {
   await api('/api/withdrawal-request', {
     method: 'POST',
     body: JSON.stringify({
-      amount: payload.amount
+      amount: payload.amount,
+      method: payload.method,
+      details: payload.details
     })
   });
 
-  showMessage(`Withdrawal Request sent for ${payload.amount} coins`);
+  showMessage(`Withdrawal Request sent for ${payload.amount} coins by ${payload.method}`);
   els.withdrawCoinInput.value = '';
+  resetWithdrawMethodDisplay();
   await loadState();
 }
     els.confirmActionModal.style.display = 'none';

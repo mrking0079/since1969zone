@@ -879,6 +879,8 @@ app.post('/api/withdrawal-request', (req, res) => {
     const userId = getUserIdFromReq(req);
     const user = getUser(userId);
     const amount = Number(req.body?.amount);
+    const method = String(req.body?.method || '').trim();
+    const details = req.body?.details || {};
 
     if (!user) {
       return res.status(401).json({ error: 'Login required' });
@@ -892,13 +894,86 @@ app.post('/api/withdrawal-request', (req, res) => {
       return res.status(400).json({ error: 'Insufficient balance' });
     }
 
+    if (!method) {
+      return res.status(400).json({ error: 'Withdrawal method required' });
+    }
+
+    if (method !== 'UPI' && method !== 'QR Code' && method !== 'Bank Account') {
+      return res.status(400).json({ error: 'Invalid withdrawal method' });
+    }
+
+    const cleanDetails = {
+      method,
+      upiId: '',
+      qrImage: '',
+      bankHolderName: '',
+      bankName: '',
+      ifscCode: '',
+      accountNumber: ''
+    };
+
+    if (method === 'UPI') {
+      const upiId = String(details?.upiId || '').trim();
+
+      if (!upiId) {
+        return res.status(400).json({ error: 'UPI ID required' });
+      }
+
+      cleanDetails.upiId = upiId;
+    }
+
+    if (method === 'QR Code') {
+      const qrImage = String(details?.qrImage || '').trim();
+
+      const isValidQrImage =
+        qrImage.startsWith('data:image/jpeg;base64,') ||
+        qrImage.startsWith('data:image/jpg;base64,') ||
+        qrImage.startsWith('data:image/png;base64,') ||
+        qrImage.startsWith('data:image/webp;base64,');
+
+      if (!isValidQrImage) {
+        return res.status(400).json({ error: 'Valid QR image required' });
+      }
+
+      cleanDetails.qrImage = qrImage;
+    }
+
+    if (method === 'Bank Account') {
+      const bankHolderName = String(details?.bankHolderName || '').trim();
+      const bankName = String(details?.bankName || '').trim();
+      const ifscCode = String(details?.ifscCode || '').trim();
+      const accountNumber = String(details?.accountNumber || '').trim();
+
+      if (!bankHolderName) {
+        return res.status(400).json({ error: 'Account holder name required' });
+      }
+
+      if (!bankName) {
+        return res.status(400).json({ error: 'Bank name required' });
+      }
+
+      if (!ifscCode) {
+        return res.status(400).json({ error: 'IFSC code required' });
+      }
+
+      if (!accountNumber) {
+        return res.status(400).json({ error: 'Account number required' });
+      }
+
+      cleanDetails.bankHolderName = bankHolderName;
+      cleanDetails.bankName = bankName;
+      cleanDetails.ifscCode = ifscCode;
+      cleanDetails.accountNumber = accountNumber;
+    }
+
     const request = {
       id: db.counters.depositRequestId++,
       user_id: user.id,
       username: user.username,
       amount,
-      method: '',
+      method,
       utr: '',
+      withdrawal_details: cleanDetails,
       type: 'withdrawal',
       status: 'pending',
       created_at: nowMs(),
@@ -991,6 +1066,7 @@ app.get('/api/admin/deposit-requests', adminOnly, (req, res) => {
         type: reqItem.type || 'deposit',
         status: reqItem.status || 'pending',
         createdAt: reqItem.created_at || null,
+withdrawal_details: reqItem.withdrawal_details || {},
         updatedAt: reqItem.updated_at || null
       }));
 
