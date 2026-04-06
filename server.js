@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import pg from 'pg';
 const { Pool } = pg;
+import { v2 as cloudinary } from 'cloudinary';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,12 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false
   }
+});
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 const app = express();
@@ -1079,7 +1086,21 @@ app.post('/api/claim-bonus', (req, res) => {
   }
 });
 
-app.post('/api/deposit-request', (req, res) => {
+async function uploadDepositProofToCloudinary(base64Image, username) {
+  const safeImage = String(base64Image || '').trim();
+
+  if (!safeImage) return '';
+
+  const result = await cloudinary.uploader.upload(safeImage, {
+    folder: 'since1969zone/deposit-proofs',
+    resource_type: 'image',
+    public_id: `deposit_${String(username || 'user')}_${Date.now()}`
+  });
+
+  return result.secure_url || '';
+}
+
+app.post('/api/deposit-request', async (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
     if (!userId) return res.status(401).json({ error: 'Login required' });
@@ -1091,6 +1112,7 @@ app.post('/api/deposit-request', (req, res) => {
     const amount = Number(req.body?.amount);
     const utr = String(req.body?.utr || '').trim();
     const screenshot = String(req.body?.screenshot || '').trim();
+const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.username);
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ error: 'Valid deposit amount required' });
@@ -1106,7 +1128,7 @@ app.post('/api/deposit-request', (req, res) => {
       username: user.username,
       amount,
       utr,
-      screenshot,
+      screenshot: screenshotUrl,
       status: 'pending',
       created_at: nowMs()
     };
