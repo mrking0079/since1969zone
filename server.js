@@ -1110,17 +1110,12 @@ app.post('/api/deposit-request', async (req, res) => {
     if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
 
     const amount = Number(req.body?.amount);
-    const method = String(req.body?.method || '').trim();
     const utr = String(req.body?.utr || '').trim();
     const screenshot = String(req.body?.screenshot || '').trim();
-    const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.username);
+const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.username);
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ error: 'Valid deposit amount required' });
-    }
-
-    if (!method) {
-      return res.status(400).json({ error: 'Payment method required' });
     }
 
     if (!utr && !screenshot) {
@@ -1132,12 +1127,10 @@ app.post('/api/deposit-request', async (req, res) => {
       user_id: user.id,
       username: user.username,
       amount,
-      method,
       utr,
       screenshot: screenshotUrl,
       status: 'pending',
-      created_at: nowMs(),
-      updated_at: null
+      created_at: nowMs()
     };
 
     db.deposit_requests.push(request);
@@ -1162,43 +1155,43 @@ app.post('/api/withdrawal-request', (req, res) => {
     if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
 
     const amount = Number(req.body?.amount);
-const method = String(req.body?.method || '').trim();
-const details = req.body?.details || {};
-const upiId = String(details?.upiId || '').trim();
+    const method = String(req.body?.method || '').trim();
+    const details = req.body?.details || {};
+    const upiId = String(details?.upiId || '').trim();
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ error: 'Valid withdraw amount required' });
     }
 
     if (!method) {
-  return res.status(400).json({ error: 'Withdrawal method required' });
-}
+      return res.status(400).json({ error: 'Withdrawal method required' });
+    }
 
-if (method === 'UPI' && !upiId) {
-  return res.status(400).json({ error: 'UPI ID required' });
-}
+    if (method === 'UPI' && !upiId) {
+      return res.status(400).json({ error: 'UPI ID required' });
+    }
 
-if (method === 'QR Code' && !String(details?.qrImage || '').trim()) {
-  return res.status(400).json({ error: 'QR image required' });
-}
+    if (method === 'QR Code' && !String(details?.qrImage || '').trim()) {
+      return res.status(400).json({ error: 'QR image required' });
+    }
 
-if (method === 'Bank Account') {
-  if (!String(details?.bankHolderName || '').trim()) {
-    return res.status(400).json({ error: 'Bank holder name required' });
-  }
+    if (method === 'Bank Account') {
+      if (!String(details?.bankHolderName || '').trim()) {
+        return res.status(400).json({ error: 'Bank holder name required' });
+      }
 
-  if (!String(details?.bankName || '').trim()) {
-    return res.status(400).json({ error: 'Bank name required' });
-  }
+      if (!String(details?.bankName || '').trim()) {
+        return res.status(400).json({ error: 'Bank name required' });
+      }
 
-  if (!String(details?.ifscCode || '').trim()) {
-    return res.status(400).json({ error: 'IFSC code required' });
-  }
+      if (!String(details?.ifscCode || '').trim()) {
+        return res.status(400).json({ error: 'IFSC code required' });
+      }
 
-  if (!String(details?.accountNumber || '').trim()) {
-    return res.status(400).json({ error: 'Account number required' });
-  }
-}
+      if (!String(details?.accountNumber || '').trim()) {
+        return res.status(400).json({ error: 'Account number required' });
+      }
+    }
 
     if (user.wallet_balance < amount) {
       return res.status(400).json({ error: 'Insufficient wallet balance' });
@@ -1215,26 +1208,26 @@ if (method === 'Bank Account') {
     user.wallet_balance -= amount;
 
     const request = {
-  id: db.counters.depositRequestId++,
-  user_id: user.id,
-  username: user.username,
-  amount,
-  method,
-  utr,
-  screenshot: screenshotUrl,
-  status: 'pending',
-  created_at: nowMs(),
-  updated_at: null
-};
+      id: db.counters.withdrawRequestId++,
+      user_id: user.id,
+      username: user.username,
+      amount,
+      method,
+      details,
+      upiId,
+      status: 'pending',
+      created_at: nowMs(),
+      updated_at: null
+    };
 
     db.withdraw_requests.push(request);
 
     addTransaction(user.id, 'withdraw_request', -amount, {
-  requestId: request.id,
-  method,
-  upiId,
-  details
-});
+      requestId: request.id,
+      method,
+      upiId,
+      details
+    });
 
     saveData(db);
 
@@ -1816,22 +1809,6 @@ app.get('/api/admin/user-history/:username', adminOnly, (req, res) => {
   }
 });
 
-const withdrawalHistory = db.withdraw_requests
-  .filter(r => r.user_id === user.id)
-  .map(r => ({
-    id: r.id,
-    type: 'withdrawal',
-    amount: r.amount,
-    method: r.method || '',
-    utr: '',
-    screenshot: '',
-    status: r.status,
-    withdrawal_details: r.details || {},
-    createdAt: r.created_at || null,
-    updatedAt: r.updated_at || null
-  }));
-
-  .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 app.get('/api/wallet-history', (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
@@ -1902,6 +1879,17 @@ app.get('/api/wallet-history', (req, res) => {
 /* Compatibility aliases for existing frontend/admin */
 app.post('/api/bet', (req, res) => app._router.handle({ ...req, url: '/api/place-bet', method: 'POST' }, res, () => {}));
 app.post('/api/bonus', (req, res) => app._router.handle({ ...req, url: '/api/claim-bonus', method: 'POST' }, res, () => {}));
+app.post('/api/withdrawal-request', (req, res) => {
+  return req.app._router.handle(
+    Object.assign(Object.create(req), {
+      url: '/api/withdraw',
+      originalUrl: '/api/withdraw',
+      method: 'POST'
+    }),
+    res,
+    () => {}
+  );
+});
 
 app.get('/api/admin/users', (req, res) => app._router.handle({ ...req, url: '/api/admin/load-users', method: 'GET' }, res, () => {}));
 app.post('/api/admin/add-coins', (req, res) => {
