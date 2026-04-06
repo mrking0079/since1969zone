@@ -172,6 +172,112 @@ async function testDB() {
   }
 }
 
+async function initDatabase() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id BIGSERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        session_token TEXT DEFAULT '',
+        wallet_balance NUMERIC DEFAULT 0,
+        total_played NUMERIC DEFAULT 0,
+        total_wins NUMERIC DEFAULT 0,
+        bonus_claimed INTEGER DEFAULT 0,
+        last_bonus_time BIGINT DEFAULT 0,
+        blocked BOOLEAN DEFAULT FALSE,
+        is_admin BOOLEAN DEFAULT FALSE,
+        created_at BIGINT NOT NULL
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rounds (
+        id BIGSERIAL PRIMARY KEY,
+        round_number BIGINT NOT NULL,
+        starts_at BIGINT NOT NULL,
+        betting_closes_at BIGINT NOT NULL,
+        ends_at BIGINT NOT NULL,
+        status TEXT NOT NULL,
+        server_seed TEXT NOT NULL,
+        server_seed_hash TEXT NOT NULL,
+        client_seed TEXT NOT NULL,
+        lucky_number INTEGER,
+        settled_at BIGINT,
+        created_at BIGINT NOT NULL
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bets (
+        id BIGSERIAL PRIMARY KEY,
+        round_id BIGINT NOT NULL,
+        user_id BIGINT NOT NULL,
+        bet_map JSONB NOT NULL,
+        total_coins NUMERIC NOT NULL,
+        matched_number INTEGER,
+        payout NUMERIC DEFAULT 0,
+        result TEXT DEFAULT 'pending',
+        created_at BIGINT NOT NULL
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS deposit_requests (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        username TEXT NOT NULL,
+        amount NUMERIC NOT NULL,
+        method TEXT DEFAULT '',
+        utr TEXT DEFAULT '',
+        screenshot TEXT DEFAULT '',
+        status TEXT DEFAULT 'pending',
+        archived BOOLEAN DEFAULT FALSE,
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS withdraw_requests (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        username TEXT NOT NULL,
+        amount NUMERIC NOT NULL,
+        method TEXT DEFAULT '',
+        details JSONB DEFAULT '{}'::jsonb,
+        status TEXT DEFAULT 'pending',
+        archived BOOLEAN DEFAULT FALSE,
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        type TEXT NOT NULL,
+        amount NUMERIC NOT NULL,
+        meta JSONB DEFAULT '{}'::jsonb,
+        created_at BIGINT NOT NULL
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS live_updates (
+        id BIGSERIAL PRIMARY KEY,
+        payment_method JSONB DEFAULT '{}'::jsonb,
+        offer TEXT DEFAULT ''
+      );
+    `);
+
+    console.log('DB Tables Ready');
+  } catch (err) {
+    console.error('DB Init Error:', err);
+  }
+}
+
 function loadData() {
   if (!fs.existsSync(DATA_FILE)) {
     const defaultData = createDefaultData();
@@ -1624,7 +1730,8 @@ app.get('*', (req, res) => {
 
 ensureActiveRound();
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  testDB();
+  await testDB();
+  await initDatabase();
 });
