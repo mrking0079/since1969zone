@@ -1831,9 +1831,7 @@ const withdrawalHistory = db.withdraw_requests
     updatedAt: r.updated_at || null
   }));
 
-const requests = [...depositHistory, ...withdrawalHistory]
   .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-
 app.get('/api/wallet-history', (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
