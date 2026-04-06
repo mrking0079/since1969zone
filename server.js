@@ -79,27 +79,6 @@ function jsonParseSafe(value, fallback) {
   }
 }
 
-function adminOnly(req, res, next) {
-  const userId = getUserIdFromReq(req);
-
-  if (!userId) {
-    return res.status(401).json({ error: 'Login required' });
-  }
-
-  const user = getUser(userId);
-
-  if (!user) {
-    return res.status(401).json({ error: 'User not found' });
-  }
-
-  if (String(user.username).toLowerCase() !== 'admin') {
-    return res.status(403).json({ error: 'Admin access only' });
-  }
-
-  req.user = user;
-  next();
-}
-
 function createDefaultData() {
   return {
     users: [
@@ -113,6 +92,8 @@ function createDefaultData() {
         total_wins: 0,
         bonus_claimed: 0,
         last_bonus_time: 0,
+        blocked: false,
+        is_admin: true,
         created_at: nowMs()
       },
       {
@@ -123,6 +104,8 @@ function createDefaultData() {
         total_wins: 0,
         bonus_claimed: 0,
         last_bonus_time: 0,
+        blocked: false,
+        is_admin: false,
         created_at: nowMs()
       }
     ],
@@ -192,8 +175,30 @@ function saveDeletedUsersData(data) {
 
 let db = loadData();
 
+if (!Array.isArray(db.users)) {
+  db.users = [];
+}
+
+db.users = db.users.map(user => ({
+  blocked: false,
+  is_admin: false,
+  ...user
+}));
+
 if (!Array.isArray(db.deposit_requests)) {
   db.deposit_requests = [];
+}
+
+if (!Array.isArray(db.transactions)) {
+  db.transactions = [];
+}
+
+if (!Array.isArray(db.rounds)) {
+  db.rounds = [];
+}
+
+if (!Array.isArray(db.bets)) {
+  db.bets = [];
 }
 
 if (!db.live_updates) {
@@ -224,17 +229,36 @@ if (!db.counters) {
   db.counters = {};
 }
 
+if (typeof db.counters.roundId !== 'number') {
+  db.counters.roundId = 1;
+}
+
+if (typeof db.counters.betId !== 'number') {
+  db.counters.betId = 1;
+}
+
+if (typeof db.counters.transactionId !== 'number') {
+  db.counters.transactionId = 1;
+}
+
 if (typeof db.counters.depositRequestId !== 'number') {
   db.counters.depositRequestId = 1;
 }
 
-saveData(db);
-
-const adminExists = db.users.find(
-  u => String(u.username).toLowerCase() === 'admin'
+const existingAdmin = db.users.find(
+  u => String(u.username || '').toLowerCase() === 'admin'
 );
 
-if (!adminExists) {
+if (existingAdmin) {
+  existingAdmin.is_admin = true;
+  if (typeof existingAdmin.blocked !== 'boolean') {
+    existingAdmin.blocked = false;
+  }
+}
+
+const hasAnyAdmin = db.users.some(u => u.is_admin === true);
+
+if (!hasAnyAdmin) {
   db.users.unshift({
     id: 999,
     username: 'admin',
@@ -245,11 +269,13 @@ if (!adminExists) {
     total_wins: 0,
     bonus_claimed: 0,
     last_bonus_time: 0,
+    blocked: false,
+    is_admin: true,
     created_at: nowMs()
   });
-
-  saveData(db);
 }
+
+saveData(db);
 
 function getUser(userId) {
   return db.users.find(u => u.id === userId) || null;
@@ -268,6 +294,27 @@ function getUserIdFromReq(req) {
   }
 
   return user.id;
+}
+
+function adminOnly(req, res, next) {
+  const userId = getUserIdFromReq(req);
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Login required' });
+  }
+
+  const user = getUser(userId);
+
+  if (!user) {
+    return res.status(401).json({ error: 'User not found' });
+  }
+
+  if (user.is_admin !== true) {
+    return res.status(403).json({ error: 'Admin access only' });
+  }
+
+  req.user = user;
+  next();
 }
 
 function getCurrentRound() {
@@ -368,6 +415,59 @@ function createRound(roundNumber, startsAt) {
   return round;
 }
 
+function computeLuckyNumber(serverSeed, clientSeed, roundNumber) {
+  const digest = sha256(`${serverSeed}:${clientSeed}:${roundNumber}`);
+  const value = parseInt(digest.slice(0, 8), 16);
+  return value % 10;
+}
+
+function getStatusForRound(round) {
+  const now = nowMs();
+  if (!round) return 'waiting';
+  if (now < round.betting_closes_at) return 'open';
+  if (now < round.ends_at) return 'closed';
+  return 'awaiting_settlement';
+}
+function settleRoundTx(roundId) {
+  const round = db.rounds.find(r => r.id === roundId);
+  if (!round) throw new Error('Round not found');
+  if (round.status === 'settled') throw new Error('Round already settled');
+  if (nowMs() < round.ends_at) throw new Error('Round timer not finished yet');
+
+  const luckyNumber = computeLuckyNumber(round.server_seed, round.client_seed, round.round_number);
+
+  round.status = 'settled';
+  round.lucky_number = luckyNumber;
+  round.settled_at = nowMs();
+
+  const bets = db.bets.filter(b => b.round_id === round.id);
+
+  for (const bet of bets) {
+    const matchedAmount = Number(bet.bet_map[String(luckyNumber)] || 0);
+    const payout = matchedAmount > 0 ? matchedAmount * PAYOUT_MULTIPLIER : 0;
+    const result = payout > 0 ? 'win' : 'lose';
+
+    bet.matched_number = luckyNumber;
+    bet.payout = payout;
+    bet.result = result;
+
+    if (payout > 0) {
+      const user = getUser(bet.user_id);
+      if (user) {
+        user.wallet_balance += payout;
+        user.total_wins += 1;
+      }
+
+      addTransaction(bet.user_id, 'win_credit', payout, {
+        roundId: round.id,
+        luckyNumber
+      });
+    }
+  }
+
+  saveData(db);
+}
+
 function ensureActiveRound() {
   const latest = [...db.rounds].sort((a, b) => b.round_number - a.round_number)[0];
   const now = nowMs();
@@ -395,20 +495,6 @@ function ensureActiveRound() {
 
 function createNextRoundIfNeeded() {
   return ensureActiveRound();
-}
-
-function computeLuckyNumber(serverSeed, clientSeed, roundNumber) {
-  const digest = sha256(`${serverSeed}:${clientSeed}:${roundNumber}`);
-  const value = parseInt(digest.slice(0, 8), 16);
-  return value % 10;
-}
-
-function getStatusForRound(round) {
-  const now = nowMs();
-  if (!round) return 'waiting';
-  if (now < round.betting_closes_at) return 'open';
-  if (now < round.ends_at) return 'closed';
-  return 'awaiting_settlement';
 }
 
 function syncRoundState() {
@@ -503,7 +589,7 @@ function validateBetMap(betMap) {
 
   const keys = Object.keys(betMap);
   if (keys.length === 0) {
-    return { ok: false, error: 'At least one number select karo' };
+    return { ok: false, error: 'Select at least one number' };
   }
   if (keys.length > 10) {
     return { ok: false, error: 'Too many selections' };
@@ -514,24 +600,24 @@ function validateBetMap(betMap) {
 
   for (const key of keys) {
     if (!/^\d$/.test(key)) {
-      return { ok: false, error: 'Number sirf 0 se 9 tak allowed hai' };
+      return { ok: false, error: 'Only numbers 0 to 9 are allowed' };
     }
     const amount = Number(betMap[key]);
     if (!Number.isInteger(amount) || amount <= 0) {
-      return { ok: false, error: 'Har bet amount positive integer hona chahiye' };
+      return { ok: false, error: 'Each bet amount must be a positive integer' };
     }
     if (amount > 10000) {
-      return { ok: false, error: 'Single number amount limit 10000 hai' };
+      return { ok: false, error: 'Single number amount limit is 10000' };
     }
     total += amount;
     sanitized[key] = amount;
   }
 
   if (total < 1) {
-    return { ok: false, error: 'Minimum total bet 1 coin hai' };
+    return { ok: false, error: 'Minimum total bet is 1 coin' };
   }
   if (total > 50000) {
-    return { ok: false, error: 'Maximum total bet 50000 coins hai' };
+    return { ok: false, error: 'Maximum total bet is 50000 coins' };
   }
 
   return { ok: true, sanitized, total };
@@ -554,7 +640,7 @@ function placeBetTx(userId, roundId, betMap, totalCoins) {
   if (user.wallet_balance < totalCoins) throw new Error('Insufficient wallet balance');
 
   const existingBet = getBetForRound(userId, roundId);
-  if (existingBet) throw new Error('Is round ke liye bet already place ho chuka hai');
+  if (existingBet) throw new Error('Bet already placed for this round');
 
   db.bets.push({
     id: db.counters.betId++,
@@ -581,7 +667,7 @@ function claimBonusTx(userId) {
 
   const current = nowMs();
   if (current - user.last_bonus_time < BONUS_COOLDOWN_MS) {
-    throw new Error('Bonus abhi available nahi hai');
+    throw new Error('Bonus is not available yet');
   }
 
   user.wallet_balance += BONUS_AMOUNT;
@@ -592,51 +678,10 @@ function claimBonusTx(userId) {
   saveData(db);
 }
 
-function settleRoundTx(roundId) {
-  const round = db.rounds.find(r => r.id === roundId);
-  if (!round) throw new Error('Round not found');
-  if (round.status === 'settled') throw new Error('Round already settled');
-  if (nowMs() < round.ends_at) throw new Error('Round timer abhi khatam nahi hua');
-
-  const luckyNumber = computeLuckyNumber(round.server_seed, round.client_seed, round.round_number);
-
-  round.status = 'settled';
-  round.lucky_number = luckyNumber;
-  round.settled_at = nowMs();
-
-  const bets = db.bets.filter(b => b.round_id === round.id);
-
-  for (const bet of bets) {
-    const matchedAmount = Number(bet.bet_map[String(luckyNumber)] || 0);
-    const payout = matchedAmount > 0 ? matchedAmount * PAYOUT_MULTIPLIER : 0;
-    const result = payout > 0 ? 'win' : 'lose';
-
-    bet.matched_number = luckyNumber;
-    bet.payout = payout;
-    bet.result = result;
-
-    if (payout > 0) {
-      const user = getUser(bet.user_id);
-      if (user) {
-        user.wallet_balance += payout;
-        user.total_wins += 1;
-      }
-
-      addTransaction(bet.user_id, 'win_credit', payout, {
-        roundId: round.id,
-        luckyNumber
-      });
-    }
-  }
-
-  saveData(db);
-}
-
 app.post('/api/login', (req, res) => {
   try {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '').trim();
-    const isAdminLoginAttempt = username.toLowerCase() === 'admin';
 
     if (!username) {
       return res.status(400).json({ error: 'Username required' });
@@ -646,12 +691,12 @@ app.post('/api/login', (req, res) => {
       return res.status(400).json({ error: 'Password required' });
     }
 
-    let user = db.users.find(
+    const user = db.users.find(
       u => String(u.username).toLowerCase() === username.toLowerCase()
     );
 
     if (!user) {
-      return res.status(404).json({ error: 'username not exists signup first' });
+      return res.status(404).json({ error: 'Username does not exist. Please sign up first.' });
     }
 
     if (String(user.password || '') !== password) {
@@ -686,10 +731,15 @@ app.post('/api/login', (req, res) => {
 app.post('/api/admin-login', adminLoginLimiter, (req, res) => {
   try {
     const adminKey = String(req.header('x-admin-key') || '').trim();
+    const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '').trim();
 
     if (!ADMIN_KEY || adminKey !== ADMIN_KEY) {
       return res.status(404).json({ error: 'Not found' });
+    }
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username required' });
     }
 
     if (!password) {
@@ -697,10 +747,10 @@ app.post('/api/admin-login', adminLoginLimiter, (req, res) => {
     }
 
     const user = db.users.find(
-      u => String(u.username).toLowerCase() === 'admin'
+      u => String(u.username).toLowerCase() === username.toLowerCase()
     );
 
-    if (!user) {
+    if (!user || user.is_admin !== true) {
       return res.status(401).json({ error: 'Admin account not found' });
     }
 
@@ -725,7 +775,8 @@ app.post('/api/admin-login', adminLoginLimiter, (req, res) => {
         totalPlayed: user.total_played,
         totalWins: user.total_wins,
         bonusClaimed: user.bonus_claimed,
-        lastBonusTime: user.last_bonus_time
+        lastBonusTime: user.last_bonus_time,
+        isAdmin: true
       }
     });
   } catch (error) {
@@ -751,7 +802,7 @@ app.post('/api/signup', (req, res) => {
     );
 
     if (existingUser) {
-      return res.status(409).json({ error: 'Username Alerdy exists' });
+      return res.status(409).json({ error: 'Username already exists' });
     }
 
     const user = {
@@ -764,6 +815,8 @@ app.post('/api/signup', (req, res) => {
       total_wins: 0,
       bonus_claimed: 0,
       last_bonus_time: 0,
+      blocked: false,
+      is_admin: false,
       created_at: nowMs()
     };
 
@@ -799,93 +852,21 @@ app.get('/api/state', (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
-
-app.get('/api/wallet-history', (req, res) => {
+app.post('/api/place-bet', (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Login required' });
-    }
+    if (!userId) return res.status(401).json({ error: 'Login required' });
 
     const user = getUser(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const items = [];
-
-    for (const tx of db.transactions || []) {
-      if (tx.user_id !== user.id) continue;
-
-      let title = tx.type || 'transaction';
-      let amount = Number(tx.amount || 0);
-      let direction = amount >= 0 ? 'credit' : 'debit';
-      let details = '';
-
-      if (tx.type === 'deposit_approved') {
-        title = 'Deposit Approved';
-        direction = 'credit';
-        details = 'Coins added by admin approval';
-      } else if (tx.type === 'withdrawal_approved') {
-        title = 'Withdrawal Approved';
-        direction = 'debit';
-        details = 'Coins sent by admin approval';
-      } else if (tx.type === 'bet_debit') {
-        title = 'Bet Placed / Loss';
-        direction = 'debit';
-        details = tx.meta?.roundId ? `Round ID: ${tx.meta.roundId}` : 'Bet amount deducted';
-      } else if (tx.type === 'win_credit') {
-        title = 'Winning Credit';
-        direction = 'credit';
-        details = tx.meta?.luckyNumber !== undefined
-          ? `Lucky Number: ${tx.meta.luckyNumber}`
-          : 'Winning amount added';
-      } else if (tx.type === 'bonus_credit') {
-        title = 'Daily Bonus';
-        direction = 'credit';
-        details = 'Bonus credited';
-      } else {
-        title = String(tx.type || 'Transaction')
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, c => c.toUpperCase());
-        details = 'Wallet activity';
-      }
-
-      items.push({
-        id: tx.id,
-        title,
-        amount: Math.abs(amount),
-        direction,
-        details,
-        createdAt: tx.created_at || null
-      });
-    }
-
-    items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-
-    return res.json({
-      success: true,
-      history: items.slice(0, 200)
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to load wallet history' });
-  }
-});
-
-app.post('/api/bet', (req, res) => {
-  try {
-    const userId = getUserIdFromReq(req);
     const round = syncRoundState();
+    if (!round) return res.status(500).json({ error: 'No active round' });
 
-    if (!round) {
-      return res.status(400).json({ error: 'No active round available' });
-    }
-
-    const roundStatus = getStatusForRound(round);
-    if (roundStatus !== 'open') {
-      return res.status(400).json({ error: 'Betting abhi open nahi hai' });
+    const status = getStatusForRound(round);
+    if (status !== 'open') {
+      return res.status(400).json({ error: 'Betting is closed for this round' });
     }
 
     const validation = validateBetMap(req.body?.betMap);
@@ -894,42 +875,55 @@ app.post('/api/bet', (req, res) => {
     }
 
     placeBetTx(userId, round.id, validation.sanitized, validation.total);
-
     return res.json({
       success: true,
-      message: 'Bet successfully place ho gaya',
+      message: 'Bet placed successfully',
       state: buildGameState(userId)
     });
   } catch (error) {
-    return res.status(400).json({ error: error.message || 'Bet place nahi hua' });
+    return res.status(400).json({ error: error.message || 'Unable to place bet' });
+  }
+});
+
+app.post('/api/claim-bonus', (req, res) => {
+  try {
+    const userId = getUserIdFromReq(req);
+    if (!userId) return res.status(401).json({ error: 'Login required' });
+
+    const user = getUser(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
+
+    claimBonusTx(userId);
+    return res.json({
+      success: true,
+      message: `Bonus claimed: +${BONUS_AMOUNT}`,
+      state: buildGameState(userId)
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error.message || 'Unable to claim bonus' });
   }
 });
 
 app.post('/api/deposit-request', (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
+    if (!userId) return res.status(401).json({ error: 'Login required' });
+
     const user = getUser(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
+
     const amount = Number(req.body?.amount);
-    const method = String(req.body?.method || '').trim();
     const utr = String(req.body?.utr || '').trim();
     const screenshot = String(req.body?.screenshot || '').trim();
 
-    const isValidScreenshot =
-      screenshot.startsWith('data:image/jpeg;base64,') ||
-      screenshot.startsWith('data:image/jpg;base64,') ||
-      screenshot.startsWith('data:image/png;base64,') ||
-      screenshot.startsWith('data:image/webp;base64,');
-
-    if (!isValidScreenshot) {
-      return res.status(400).json({ error: 'Valid payment proof image required' });
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Valid deposit amount required' });
     }
 
-    if (!user) {
-      return res.status(401).json({ error: 'Login required' });
-    }
-
-    if (!Number.isInteger(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Valid amount required' });
+    if (!utr && !screenshot) {
+      return res.status(400).json({ error: 'Provide UTR or screenshot proof' });
     }
 
     const request = {
@@ -937,12 +931,10 @@ app.post('/api/deposit-request', (req, res) => {
       user_id: user.id,
       username: user.username,
       amount,
-      method,
       utr,
       screenshot,
       status: 'pending',
-      created_at: nowMs(),
-      updated_at: nowMs()
+      created_at: nowMs()
     };
 
     db.deposit_requests.push(request);
@@ -950,219 +942,277 @@ app.post('/api/deposit-request', (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Deposit request submitted successfully',
-      request
+      message: 'Deposit request submitted successfully'
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to submit deposit request' });
+    return res.status(500).json({ error: 'Deposit request failed' });
   }
 });
 
-app.post('/api/withdrawal-request', (req, res) => {
+app.post('/api/withdraw', (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
+    if (!userId) return res.status(401).json({ error: 'Login required' });
+
     const user = getUser(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
+
     const amount = Number(req.body?.amount);
-    const method = String(req.body?.method || '').trim();
-    const details = req.body?.details || {};
+    const upiId = String(req.body?.upiId || '').trim();
 
-    if (!user) {
-      return res.status(401).json({ error: 'Login required' });
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Valid withdraw amount required' });
     }
 
-    if (!Number.isInteger(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Valid amount required' });
+    if (!upiId) {
+      return res.status(400).json({ error: 'UPI ID required' });
     }
 
-    if (Number(user.wallet_balance || 0) < amount) {
-      return res.status(400).json({ error: 'Insufficient balance' });
+    if (user.wallet_balance < amount) {
+      return res.status(400).json({ error: 'Insufficient wallet balance' });
     }
 
-    if (!method) {
-      return res.status(400).json({ error: 'Withdrawal method required' });
-    }
+    user.wallet_balance -= amount;
 
-    if (method !== 'UPI' && method !== 'QR Code' && method !== 'Bank Account') {
-      return res.status(400).json({ error: 'Invalid withdrawal method' });
-    }
+    addTransaction(user.id, 'withdraw_request', -amount, {
+      upiId
+    });
 
-    const cleanDetails = {
-      method,
-      upiId: '',
-      qrImage: '',
-      bankHolderName: '',
-      bankName: '',
-      ifscCode: '',
-      accountNumber: ''
-    };
-
-    if (method === 'UPI') {
-      const upiId = String(details?.upiId || '').trim();
-
-      if (!upiId) {
-        return res.status(400).json({ error: 'UPI ID required' });
-      }
-
-      cleanDetails.upiId = upiId;
-    }
-
-    if (method === 'QR Code') {
-      const qrImage = String(details?.qrImage || '').trim();
-
-      const isValidQrImage =
-        qrImage.startsWith('data:image/jpeg;base64,') ||
-        qrImage.startsWith('data:image/jpg;base64,') ||
-        qrImage.startsWith('data:image/png;base64,') ||
-        qrImage.startsWith('data:image/webp;base64,');
-
-      if (!isValidQrImage) {
-        return res.status(400).json({ error: 'Valid QR image required' });
-      }
-
-      cleanDetails.qrImage = qrImage;
-    }
-
-    if (method === 'Bank Account') {
-      const bankHolderName = String(details?.bankHolderName || '').trim();
-      const bankName = String(details?.bankName || '').trim();
-      const ifscCode = String(details?.ifscCode || '').trim();
-      const accountNumber = String(details?.accountNumber || '').trim();
-
-      if (!bankHolderName) {
-        return res.status(400).json({ error: 'Account holder name required' });
-      }
-
-      if (!bankName) {
-        return res.status(400).json({ error: 'Bank name required' });
-      }
-
-      if (!ifscCode) {
-        return res.status(400).json({ error: 'IFSC code required' });
-      }
-
-      if (!accountNumber) {
-        return res.status(400).json({ error: 'Account number required' });
-      }
-
-      cleanDetails.bankHolderName = bankHolderName;
-      cleanDetails.bankName = bankName;
-      cleanDetails.ifscCode = ifscCode;
-      cleanDetails.accountNumber = accountNumber;
-    }
-
-    const request = {
-      id: db.counters.depositRequestId++,
-      user_id: user.id,
-      username: user.username,
-      amount,
-      method,
-      utr: '',
-      withdrawal_details: cleanDetails,
-      type: 'withdrawal',
-      status: 'pending',
-      created_at: nowMs(),
-      updated_at: nowMs()
-    };
-
-    db.deposit_requests.push(request);
     saveData(db);
 
     return res.json({
       success: true,
-      message: 'Withdrawal request submitted successfully',
-      request
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to submit withdrawal request' });
-  }
-});
-
-app.post('/api/bonus', (req, res) => {
-  try {
-    const userId = getUserIdFromReq(req);
-    claimBonusTx(userId);
-    return res.json({
-      success: true,
-      message: `${BONUS_AMOUNT} coins bonus add ho gaye`,
+      message: 'Withdraw request submitted',
       state: buildGameState(userId)
     });
   } catch (error) {
-    return res.status(400).json({ error: error.message || 'Bonus claim failed' });
+    return res.status(500).json({ error: 'Withdraw failed' });
   }
 });
 
-app.get('/api/admin/current-round', adminOnly, (req, res) => {
-  try {
-    const round = syncRoundState();
+app.get('/api/live-updates', (req, res) => {
+  return res.json(db.live_updates || {
+    paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' },
+    offer: ''
+  });
+});
 
-    if (!round) {
-      return res.status(404).json({ error: 'No active round found' });
-    }
+app.post('/api/admin/live-updates', adminOnly, (req, res) => {
+  try {
+    const paymentMethod = req.body?.paymentMethod || {};
+    const offer = typeof req.body?.offer === 'string' ? req.body.offer : '';
+
+    db.live_updates = {
+      paymentMethod: {
+        upiId: String(paymentMethod.upiId || '').trim(),
+        qrCodeImage: String(paymentMethod.qrCodeImage || '').trim(),
+        bankAccount: String(paymentMethod.bankAccount || '').trim()
+      },
+      offer: offer.trim()
+    };
+
+    saveData(db);
 
     return res.json({
       success: true,
-      round: {
-        id: round.id,
-        roundNumber: round.round_number,
-        roundCode: round.round_code || '-',
-        status: getStatusForRound(round),
-        startsAt: round.starts_at,
-        bettingClosesAt: round.betting_closes_at,
-        endsAt: round.ends_at,
-        serverSeedHash: round.server_seed_hash,
-        clientSeed: round.client_seed
+      message: 'Live updates saved successfully',
+      liveUpdates: db.live_updates
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Unable to save live updates' });
+  }
+});
+
+app.get('/api/admin/load-users', adminOnly, (req, res) => {
+  const users = db.users
+    .filter(user => user.is_admin !== true)
+    .map(user => ({
+      id: user.id,
+      username: user.username,
+      walletBalance: user.wallet_balance,
+      totalPlayed: user.total_played,
+      totalWins: user.total_wins,
+      bonusClaimed: user.bonus_claimed,
+      blocked: Boolean(user.blocked),
+      createdAt: user.created_at
+    }))
+    .sort((a, b) => b.id - a.id);
+
+  return res.json({ users });
+});
+
+app.post('/api/admin/add-coin', adminOnly, (req, res) => {
+  try {
+    const userId = Number(req.body?.userId);
+    const amount = Number(req.body?.amount);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Valid userId required' });
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount required' });
+    }
+
+    const user = getUser(userId);
+    if (!user || user.is_admin === true) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.wallet_balance += amount;
+    addTransaction(user.id, 'admin_add_coin', amount, { adminId: req.user.id });
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: `${amount} coins added to ${user.username}`,
+      user: {
+        id: user.id,
+        username: user.username,
+        walletBalance: user.wallet_balance
       }
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to load current round' });
+    return res.status(500).json({ error: 'Unable to add coins' });
   }
 });
 
-app.post('/api/admin/settle', adminOnly, (req, res) => {
+app.post('/api/admin/withdraw-coin', adminOnly, (req, res) => {
   try {
-    const round = syncRoundState();
-    if (!round) {
-      return res.status(400).json({ error: 'No round found' });
+    const userId = Number(req.body?.userId);
+    const amount = Number(req.body?.amount);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Valid userId required' });
     }
-    settleRoundTx(round.id);
-    createNextRoundIfNeeded();
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount required' });
+    }
+
+    const user = getUser(userId);
+    if (!user || user.is_admin === true) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.wallet_balance < amount) {
+      return res.status(400).json({ error: 'User has insufficient balance' });
+    }
+
+    user.wallet_balance -= amount;
+    addTransaction(user.id, 'admin_withdraw_coin', -amount, { adminId: req.user.id });
+    saveData(db);
+
     return res.json({
       success: true,
-      message: 'Round settled successfully',
-      state: buildGameState()
+      message: `${amount} coins removed from ${user.username}`,
+      user: {
+        id: user.id,
+        username: user.username,
+        walletBalance: user.wallet_balance
+      }
     });
   } catch (error) {
-    return res.status(400).json({ error: error.message || 'Settlement failed' });
+    return res.status(500).json({ error: 'Unable to withdraw coins' });
   }
+});
+
+app.post('/api/admin/block-user', adminOnly, (req, res) => {
+  try {
+    const userId = Number(req.body?.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Valid userId required' });
+    }
+
+    const user = getUser(userId);
+    if (!user || user.is_admin === true) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.blocked = !user.blocked;
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: user.blocked ? `${user.username} blocked` : `${user.username} unblocked`,
+      blocked: user.blocked
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Unable to update block status' });
+  }
+});
+
+app.post('/api/admin/delete-user', adminOnly, (req, res) => {
+  try {
+    const userId = Number(req.body?.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Valid userId required' });
+    }
+
+    const user = getUser(userId);
+    if (!user || user.is_admin === true) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const deletedUsersData = loadDeletedUsersData();
+    deletedUsersData.deletedUsers.push({
+      ...user,
+      deleted_at: nowMs()
+    });
+    saveDeletedUsersData(deletedUsersData);
+
+    db.users = db.users.filter(u => u.id !== userId);
+    db.bets = db.bets.filter(b => b.user_id !== userId);
+    db.transactions = db.transactions.filter(t => t.user_id !== userId);
+    db.deposit_requests = db.deposit_requests.filter(r => r.user_id !== userId);
+
+    saveData(db);
+
+    return res.json({
+      success: true,
+      message: `${user.username} deleted successfully`
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Unable to delete user' });
+  }
+});
+
+app.get('/api/admin/transaction-history', adminOnly, (req, res) => {
+  const history = [...db.transactions]
+    .sort((a, b) => b.created_at - a.created_at)
+    .slice(0, 1000)
+    .map(item => ({
+      id: item.id,
+      userId: item.user_id,
+      username: getUser(item.user_id)?.username || 'Deleted User',
+      type: item.type,
+      amount: item.amount,
+      meta: item.meta || {},
+      createdAt: item.created_at
+    }));
+
+  return res.json({ history });
 });
 
 app.get('/api/admin/deposit-requests', adminOnly, (req, res) => {
-  try {
-    const requests = [...db.deposit_requests]
-      .sort((a, b) => b.created_at - a.created_at)
-      .map(reqItem => ({
-        id: reqItem.id,
-        username: reqItem.username || 'Unknown',
-        amount: reqItem.amount || 0,
-        method: reqItem.method || '-',
-        utr: reqItem.utr || '-',
-        screenshot: reqItem.screenshot || '',
-        type: reqItem.type || 'deposit',
-        status: reqItem.status || 'pending',
-        createdAt: reqItem.created_at || null,
-        withdrawal_details: reqItem.withdrawal_details || {},
-        updatedAt: reqItem.updated_at || null
-      }));
+  const requests = [...db.deposit_requests]
+    .sort((a, b) => b.created_at - a.created_at)
+    .map(item => ({
+      id: item.id,
+      userId: item.user_id,
+      username: item.username,
+      amount: item.amount,
+      utr: item.utr,
+      screenshot: item.screenshot,
+      status: item.status,
+      createdAt: item.created_at
+    }));
 
-    return res.json({
-      success: true,
-      requests
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to load deposit requests' });
-  }
+  return res.json({ requests });
 });
-
 app.post('/api/admin/deposit-requests/action', adminOnly, (req, res) => {
   try {
     const requestId = Number(req.body?.requestId);
@@ -1172,105 +1222,123 @@ app.post('/api/admin/deposit-requests/action', adminOnly, (req, res) => {
       return res.status(400).json({ error: 'Valid requestId required' });
     }
 
-    if (action !== 'approve' && action !== 'reject') {
+    if (!['approve', 'reject'].includes(action)) {
       return res.status(400).json({ error: 'Valid action required' });
     }
 
     const request = db.deposit_requests.find(r => r.id === requestId);
-
     if (!request) {
-      return res.status(404).json({ error: 'Deposit request not found' });
+      return res.status(404).json({ error: 'Request not found' });
     }
 
     if (request.status !== 'pending') {
-      return res.status(400).json({ error: 'Only pending requests can be updated' });
+      return res.status(400).json({ error: 'This request is already processed' });
     }
 
-    const user = db.users.find(u => u.id === request.user_id);
-
+    const user = getUser(request.user_id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    request.status = action === 'approve' ? 'approved' : 'rejected';
+    request.updated_at = nowMs();
+
     if (action === 'approve') {
-      if (request.type === 'withdrawal') {
-        const currentBalance = Number(user.wallet_balance || 0);
-        const withdrawAmount = Number(request.amount || 0);
-
-        if (currentBalance < withdrawAmount) {
-          return res.status(400).json({ error: 'Insufficient user wallet balance' });
-        }
-
-        user.wallet_balance = currentBalance - withdrawAmount;
-
-        addTransaction(user.id, 'withdrawal_approved', -withdrawAmount, {
-          by: req.user.username,
-          depositRequestId: request.id
-        });
-      } else {
-        user.wallet_balance = Number(user.wallet_balance || 0) + Number(request.amount || 0);
-
-        addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
-          by: req.user.username,
-          depositRequestId: request.id
-        });
-      }
-
-      request.status = 'approved';
-    } else {
-      request.status = 'rejected';
+      user.wallet_balance += Number(request.amount || 0);
+      addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
+        requestId: request.id,
+        adminId: req.user.id
+      });
     }
 
-    request.updated_at = nowMs();
     saveData(db);
 
     return res.json({
       success: true,
-      message: action === 'approve'
-        ? 'Request approved successfully'
-        : 'Request rejected successfully',
-      request: {
-        id: request.id,
-        status: request.status,
-        type: request.type || 'deposit'
-      },
-      user: {
-        id: user.id,
-        username: user.username,
-        walletBalance: user.wallet_balance
-      }
+      message: action === 'approve' ? 'Request approved successfully' : 'Request rejected successfully',
+      request
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to update deposit request' });
+    return res.status(500).json({ error: 'Unable to update deposit request' });
   }
 });
 
-app.get('/api/admin/users', adminOnly, (req, res) => {
+app.get('/api/admin/dashboard-stats', adminOnly, (req, res) => {
   try {
-    const users = db.users.map(user => ({
-      id: user.id,
-      username: user.username,
-      walletBalance: user.wallet_balance || 0,
-      totalPlayed: user.total_played || 0,
-      totalWins: user.total_wins || 0,
-      bonusClaimed: user.bonus_claimed || 0,
-      blocked: !!user.blocked,
-      createdAt: user.created_at || null
-    }));
+    const approvedDeposits = db.transactions
+      .filter(tx => tx.type === 'deposit_approved')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+
+    const approvedWithdrawals = Math.abs(
+      db.transactions
+        .filter(tx => tx.type === 'withdrawal_approved')
+        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+    );
+
+    return res.json({
+      stats: {
+        totalDeposits: approvedDeposits,
+        totalWithdrawals: approvedWithdrawals,
+        profitLoss: approvedDeposits - approvedWithdrawals
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Unable to load dashboard stats' });
+  }
+});
+
+app.get('/api/admin/current-round', adminOnly, (req, res) => {
+  try {
+    const round = syncRoundState();
+    if (!round) {
+      return res.status(404).json({ error: 'No active round found' });
+    }
+
+    const relatedBets = db.bets.filter(b => b.round_id === round.id);
+
+    return res.json({
+      round: {
+        id: round.id,
+        roundNumber: round.round_number,
+        roundCode: round.round_code || '-',
+        status: getStatusForRound(round),
+        startsAt: round.starts_at,
+        bettingClosesAt: round.betting_closes_at,
+        endsAt: round.ends_at,
+        serverSeedHash: round.server_seed_hash,
+        clientSeed: round.client_seed,
+        totalBets: relatedBets.length,
+        totalCoins: relatedBets.reduce((sum, bet) => sum + Number(bet.total_coins || 0), 0)
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Unable to load current round' });
+  }
+});
+
+app.post('/api/admin/force-settle-round', adminOnly, (req, res) => {
+  try {
+    const round = getCurrentRound();
+    if (!round) {
+      return res.status(404).json({ error: 'No active round found' });
+    }
+
+    round.ends_at = Math.min(round.ends_at, nowMs());
+    settleRoundTx(round.id);
+    createNextRoundIfNeeded();
 
     return res.json({
       success: true,
-      users
+      message: 'Round settled successfully'
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to load users' });
+    return res.status(400).json({ error: error.message || 'Unable to settle round' });
   }
 });
 
 app.get('/api/admin/user-history/:username', adminOnly, (req, res) => {
   try {
     const username = String(req.params.username || '').trim();
-
     if (!username) {
       return res.status(400).json({ error: 'Username required' });
     }
@@ -1283,17 +1351,16 @@ app.get('/api/admin/user-history/:username', adminOnly, (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const userBets = db.bets
+    const bets = db.bets
       .filter(b => b.user_id === user.id)
       .sort((a, b) => b.created_at - a.created_at)
       .map(bet => {
         const round = db.rounds.find(r => r.id === bet.round_id);
-
         return {
           id: bet.id,
           roundId: bet.round_id,
-          roundNumber: round ? round.round_number : null,
-          roundCode: round ? (round.round_code || '-') : '-',
+          roundNumber: round?.round_number || null,
+          roundCode: round?.round_code || '-',
           betMap: bet.bet_map || {},
           totalCoins: bet.total_coins || 0,
           matchedNumber: bet.matched_number,
@@ -1303,28 +1370,26 @@ app.get('/api/admin/user-history/:username', adminOnly, (req, res) => {
         };
       });
 
-    const userTransactions = db.transactions
+    const transactions = db.transactions
       .filter(tx => tx.user_id === user.id)
       .sort((a, b) => b.created_at - a.created_at)
       .map(tx => ({
         id: tx.id,
-        type: tx.type || '-',
-        amount: tx.amount || 0,
+        type: tx.type,
+        amount: tx.amount,
         meta: tx.meta || {},
         createdAt: tx.created_at || null
       }));
 
-    const userRequests = db.deposit_requests
+    const requests = db.deposit_requests
       .filter(r => r.user_id === user.id)
       .sort((a, b) => b.created_at - a.created_at)
       .map(r => ({
         id: r.id,
-        type: r.type || 'deposit',
-        amount: r.amount || 0,
-        method: r.method || '-',
-        utr: r.utr || '-',
-        status: r.status || 'pending',
+        amount: r.amount,
+        utr: r.utr || '',
         screenshot: r.screenshot || '',
+        status: r.status,
         createdAt: r.created_at || null,
         updatedAt: r.updated_at || null
       }));
@@ -1339,414 +1404,112 @@ app.get('/api/admin/user-history/:username', adminOnly, (req, res) => {
         totalWins: user.total_wins || 0,
         bonusClaimed: user.bonus_claimed || 0,
         blocked: !!user.blocked,
+        isAdmin: !!user.is_admin,
         createdAt: user.created_at || null
       },
       history: {
-        bets: userBets,
-        transactions: userTransactions,
-        requests: userRequests
+        bets,
+        transactions,
+        requests
       }
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to load user history' });
+    return res.status(500).json({ error: 'Unable to load user history' });
   }
 });
 
-app.post('/api/admin/add-coins', adminOnly, (req, res) => {
+app.get('/api/wallet-history', (req, res) => {
   try {
-    const username = String(req.body?.username || '').trim();
-    const amount = Number(req.body?.amount);
-
-    if (!username) {
-      return res.status(400).json({ error: 'Username required' });
+    const userId = getUserIdFromReq(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Login required' });
     }
 
-    if (!Number.isInteger(amount) || amount <= 0 || amount > 1000000) {
-      return res.status(400).json({ error: 'Valid amount required' });
-    }
-
-    const user = db.users.find(
-      u => String(u.username).toLowerCase() === username.toLowerCase()
-    );
-
+    const user = getUser(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    user.wallet_balance = Number(user.wallet_balance || 0) + amount;
-
-    addTransaction(user.id, 'admin_add_coin', amount, {
-      by: req.user.username
-    });
-
-    saveData(db);
-
-    return res.json({
-      success: true,
-      message: `${amount} coins added to ${user.username}`,
-      user: {
-        id: user.id,
-        username: user.username,
-        walletBalance: user.wallet_balance
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to add coins' });
-  }
-});
-
-app.post('/api/admin/withdraw-coins', adminOnly, (req, res) => {
-  try {
-    const username = String(req.body?.username || '').trim();
-    const amount = Number(req.body?.amount);
-
-    if (!username) {
-      return res.status(400).json({ error: 'Username required' });
-    }
-
-    if (!Number.isInteger(amount) || amount <= 0 || amount > 1000000) {
-      return res.status(400).json({ error: 'Valid amount required' });
-    }
-
-    const user = db.users.find(
-      u => String(u.username).toLowerCase() === username.toLowerCase()
-    );
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const currentBalance = Number(user.wallet_balance || 0);
-
-    if (currentBalance < amount) {
-      return res.status(400).json({ error: 'Insufficient user wallet balance' });
-    }
-
-    user.wallet_balance = currentBalance - amount;
-
-    addTransaction(user.id, 'admin_withdraw_coin', -amount, {
-      by: req.user.username
-    });
-
-    saveData(db);
-
-    return res.json({
-      success: true,
-      message: `${amount} coins withdrawn from ${user.username}`,
-      user: {
-        id: user.id,
-        username: user.username,
-        walletBalance: user.wallet_balance
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to withdraw coins' });
-  }
-});
-
-app.post('/api/admin/delete-user', adminOnly, (req, res) => {
-  try {
-    const username = String(req.body?.username || '').trim();
-    const backupBeforeDelete = Boolean(req.body?.backupBeforeDelete);
-
-    if (!username) {
-      return res.status(400).json({ error: 'Username required' });
-    }
-
-    const user = db.users.find(
-      u => String(u.username).toLowerCase() === username.toLowerCase()
-    );
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (String(user.username).toLowerCase() === 'admin') {
-      return res.status(400).json({ error: 'Admin user cannot be deleted' });
-    }
-
-    const userBets = db.bets.filter(b => b.user_id === user.id);
-    const userTransactions = db.transactions.filter(tx => tx.user_id === user.id);
-    const userRequests = db.deposit_requests.filter(r => r.user_id === user.id);
-
-    if (backupBeforeDelete) {
-      const deletedUsersData = loadDeletedUsersData();
-
-      deletedUsersData.deletedUsers.push({
-        deletedAt: nowMs(),
-        deletedBy: req.user.username,
-        user: {
-          id: user.id,
-          username: user.username,
-          walletBalance: user.wallet_balance || 0,
-          totalPlayed: user.total_played || 0,
-          totalWins: user.total_wins || 0,
-          bonusClaimed: user.bonus_claimed || 0,
-          blocked: !!user.blocked,
-          createdAt: user.created_at || null
-        },
-        history: {
-          bets: userBets,
-          transactions: userTransactions,
-          requests: userRequests
-        }
-      });
-
-      saveDeletedUsersData(deletedUsersData);
-    }
-
-    db.bets = db.bets.filter(b => b.user_id !== user.id);
-    db.transactions = db.transactions.filter(tx => tx.user_id !== user.id);
-    db.deposit_requests = db.deposit_requests.filter(r => r.user_id !== user.id);
-    db.users = db.users.filter(u => u.id !== user.id);
-
-    saveData(db);
-
-    return res.json({
-      success: true,
-      message: backupBeforeDelete
-        ? 'User deleted and backup saved successfully'
-        : 'User deleted successfully'
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to delete user' });
-  }
-});
-
-app.post('/api/admin/toggle-block-user', adminOnly, (req, res) => {
-  try {
-    const username = String(req.body?.username || '').trim();
-    const blocked = Boolean(req.body?.blocked);
-
-    if (!username) {
-      return res.status(400).json({ error: 'Username required' });
-    }
-
-    const user = db.users.find(
-      u => String(u.username).toLowerCase() === username.toLowerCase()
-    );
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (String(user.username).toLowerCase() === 'admin') {
-      return res.status(400).json({ error: 'Admin user cannot be blocked' });
-    }
-
-    user.blocked = blocked;
-
-    addTransaction(user.id, blocked ? 'admin_block_user' : 'admin_unblock_user', 0, {
-      by: req.user.username
-    });
-
-    saveData(db);
-
-    return res.json({
-      success: true,
-      message: blocked
-        ? `${user.username} blocked successfully`
-        : `${user.username} unblocked successfully`,
-      user: {
-        id: user.id,
-        username: user.username,
-        blocked: !!user.blocked
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to update block status' });
-  }
-});
-
-app.get('/api/admin/transactions', adminOnly, (req, res) => {
-  try {
-    const allowedTypes = [
-      'admin_add_coin',
-      'admin_withdraw_coin',
-      'admin_block_user',
-      'admin_unblock_user',
-      'deposit_approved',
-      'withdrawal_approved'
-    ];
-
-    const transactions = [...db.transactions]
-      .filter(tx => allowedTypes.includes(String(tx.type || '')))
+    const items = db.transactions
+      .filter(tx => tx.user_id === user.id)
       .sort((a, b) => b.created_at - a.created_at)
       .slice(0, 200)
       .map(tx => {
-        const user = db.users.find(u => u.id === tx.user_id);
+        let title = 'Wallet Activity';
+        let details = 'Wallet activity';
+        const amount = Math.abs(Number(tx.amount || 0));
+        const direction = Number(tx.amount || 0) >= 0 ? 'credit' : 'debit';
+
+        if (tx.type === 'deposit_approved') {
+          title = 'Deposit Approved';
+          details = 'Coins added by admin approval';
+        } else if (tx.type === 'withdrawal_approved') {
+          title = 'Withdrawal Approved';
+          details = 'Coins sent by admin approval';
+        } else if (tx.type === 'bet_debit') {
+          title = 'Bet Placed / Loss';
+          details = tx.meta?.roundId ? `Round ID: ${tx.meta.roundId}` : 'Bet amount deducted';
+        } else if (tx.type === 'win_credit') {
+          title = 'Winning Credit';
+          details = tx.meta?.luckyNumber !== undefined ? `Lucky Number: ${tx.meta.luckyNumber}` : 'Winning amount added';
+        } else if (tx.type === 'bonus_credit') {
+          title = 'Daily Bonus';
+          details = 'Bonus credited';
+        } else if (tx.type === 'withdraw_request') {
+          title = 'Withdrawal Request';
+          details = tx.meta?.upiId ? `UPI ID: ${tx.meta.upiId}` : 'Withdrawal request submitted';
+        }
 
         return {
           id: tx.id,
-          username: user ? user.username : 'Unknown',
-          type: tx.type || '-',
-          amount: tx.amount || 0,
-          meta: tx.meta || {},
+          title,
+          amount,
+          direction,
+          details,
           createdAt: tx.created_at || null
         };
       });
 
     return res.json({
       success: true,
-      transactions
+      history: items
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to load transactions' });
+    return res.status(500).json({ error: 'Failed to load wallet history' });
   }
 });
 
-app.get('/api/admin/dashboard-stats', adminOnly, (req, res) => {
-  try {
-    const requests = db.deposit_requests || [];
+/* Compatibility aliases for existing frontend/admin */
+app.post('/api/bet', (req, res) => app._router.handle({ ...req, url: '/api/place-bet', method: 'POST' }, res, () => {}));
+app.post('/api/bonus', (req, res) => app._router.handle({ ...req, url: '/api/claim-bonus', method: 'POST' }, res, () => {}));
+app.post('/api/withdrawal-request', (req, res) => app._router.handle({ ...req, url: '/api/withdraw', method: 'POST' }, res, () => {}));
 
-    let totalDeposits = 0;
-    let totalWithdrawals = 0;
-
-    for (const r of requests) {
-      if (r.status !== 'approved') continue;
-
-      if (r.type === 'withdrawal') {
-        totalWithdrawals += Number(r.amount || 0);
-      } else {
-        totalDeposits += Number(r.amount || 0);
-      }
-    }
-
-    const profitLoss = totalDeposits - totalWithdrawals;
-
-    return res.json({
-      success: true,
-      stats: {
-        totalDeposits,
-        totalWithdrawals,
-        profitLoss
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to load dashboard stats' });
-  }
+app.get('/api/admin/users', (req, res) => app._router.handle({ ...req, url: '/api/admin/load-users', method: 'GET' }, res, () => {}));
+app.post('/api/admin/add-coins', (req, res) => {
+  const username = String(req.body?.username || '').trim();
+  const amount = req.body?.amount;
+  const user = db.users.find(u => String(u.username).toLowerCase() === username.toLowerCase() && u.is_admin !== true);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  req.body = { userId: user.id, amount };
+  return app._router.handle({ ...req, url: '/api/admin/add-coin', method: 'POST' }, res, () => {});
 });
-
-app.get('/api/admin/live-updates', adminOnly, (req, res) => {
-  try {
-    return res.json({
-      success: true,
-      liveUpdates: {
-        paymentMethod: {
-          upiId: db.live_updates?.paymentMethod?.upiId || '',
-          qrCodeImage: db.live_updates?.paymentMethod?.qrCodeImage || '',
-          bankAccount: db.live_updates?.paymentMethod?.bankAccount || ''
-        },
-        offer: db.live_updates?.offer || ''
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to load live updates' });
-  }
+app.post('/api/admin/withdraw-coins', (req, res) => {
+  const username = String(req.body?.username || '').trim();
+  const amount = req.body?.amount;
+  const user = db.users.find(u => String(u.username).toLowerCase() === username.toLowerCase() && u.is_admin !== true);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  req.body = { userId: user.id, amount };
+  return app._router.handle({ ...req, url: '/api/admin/withdraw-coin', method: 'POST' }, res, () => {});
 });
-
-app.post('/api/admin/live-updates', adminOnly, (req, res) => {
-  try {
-    const section = String(req.body?.section || '').trim();
-    const type = String(req.body?.type || '').trim();
-
-    if (section === 'payment-method') {
-      if (!db.live_updates) {
-        db.live_updates = {};
-      }
-
-      if (!db.live_updates.paymentMethod) {
-        db.live_updates.paymentMethod = {};
-      }
-
-      if (type === 'upi-id') {
-        const upiId = String(req.body?.upiId || '').trim();
-
-        db.live_updates.paymentMethod.upiId = upiId;
-        saveData(db);
-
-        return res.json({
-          success: true,
-          message: 'UPI ID updated successfully',
-          liveUpdates: db.live_updates
-        });
-      }
-
-      if (type === 'qr-code') {
-        const qrCodeImage = String(req.body?.qrCodeImage || '').trim();
-
-        if (
-          qrCodeImage &&
-          !qrCodeImage.startsWith('data:image/jpeg;base64,') &&
-          !qrCodeImage.startsWith('data:image/jpg;base64,') &&
-          !qrCodeImage.startsWith('data:image/png;base64,') &&
-          !qrCodeImage.startsWith('data:image/webp;base64,')
-        ) {
-          return res.status(400).json({ error: 'Valid QR code image required' });
-        }
-
-        db.live_updates.paymentMethod.qrCodeImage = qrCodeImage;
-        saveData(db);
-
-        return res.json({
-          success: true,
-          message: 'QR code updated successfully',
-          liveUpdates: db.live_updates
-        });
-      }
-
-      if (type === 'bank-account') {
-        const bankAccount = String(req.body?.bankAccount || '').trim();
-
-        db.live_updates.paymentMethod.bankAccount = bankAccount;
-        saveData(db);
-
-        return res.json({
-          success: true,
-          message: 'Bank account updated successfully',
-          liveUpdates: db.live_updates
-        });
-      }
-
-      return res.status(400).json({ error: 'Invalid payment method type' });
-    }
-
-    if (section === 'offer') {
-      const offer = String(req.body?.offer || '').trim();
-
-      db.live_updates.offer = offer;
-      saveData(db);
-
-      return res.json({
-        success: true,
-        message: 'Offer updated successfully',
-        liveUpdates: db.live_updates
-      });
-    }
-
-    return res.status(400).json({ error: 'Invalid live updates section' });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to update live updates' });
-  }
+app.post('/api/admin/toggle-block-user', (req, res) => {
+  const username = String(req.body?.username || '').trim();
+  const user = db.users.find(u => String(u.username).toLowerCase() === username.toLowerCase() && u.is_admin !== true);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  req.body = { userId: user.id };
+  return app._router.handle({ ...req, url: '/api/admin/block-user', method: 'POST' }, res, () => {});
 });
-
-app.get('/api/live-updates', (req, res) => {
-  try {
-    return res.json({
-      success: true,
-      liveUpdates: {
-        paymentMethod: {
-          upiId: db.live_updates?.paymentMethod?.upiId || '',
-          qrCodeImage: db.live_updates?.paymentMethod?.qrCodeImage || '',
-          bankAccount: db.live_updates?.paymentMethod?.bankAccount || ''
-        },
-        offer: db.live_updates?.offer || ''
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to load live updates' });
-  }
-});
+app.get('/api/admin/transactions', (req, res) => app._router.handle({ ...req, url: '/api/admin/transaction-history', method: 'GET' }, res, () => {}));
+app.post('/api/admin/settle', (req, res) => app._router.handle({ ...req, url: '/api/admin/force-settle-round', method: 'POST' }, res, () => {}));
 
 app.get('*', (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', 'index.html'));
