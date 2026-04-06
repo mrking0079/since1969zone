@@ -1210,25 +1210,66 @@ app.post('/api/withdraw', (req, res) => {
 });
 
 app.get('/api/live-updates', (req, res) => {
-  return res.json(db.live_updates || {
+  const liveUpdates = db.live_updates || {
     paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' },
     offer: ''
+  };
+
+  return res.json({
+    success: true,
+    liveUpdates
+  });
+});
+
+app.get('/api/admin/live-updates', adminOnly, (req, res) => {
+  const liveUpdates = db.live_updates || {
+    paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' },
+    offer: ''
+  };
+
+  return res.json({
+    success: true,
+    liveUpdates
   });
 });
 
 app.post('/api/admin/live-updates', adminOnly, (req, res) => {
   try {
-    const paymentMethod = req.body?.paymentMethod || {};
-    const offer = typeof req.body?.offer === 'string' ? req.body.offer : '';
+    const section = String(req.body?.section || '').trim();
+    const type = String(req.body?.type || '').trim();
 
-    db.live_updates = {
-      paymentMethod: {
-        upiId: String(paymentMethod.upiId || '').trim(),
-        qrCodeImage: String(paymentMethod.qrCodeImage || '').trim(),
-        bankAccount: String(paymentMethod.bankAccount || '').trim()
-      },
-      offer: offer.trim()
-    };
+    if (!db.live_updates) {
+      db.live_updates = {
+        paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' },
+        offer: ''
+      };
+    }
+
+    if (!db.live_updates.paymentMethod) {
+      db.live_updates.paymentMethod = {
+        upiId: '',
+        qrCodeImage: '',
+        bankAccount: ''
+      };
+    }
+
+    if (section === 'payment-method') {
+      if (type === 'upi-id') {
+        db.live_updates.paymentMethod.upiId = String(req.body?.upiId || '').trim();
+      }
+
+      if (type === 'qr-code') {
+        db.live_updates.paymentMethod.qrCodeImage = String(req.body?.qrCodeImage || '').trim();
+      }
+
+      if (type === 'bank-account') {
+        db.live_updates.paymentMethod.bankAccount = String(req.body?.bankAccount || '').trim();
+      }
+    }
+
+    if (section === 'offer') {
+      db.live_updates.offer = String(req.body?.offer || '').trim();
+    }
 
     saveData(db);
 
