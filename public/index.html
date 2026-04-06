@@ -740,11 +740,39 @@ body.auth-open {
           </div>
 
           <input id="username" class="auth-input" placeholder="Enter username" autocomplete="username" />
-          <input id="password" class="auth-input" type="password" placeholder="Enter password" autocomplete="current-password" />
 
-          <button id="authMainBtn" type="button" class="auth-main-btn" onclick="handleAuthAction()">
-            Enter Game
-          </button>
+<div style="position:relative;">
+  <input
+    id="password"
+    class="auth-input"
+    type="password"
+    placeholder="Enter password"
+    autocomplete="current-password"
+    style="padding-right:80px;"
+  />
+  <button
+    id="togglePasswordBtn"
+    type="button"
+    onclick="togglePasswordVisibility()"
+    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:#ffd700;color:#111;border:none;border-radius:10px;padding:6px 12px;font-weight:800;cursor:pointer;"
+  >
+    Show
+  </button>
+</div>
+
+<div id="confirmPasswordWrap" style="display:none;">
+  <input
+    id="confirmPassword"
+    class="auth-input"
+    type="password"
+    placeholder="Re-enter password"
+    autocomplete="new-password"
+  />
+</div>
+
+<button id="authMainBtn" type="button" class="auth-main-btn" onclick="handleAuthAction()">
+  Enter Game
+</button>
 
           <button id="authSwitchBtn" type="button" class="auth-alt-btn" onclick="toggleAuthMode()">
             New user? Create account
@@ -1548,35 +1576,56 @@ function showWithdrawMethodForm(method) {
 
 let authMode = 'login';
 
+<script>
+let authMode = 'login';
+
 function setAuthMode(mode) {
-  authMode = mode === 'signup' ? 'signup' : 'login';
+  authMode = mode;
 
   const authTitle = document.getElementById('authTitle');
   const authSubtext = document.getElementById('authSubtext');
   const authMainBtn = document.getElementById('authMainBtn');
   const authSwitchBtn = document.getElementById('authSwitchBtn');
   const authHelper = document.getElementById('authHelper');
+  const passwordInput = document.getElementById('password');
+  const confirmPasswordWrap = document.getElementById('confirmPasswordWrap');
+  const confirmPassword = document.getElementById('confirmPassword');
   const loginTabBtn = document.getElementById('loginTabBtn');
   const signupTabBtn = document.getElementById('signupTabBtn');
-  const passwordInput = document.getElementById('password');
+  const togglePasswordBtn = document.getElementById('togglePasswordBtn');
 
-  if (loginTabBtn) loginTabBtn.classList.toggle('active', authMode === 'login');
-  if (signupTabBtn) signupTabBtn.classList.toggle('active', authMode === 'signup');
+  if (loginTabBtn) loginTabBtn.classList.toggle('active', mode === 'login');
+  if (signupTabBtn) signupTabBtn.classList.toggle('active', mode === 'signup');
 
-  if (authMode === 'login') {
+  if (passwordInput) {
+    passwordInput.type = 'password';
+    passwordInput.value = '';
+  }
+
+  if (togglePasswordBtn) {
+    togglePasswordBtn.textContent = 'Show';
+  }
+
+  if (confirmPassword) {
+    confirmPassword.value = '';
+  }
+
+  if (mode === 'login') {
     if (authTitle) authTitle.textContent = 'Login';
-    if (authSubtext) authSubtext.textContent = 'Existing users can log in with their username and password and open the main game page directly.';
+    if (authSubtext) authSubtext.innerHTML = '<strong>Existing users can log in with their username and password</strong> and open the main game page instantly.';
     if (authMainBtn) authMainBtn.textContent = 'Enter Game';
     if (authSwitchBtn) authSwitchBtn.textContent = 'New user? Create account';
     if (authHelper) authHelper.textContent = 'After login, you will enter the main game page. After signup, your account will be logged in automatically.';
     if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
+    if (confirmPasswordWrap) confirmPasswordWrap.style.display = 'none';
   } else {
     if (authTitle) authTitle.textContent = 'Create Account';
-    if (authSubtext) authSubtext.textContent = 'New users can create an account here. Once signup is successful, you will automatically enter the main game page.';
+    if (authSubtext) authSubtext.innerHTML = '<strong>New users can create an account here.</strong> After successful signup, you will automatically enter the main game page.';
     if (authMainBtn) authMainBtn.textContent = 'Create Account';
-    if (authSwitchBtn) authSwitchBtn.textContent = 'Already have account? Login';
-    if (authHelper) authHelper.textContent = 'Create your account using a username and password. Once your account is ready, you can access the game immediately.';
+    if (authSwitchBtn) authSwitchBtn.textContent = 'Already have an account? Log in';
+    if (authHelper) authHelper.innerHTML = '<strong>Create your account using a username and password.</strong> Once your account is ready, you can instantly access the game.';
     if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
+    if (confirmPasswordWrap) confirmPasswordWrap.style.display = 'block';
   }
 }
 
@@ -1584,10 +1633,35 @@ function toggleAuthMode() {
   setAuthMode(authMode === 'login' ? 'signup' : 'login');
 }
 
+function togglePasswordVisibility() {
+  const passwordInput = document.getElementById('password');
+  const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+
+  if (!passwordInput || !togglePasswordBtn) return;
+
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    togglePasswordBtn.textContent = 'Hide';
+  } else {
+    passwordInput.type = 'password';
+    togglePasswordBtn.textContent = 'Show';
+  }
+}
+
 function showLandingView() {
   document.body.classList.add('auth-open');
   document.getElementById('loginBox').style.display = 'flex';
   document.querySelector('.wrap').style.display = 'none';
+
+  const username = document.getElementById('username');
+  const password = document.getElementById('password');
+  const confirmPassword = document.getElementById('confirmPassword');
+
+  if (username) username.value = '';
+  if (password) password.value = '';
+  if (confirmPassword) confirmPassword.value = '';
+
+  setAuthMode('login');
 }
 
 function showGameView() {
@@ -1604,18 +1678,17 @@ function handleAuthAction() {
   login();
 }
 
-
 async function login() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
 
   if (!name) {
-    alert('Type Username');
+    alert('Enter username');
     return;
   }
 
   if (!password) {
-    alert('Type Password');
+    alert('Enter password');
     return;
   }
 
@@ -1631,7 +1704,7 @@ async function login() {
     showGameView();
 
     await loadState();
-await loadLiveUpdates();
+    await loadLiveUpdates();
     showMessage(`Welcome ${data.user.username}`);
   } catch (error) {
     alert(error.message);
@@ -1641,14 +1714,25 @@ await loadLiveUpdates();
 async function signup() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
+  const confirmPassword = document.getElementById('confirmPassword').value.trim();
 
   if (!name) {
-    alert('Type Username');
+    alert('Enter username');
     return;
   }
 
   if (!password) {
-    alert('Type Password');
+    alert('Enter password');
+    return;
+  }
+
+  if (!confirmPassword) {
+    alert('Re-enter password');
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    alert('Passwords do not match');
     return;
   }
 
@@ -1664,12 +1748,13 @@ async function signup() {
     showGameView();
 
     await loadState();
-await loadLiveUpdates();
+    await loadLiveUpdates();
     showMessage(`Signup successful. Welcome ${data.user.username}`);
   } catch (error) {
     alert(error.message);
   }
 }
+</script>
 
 function showMessage(text) {
   els.message.textContent = text || '';
