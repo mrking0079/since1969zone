@@ -468,15 +468,15 @@ button.secondary:hover {
   </div>
 </div>
         <div class="card">
-  <div class="mini-label">Deposit Request History</div>
+  <div class="mini-label">User Wallet History</div>
 
-  <div id="depositRequestBox" style="margin-top:12px;">
-    <div class="muted" id="depositRequestEmpty" style="text-align:center;padding:16px;">
-      No deposit requests yet
-    </div>
-
-    <div id="depositRequestList" style="display:grid;gap:12px;"></div>
+  <div id="walletHistoryBox" style="margin-top:12px;">
+  <div class="muted" id="walletHistoryEmpty" style="text-align:center;padding:16px;">
+    No wallet history yet
   </div>
+
+  <div id="walletHistoryList" style="display:grid;gap:12px;"></div>
+</div>
 </div>
       </div>
     </div>
@@ -658,8 +658,8 @@ historyPageInfo: document.getElementById('historyPageInfo'),
   currentBet: document.getElementById('currentBet'),
 addCoinBtn: document.getElementById('addCoinBtn'),
 withdrawCoinBtn: document.getElementById('withdrawCoinBtn'),
-depositRequestEmpty: document.getElementById('depositRequestEmpty'),
-depositRequestList: document.getElementById('depositRequestList'),
+walletHistoryEmpty: document.getElementById('walletHistoryEmpty'),
+walletHistoryList: document.getElementById('walletHistoryList'),
 addCoinModal: document.getElementById('addCoinModal'),
 withdrawCoinModal: document.getElementById('withdrawCoinModal'),
 closeAddCoinModal: document.getElementById('closeAddCoinModal'),
@@ -1267,73 +1267,56 @@ function renderHistory(history = []) {
   if (pageInfo) pageInfo.textContent = `${historyPage}/${totalPages}`;
 }
 
-function renderDepositRequests(requests = []) {
-  if (!els.depositRequestList || !els.depositRequestEmpty) return;
+async function loadWalletHistory() {
+  try {
+    const data = await api('/api/wallet-history');
+    const items = Array.isArray(data.history) ? data.history : [];
 
-  const safeRequests = Array.isArray(requests) ? requests : [];
+    if (!els.walletHistoryEmpty || !els.walletHistoryList) return;
 
-  els.depositRequestList.innerHTML = '';
+    if (!items.length) {
+      els.walletHistoryEmpty.style.display = 'block';
+      els.walletHistoryList.innerHTML = '';
+      return;
+    }
 
-  if (!safeRequests.length) {
-    els.depositRequestEmpty.style.display = 'block';
-    return;
-  }
+    els.walletHistoryEmpty.style.display = 'none';
 
-  els.depositRequestEmpty.style.display = 'none';
+    els.walletHistoryList.innerHTML = items.map(item => {
+      const dateText = item.createdAt
+        ? new Date(item.createdAt).toLocaleString()
+        : '-';
 
-  safeRequests
-    .slice()
-    .reverse()
-    .forEach(item => {
-      const status = String(item.status || 'pending').toLowerCase();
+      const isCredit = item.direction === 'credit';
 
-      let statusColor = '#ffd700';
-      let statusBg = 'rgba(255,215,0,0.10)';
+      return `
+        <div style="padding:14px;border-radius:14px;background:#111;border:1px solid #333;">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:16px;font-weight:800;color:#fff;">${item.title || 'Wallet Activity'}</div>
+              <div style="font-size:13px;color:#aaaaaa;margin-top:4px;">${item.details || '-'}</div>
+            </div>
 
-      if (status === 'approved') {
-        statusColor = '#00cc66';
-        statusBg = 'rgba(0,204,102,0.10)';
-      } else if (status === 'rejected') {
-        statusColor = '#ff4d4d';
-        statusBg = 'rgba(255,77,77,0.10)';
-      }
-
-      const card = document.createElement('div');
-      card.style.padding = '14px';
-      card.style.border = '1px solid #333';
-      card.style.borderRadius = '14px';
-      card.style.background = '#111';
-
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-          <div style="font-weight:800;color:#fff;">
-            ${Number(item.amount || 0)} Coins
+            <div style="font-size:18px;font-weight:900;color:${isCredit ? '#2ecc71' : '#ff5c5c'};">
+              ${isCredit ? '+' : '-'}${formatCoins(item.amount || 0)}
+            </div>
           </div>
 
-          <div style="
-            padding:6px 12px;
-            border-radius:999px;
-            font-size:12px;
-            font-weight:800;
-            color:${statusColor};
-            background:${statusBg};
-            text-transform:uppercase;
-          ">
-            ${status}
+          <div style="margin-top:10px;font-size:12px;color:#888;">
+            ${dateText}
           </div>
-        </div>
-
-        <div style="margin-top:8px;color:#bbb;font-size:13px;">
-          Request ID: ${item.id || '-'}
-        </div>
-
-        <div style="margin-top:6px;color:#888;font-size:12px;">
-          Type: ${item.type === 'withdrawal' ? 'withdrawal' : 'deposit'}
         </div>
       `;
-
-      els.depositRequestList.appendChild(card);
-    });
+    }).join('');
+  } catch (error) {
+    if (els.walletHistoryEmpty) {
+      els.walletHistoryEmpty.style.display = 'block';
+      els.walletHistoryEmpty.textContent = 'Failed to load wallet history';
+    }
+    if (els.walletHistoryList) {
+      els.walletHistoryList.innerHTML = '';
+    }
+  }
 }
 
 function renderServerState() {
@@ -1463,7 +1446,7 @@ showResultFlash(
 }
 
 renderHistory(data.history || []);
-renderDepositRequests(data.depositRequests || []);
+loadWalletHistory();
 updateTimer();
 document.body.classList.toggle('bet-closed', !state.server?.round || state.server.round.status !== 'open');
 

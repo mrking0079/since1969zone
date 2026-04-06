@@ -790,6 +790,80 @@ app.get('/api/state', (req, res) => {
 }
 });
 
+app.get('/api/wallet-history', (req, res) => {
+  try {
+    const userId = getUserIdFromReq(req);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Login required' });
+    }
+
+    const user = getUser(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const items = [];
+
+    for (const tx of db.transactions || []) {
+      if (tx.user_id !== user.id) continue;
+
+      let title = tx.type || 'transaction';
+      let amount = Number(tx.amount || 0);
+      let direction = amount >= 0 ? 'credit' : 'debit';
+      let details = '';
+
+      if (tx.type === 'deposit_approved') {
+        title = 'Deposit Approved';
+        direction = 'credit';
+        details = 'Coins added by admin approval';
+      } else if (tx.type === 'withdrawal_approved') {
+        title = 'Withdrawal Approved';
+        direction = 'debit';
+        details = 'Coins sent by admin approval';
+      } else if (tx.type === 'bet_debit') {
+        title = 'Bet Placed / Loss';
+        direction = 'debit';
+        details = tx.meta?.roundId ? `Round ID: ${tx.meta.roundId}` : 'Bet amount deducted';
+      } else if (tx.type === 'win_credit') {
+        title = 'Winning Credit';
+        direction = 'credit';
+        details = tx.meta?.luckyNumber !== undefined
+          ? `Lucky Number: ${tx.meta.luckyNumber}`
+          : 'Winning amount added';
+      } else if (tx.type === 'bonus_credit') {
+        title = 'Daily Bonus';
+        direction = 'credit';
+        details = 'Bonus credited';
+      } else {
+        title = String(tx.type || 'Transaction')
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, c => c.toUpperCase());
+        details = 'Wallet activity';
+      }
+
+      items.push({
+        id: tx.id,
+        title,
+        amount: Math.abs(amount),
+        direction,
+        details,
+        createdAt: tx.created_at || null
+      });
+    }
+
+    items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    return res.json({
+      success: true,
+      history: items.slice(0, 200)
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load wallet history' });
+  }
+});
+
 app.post('/api/bet', (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
