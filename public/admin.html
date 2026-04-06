@@ -1028,7 +1028,8 @@ async function forceSettleRound() {
   }
 }
 
-async function handleDepositRequest(requestId, action) {
+<script>
+async function handleDepositRequest(requestId, action, requestType = 'deposit') {
   const token = localStorage.getItem('adminSessionToken') || '';
   const output = document.getElementById('output');
 
@@ -1037,7 +1038,7 @@ async function handleDepositRequest(requestId, action) {
     return;
   }
 
-  if (!confirm(`Are you sure you want to ${action} this deposit request?`)) {
+  if (!confirm(`Are you sure you want to ${action} this ${requestType} request?`)) {
     return;
   }
 
@@ -1045,11 +1046,12 @@ async function handleDepositRequest(requestId, action) {
     const res = await fetch('/api/admin/deposit-requests/action', {
       method: 'POST',
       headers: getAdminHeaders({
-  'Content-Type': 'application/json'
-}),
+        'Content-Type': 'application/json'
+      }),
       body: JSON.stringify({
         requestId,
-        action
+        action,
+        type: requestType
       })
     });
 
@@ -1060,15 +1062,15 @@ async function handleDepositRequest(requestId, action) {
       return;
     }
 
-    output.textContent = data.message || 'Deposit request updated';
+    output.textContent = data.message || `${requestType} request updated`;
     loadDepositRequests(currentRequestTab);
-loadDashboardStats();
-refreshRequestCounts();
-    
+    loadDashboardStats();
+    refreshRequestCounts();
   } catch (err) {
-    output.textContent = 'Failed to update deposit request: ' + err.message;
+    output.textContent = `Failed to update ${requestType} request: ` + err.message;
   }
 }
+</script>
 
 async function loadDepositRequests(requestType = 'deposit') {
   const token = localStorage.getItem('adminSessionToken') || '';
@@ -1221,8 +1223,8 @@ document.getElementById('pendingRequestCount').textContent = 'Pending: 0';
 
       ${reqItem.status === 'pending' ? `
         <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
-          <button onclick="handleDepositRequest(${reqItem.id}, 'approve')" style="background:#22c55e;color:#111;">Approve</button>
-          <button onclick="handleDepositRequest(${reqItem.id}, 'reject')" style="background:#ff4d4f;color:#fff;">Reject</button>
+          <button onclick="handleDepositRequest(${reqItem.id}, 'approve', '${reqItem.type || 'deposit'}')" style="background:#22c55e;color:#111;">Approve</button>
+          <button onclick="handleDepositRequest(${reqItem.id}, 'reject', '${reqItem.type || 'deposit'}')" style="background:#ff4d4f;color:#fff;">Reject</button>
         </div>
       ` : ''}
     </div>

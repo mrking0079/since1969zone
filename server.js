@@ -1110,12 +1110,17 @@ app.post('/api/deposit-request', async (req, res) => {
     if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
 
     const amount = Number(req.body?.amount);
+    const method = String(req.body?.method || '').trim();
     const utr = String(req.body?.utr || '').trim();
     const screenshot = String(req.body?.screenshot || '').trim();
-const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.username);
+    const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.username);
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ error: 'Valid deposit amount required' });
+    }
+
+    if (!method) {
+      return res.status(400).json({ error: 'Payment method required' });
     }
 
     if (!utr && !screenshot) {
@@ -1127,10 +1132,12 @@ const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.user
       user_id: user.id,
       username: user.username,
       amount,
+      method,
       utr,
       screenshot: screenshotUrl,
       status: 'pending',
-      created_at: nowMs()
+      created_at: nowMs(),
+      updated_at: null
     };
 
     db.deposit_requests.push(request);
@@ -1145,7 +1152,7 @@ const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.user
   }
 });
 
-app.post('/api/withdraw', (req, res) => {
+app.post('/api/withdrawal-request', (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
     if (!userId) return res.status(401).json({ error: 'Login required' });
@@ -1155,15 +1162,43 @@ app.post('/api/withdraw', (req, res) => {
     if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
 
     const amount = Number(req.body?.amount);
-    const upiId = String(req.body?.upiId || '').trim();
+const method = String(req.body?.method || '').trim();
+const details = req.body?.details || {};
+const upiId = String(details?.upiId || '').trim();
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ error: 'Valid withdraw amount required' });
     }
 
-    if (!upiId) {
-      return res.status(400).json({ error: 'UPI ID required' });
-    }
+    if (!method) {
+  return res.status(400).json({ error: 'Withdrawal method required' });
+}
+
+if (method === 'UPI' && !upiId) {
+  return res.status(400).json({ error: 'UPI ID required' });
+}
+
+if (method === 'QR Code' && !String(details?.qrImage || '').trim()) {
+  return res.status(400).json({ error: 'QR image required' });
+}
+
+if (method === 'Bank Account') {
+  if (!String(details?.bankHolderName || '').trim()) {
+    return res.status(400).json({ error: 'Bank holder name required' });
+  }
+
+  if (!String(details?.bankName || '').trim()) {
+    return res.status(400).json({ error: 'Bank name required' });
+  }
+
+  if (!String(details?.ifscCode || '').trim()) {
+    return res.status(400).json({ error: 'IFSC code required' });
+  }
+
+  if (!String(details?.accountNumber || '').trim()) {
+    return res.status(400).json({ error: 'Account number required' });
+  }
+}
 
     if (user.wallet_balance < amount) {
       return res.status(400).json({ error: 'Insufficient wallet balance' });
@@ -1180,22 +1215,26 @@ app.post('/api/withdraw', (req, res) => {
     user.wallet_balance -= amount;
 
     const request = {
-      id: db.counters.withdrawRequestId++,
-      user_id: user.id,
-      username: user.username,
-      amount,
-      upiId,
-      status: 'pending',
-      created_at: nowMs(),
-      updated_at: null
-    };
+  id: db.counters.depositRequestId++,
+  user_id: user.id,
+  username: user.username,
+  amount,
+  method,
+  utr,
+  screenshot: screenshotUrl,
+  status: 'pending',
+  created_at: nowMs(),
+  updated_at: null
+};
 
     db.withdraw_requests.push(request);
 
     addTransaction(user.id, 'withdraw_request', -amount, {
-      requestId: request.id,
-      upiId
-    });
+  requestId: request.id,
+  method,
+  upiId,
+  details
+});
 
     saveData(db);
 
@@ -1458,25 +1497,45 @@ app.get('/api/admin/transaction-history', adminOnly, (req, res) => {
 });
 
 app.get('/api/admin/deposit-requests', adminOnly, (req, res) => {
-  const requests = [...db.deposit_requests]
-    .sort((a, b) => b.created_at - a.created_at)
-    .map(item => ({
-      id: item.id,
-      userId: item.user_id,
-      username: item.username,
-      amount: item.amount,
-      utr: item.utr,
-      screenshot: item.screenshot,
-      status: item.status,
-      createdAt: item.created_at
-    }));
+  const depositRequests = [...(db.deposit_requests || [])].map(item => ({
+    id: item.id,
+    type: 'deposit',
+    userId: item.user_id,
+    username: item.username,
+    amount: item.amount,
+    method: item.method || '',
+    utr: item.utr || '',
+    screenshot: item.screenshot || '',
+    status: item.status,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at || null
+  }));
+
+  const withdrawalRequests = [...(db.withdraw_requests || [])].map(item => ({
+    id: item.id,
+    type: 'withdrawal',
+    userId: item.user_id,
+    username: item.username,
+    amount: item.amount,
+    method: item.method || '',
+    withdrawal_details: item.details || {},
+    upiId: item.upiId || '',
+    status: item.status,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at || null
+  }));
+
+  const requests = [...depositRequests, ...withdrawalRequests]
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
   return res.json({ requests });
 });
+
 app.post('/api/admin/deposit-requests/action', adminOnly, (req, res) => {
   try {
     const requestId = Number(req.body?.requestId);
     const action = String(req.body?.action || '').trim().toLowerCase();
+    const type = String(req.body?.type || '').trim().toLowerCase();
 
     if (!Number.isInteger(requestId) || requestId <= 0) {
       return res.status(400).json({ error: 'Valid requestId required' });
@@ -1486,40 +1545,100 @@ app.post('/api/admin/deposit-requests/action', adminOnly, (req, res) => {
       return res.status(400).json({ error: 'Valid action required' });
     }
 
-    const request = db.deposit_requests.find(r => r.id === requestId);
-    if (!request) {
-      return res.status(404).json({ error: 'Request not found' });
+    if (!['deposit', 'withdrawal'].includes(type)) {
+      return res.status(400).json({ error: 'Valid request type required' });
     }
 
-    if (request.status !== 'pending') {
-      return res.status(400).json({ error: 'This request is already processed' });
-    }
+    if (type === 'deposit') {
+      const request = db.deposit_requests.find(r => r.id === requestId);
+      if (!request) {
+        return res.status(404).json({ error: 'Deposit request not found' });
+      }
 
-    const user = getUser(request.user_id);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+      if (request.status !== 'pending') {
+        return res.status(400).json({ error: 'This deposit request is already processed' });
+      }
 
-    request.status = action === 'approve' ? 'approved' : 'rejected';
-    request.updated_at = nowMs();
+      const user = getUser(request.user_id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
-    if (action === 'approve') {
-      user.wallet_balance += Number(request.amount || 0);
-      addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
-        requestId: request.id,
-        adminId: req.user.id
+      request.status = action === 'approve' ? 'approved' : 'rejected';
+      request.updated_at = nowMs();
+
+      if (action === 'approve') {
+        user.wallet_balance += Number(request.amount || 0);
+        addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
+          requestId: request.id,
+          adminId: req.user.id
+        });
+      }
+
+      saveData(db);
+
+      return res.json({
+        success: true,
+        message: action === 'approve'
+          ? 'Deposit request approved successfully'
+          : 'Deposit request rejected successfully',
+        request
       });
     }
 
-    saveData(db);
+    if (type === 'withdrawal') {
+      const request = db.withdraw_requests.find(r => r.id === requestId);
+      if (!request) {
+        return res.status(404).json({ error: 'Withdrawal request not found' });
+      }
 
-    return res.json({
-      success: true,
-      message: action === 'approve' ? 'Request approved successfully' : 'Request rejected successfully',
-      request
-    });
+      if (request.status !== 'pending') {
+        return res.status(400).json({ error: 'This withdrawal request is already processed' });
+      }
+
+      const user = getUser(request.user_id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      request.status = action === 'approve' ? 'approved' : 'rejected';
+      request.updated_at = nowMs();
+
+      if (action === 'approve') {
+        addTransaction(user.id, 'withdrawal_approved', -Number(request.amount || 0), {
+          requestId: request.id,
+          adminId: req.user.id,
+          method: request.method || '',
+          upiId: request.upiId || '',
+          details: request.details || {}
+        });
+      }
+
+      if (action === 'reject') {
+        user.wallet_balance += Number(request.amount || 0);
+        addTransaction(user.id, 'withdraw_rejected_refund', Number(request.amount || 0), {
+          requestId: request.id,
+          adminId: req.user.id,
+          method: request.method || '',
+          upiId: request.upiId || '',
+          details: request.details || {}
+        });
+      }
+
+      saveData(db);
+
+      return res.json({
+        success: true,
+        message: action === 'approve'
+          ? 'Withdrawal request approved successfully'
+          : 'Withdrawal request rejected successfully',
+        request
+      });
+    }
+
+    return res.status(400).json({ error: 'Invalid request type' });
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to update deposit request' });
+    return res.status(500).json({ error: 'Unable to update request' });
   }
 });
 
@@ -1641,42 +1760,66 @@ app.get('/api/admin/user-history/:username', adminOnly, (req, res) => {
         createdAt: tx.created_at || null
       }));
 
-    const requests = db.deposit_requests
-      .filter(r => r.user_id === user.id)
-      .sort((a, b) => b.created_at - a.created_at)
-      .map(r => ({
-        id: r.id,
-        amount: r.amount,
-        utr: r.utr || '',
-        screenshot: r.screenshot || '',
-        status: r.status,
-        createdAt: r.created_at || null,
-        updatedAt: r.updated_at || null
-      }));
+    const depositHistory = db.deposit_requests
+  .filter(r => r.user_id === user.id)
+  .map(r => ({
+    id: r.id,
+    type: 'deposit',
+    amount: r.amount,
+    method: r.method || '',
+    utr: r.utr || '',
+    screenshot: r.screenshot || '',
+    status: r.status,
+    createdAt: r.created_at || null,
+    updatedAt: r.updated_at || null
+  }));
 
-    return res.json({
-      success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        walletBalance: user.wallet_balance || 0,
-        totalPlayed: user.total_played || 0,
-        totalWins: user.total_wins || 0,
-        bonusClaimed: user.bonus_claimed || 0,
-        blocked: !!user.blocked,
-        isAdmin: !!user.is_admin,
-        createdAt: user.created_at || null
-      },
-      history: {
-        bets,
-        transactions,
-        requests
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Unable to load user history' });
-  }
-});
+const withdrawalHistory = db.withdraw_requests
+  .filter(r => r.user_id === user.id)
+  .map(r => ({
+    id: r.id,
+    type: 'withdrawal',
+    amount: r.amount,
+    method: r.method || '',
+    utr: '',
+    screenshot: '',
+    status: r.status,
+    withdrawal_details: r.details || {},
+    createdAt: r.created_at || null,
+    updatedAt: r.updated_at || null
+  }));
+
+const depositHistory = db.deposit_requests
+  .filter(r => r.user_id === user.id)
+  .map(r => ({
+    id: r.id,
+    type: 'deposit',
+    amount: r.amount,
+    method: r.method || '',
+    utr: r.utr || '',
+    screenshot: r.screenshot || '',
+    status: r.status,
+    createdAt: r.created_at || null,
+    updatedAt: r.updated_at || null
+  }));
+
+const withdrawalHistory = db.withdraw_requests
+  .filter(r => r.user_id === user.id)
+  .map(r => ({
+    id: r.id,
+    type: 'withdrawal',
+    amount: r.amount,
+    method: r.method || '',
+    utr: '',
+    screenshot: '',
+    status: r.status,
+    withdrawal_details: r.details || {},
+    createdAt: r.created_at || null,
+    updatedAt: r.updated_at || null
+  }));
+
+const requests = [...depositHistory, ...withdrawalHistory]
+  .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
 app.get('/api/wallet-history', (req, res) => {
   try {
@@ -1748,17 +1891,6 @@ app.get('/api/wallet-history', (req, res) => {
 /* Compatibility aliases for existing frontend/admin */
 app.post('/api/bet', (req, res) => app._router.handle({ ...req, url: '/api/place-bet', method: 'POST' }, res, () => {}));
 app.post('/api/bonus', (req, res) => app._router.handle({ ...req, url: '/api/claim-bonus', method: 'POST' }, res, () => {}));
-app.post('/api/withdrawal-request', (req, res) => {
-  return req.app._router.handle(
-    Object.assign(Object.create(req), {
-      url: '/api/withdraw',
-      originalUrl: '/api/withdraw',
-      method: 'POST'
-    }),
-    res,
-    () => {}
-  );
-});
 
 app.get('/api/admin/users', (req, res) => app._router.handle({ ...req, url: '/api/admin/load-users', method: 'GET' }, res, () => {}));
 app.post('/api/admin/add-coins', (req, res) => {
