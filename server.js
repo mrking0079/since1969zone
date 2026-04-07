@@ -44,7 +44,7 @@ const DELETED_USERS_FILE = path.join(__dirname, 'deleted-users.json');
 app.use(helmet({
   contentSecurityPolicy: false
 }));
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '20mb' }));
 app.use(rateLimit({
   windowMs: 60 * 1000,
   max: 5000,
@@ -1089,7 +1089,13 @@ app.post('/api/claim-bonus', (req, res) => {
 async function uploadDepositProofToCloudinary(base64Image, username) {
   const safeImage = String(base64Image || '').trim();
 
-  if (!safeImage) return '';
+  if (!safeImage) {
+    throw new Error('Screenshot image is missing');
+  }
+
+  if (!safeImage.startsWith('data:image/')) {
+    throw new Error('Invalid screenshot image format');
+  }
 
   const result = await cloudinary.uploader.upload(safeImage, {
     folder: 'since1969zone/deposit-proofs',
@@ -1110,27 +1116,39 @@ app.post('/api/deposit-request', async (req, res) => {
     if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
 
     const amount = Number(req.body?.amount);
+    const method = String(req.body?.method || '').trim();
     const utr = String(req.body?.utr || '').trim();
     const screenshot = String(req.body?.screenshot || '').trim();
-const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.username);
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ error: 'Valid deposit amount required' });
+    }
+
+    if (!method) {
+      return res.status(400).json({ error: 'Payment method required' });
     }
 
     if (!utr && !screenshot) {
       return res.status(400).json({ error: 'Provide UTR or screenshot proof' });
     }
 
+    if (!screenshot) {
+      return res.status(400).json({ error: 'Screenshot proof required' });
+    }
+
+    const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.username);
+
     const request = {
       id: db.counters.depositRequestId++,
       user_id: user.id,
       username: user.username,
       amount,
+      method,
       utr,
       screenshot: screenshotUrl,
       status: 'pending',
-      created_at: nowMs()
+      created_at: nowMs(),
+      updated_at: null
     };
 
     db.deposit_requests.push(request);
@@ -1141,7 +1159,8 @@ const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.user
       message: 'Deposit request submitted successfully'
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Deposit request failed' });
+    console.error('DEPOSIT REQUEST ERROR:', error);
+    return res.status(500).json({ error: error.message || 'Deposit request failed' });
   }
 });
 
@@ -1879,17 +1898,6 @@ app.get('/api/wallet-history', (req, res) => {
 /* Compatibility aliases for existing frontend/admin */
 app.post('/api/bet', (req, res) => app._router.handle({ ...req, url: '/api/place-bet', method: 'POST' }, res, () => {}));
 app.post('/api/bonus', (req, res) => app._router.handle({ ...req, url: '/api/claim-bonus', method: 'POST' }, res, () => {}));
-app.post('/api/withdrawal-request', (req, res) => {
-  return req.app._router.handle(
-    Object.assign(Object.create(req), {
-      url: '/api/withdraw',
-      originalUrl: '/api/withdraw',
-      method: 'POST'
-    }),
-    res,
-    () => {}
-  );
-});
 
 app.get('/api/admin/users', (req, res) => app._router.handle({ ...req, url: '/api/admin/load-users', method: 'GET' }, res, () => {}));
 app.post('/api/admin/add-coins', (req, res) => {
