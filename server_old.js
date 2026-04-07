@@ -224,18 +224,6 @@ async function initDatabase() {
     ALTER TABLE withdraw_requests ADD COLUMN IF NOT EXISTS upi_id TEXT DEFAULT '';
   `);
 
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_users_session_token ON users(session_token);
-    CREATE INDEX IF NOT EXISTS idx_rounds_round_number ON rounds(round_number DESC);
-    CREATE INDEX IF NOT EXISTS idx_rounds_status ON rounds(status);
-    CREATE INDEX IF NOT EXISTS idx_bets_user_round ON bets(user_id, round_id);
-    CREATE INDEX IF NOT EXISTS idx_bets_round_id ON bets(round_id);
-    CREATE INDEX IF NOT EXISTS idx_transactions_user_created_at ON transactions(user_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
-    CREATE INDEX IF NOT EXISTS idx_deposit_requests_user_created_at ON deposit_requests(user_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_withdraw_requests_user_created_at ON withdraw_requests(user_id, created_at DESC);
-  `);
-
   console.log('DB Tables Ready');
 }
 
@@ -306,21 +294,6 @@ async function ensureLiveUpdatesSeeded() {
     );
   }
 }
-
-async function getLiveUpdatesRow() {
-  const result = await pool.query(`SELECT * FROM live_updates ORDER BY id ASC LIMIT 1`);
-  if (result.rows.length) return result.rows[0];
-
-  const inserted = await pool.query(
-    `INSERT INTO live_updates (payment_method, offer)
-     VALUES ($1, $2)
-     RETURNING *`,
-    [JSON.stringify({ upiId: '', qrCodeImage: '', bankAccount: '' }), '']
-  );
-
-  return inserted.rows[0];
-}
-
 
 async function getUser(userId) {
   const result = await pool.query(`SELECT * FROM users WHERE id = $1 LIMIT 1`, [userId]);
@@ -988,20 +961,11 @@ app.post('/api/deposit-request', async (req, res) => {
     if (!screenshot) return res.status(400).json({ error: 'Screenshot proof required' });
 
     const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.username);
-    const insertResult = await pool.query(
+    await pool.query(
       `INSERT INTO deposit_requests (user_id, username, amount, method, utr, screenshot, status, archived, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,'pending',false,$7,NULL)
-       RETURNING id`,
+       VALUES ($1,$2,$3,$4,$5,$6,'pending',false,$7,NULL)`,
       [user.id, user.username, amount, method, utr, screenshotUrl, nowMs()]
     );
-
-    await addTransaction(user.id, 'deposit_request', 0, {
-      requestId: Number(insertResult.rows[0].id),
-      amount,
-      method,
-      utr: utr || '',
-      screenshot: screenshotUrl || ''
-    });
 
     return res.json({
       success: true,
@@ -1049,22 +1013,13 @@ app.post('/api/withdrawal-request', async (req, res) => {
       return res.status(400).json({ error: 'You already have a pending withdraw request' });
     }
 
-    const insertResult = await pool.query(
+    await pool.query(
       `INSERT INTO withdraw_requests (
         user_id, username, amount, method, upi_id, details, status, archived, created_at, updated_at
       )
-      VALUES ($1,$2,$3,$4,$5,$6,'pending',false,$7,NULL)
-      RETURNING id`,
+      VALUES ($1,$2,$3,$4,$5,$6,'pending',false,$7,NULL)`,
       [user.id, user.username, amount, method, upiId, JSON.stringify(details || {}), nowMs()]
     );
-
-    await addTransaction(user.id, 'withdraw_request', 0, {
-      requestId: Number(insertResult.rows[0].id),
-      amount,
-      method,
-      upiId,
-      details: details || {}
-    });
 
     return res.json({
       success: true,
@@ -1078,7 +1033,8 @@ app.post('/api/withdrawal-request', async (req, res) => {
 });
 
 app.get('/api/live-updates', async (req, res) => {
-  const row = await getLiveUpdatesRow();
+  const result = await pool.query(`SELECT * FROM live_updates ORDER BY id ASC LIMIT 1`);
+  const row = result.rows[0] || null;
   const liveUpdates = row
     ? {
         paymentMethod: toJson(row.payment_method, { upiId: '', qrCodeImage: '', bankAccount: '' }),
@@ -1090,7 +1046,8 @@ app.get('/api/live-updates', async (req, res) => {
 });
 
 app.get('/api/admin/live-updates', adminOnly, async (req, res) => {
-  const row = await getLiveUpdatesRow();
+  const result = await pool.query(`SELECT * FROM live_updates ORDER BY id ASC LIMIT 1`);
+  const row = result.rows[0] || null;
   const liveUpdates = row
     ? {
         paymentMethod: toJson(row.payment_method, { upiId: '', qrCodeImage: '', bankAccount: '' }),
@@ -1106,7 +1063,8 @@ app.post('/api/admin/live-updates', adminOnly, async (req, res) => {
     const section = String(req.body?.section || '').trim();
     const type = String(req.body?.type || '').trim();
 
-    const row = await getLiveUpdatesRow();
+    const result = await pool.query(`SELECT * FROM live_updates ORDER BY id ASC LIMIT 1`);
+    const row = result.rows[0];
     let paymentMethod = toJson(row?.payment_method, { upiId: '', qrCodeImage: '', bankAccount: '' });
     let offer = String(row?.offer || '');
 
@@ -1360,13 +1318,6 @@ app.post('/api/admin/deposit-requests/action', adminOnly, async (req, res) => {
       if (action === 'approve') {
         await incrementUserFields(user.id, { wallet_balance: Number(request.amount || 0) });
         await addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
-          requestId: Number(request.id),
-          adminId: Number(req.user.id)
-        });
-      }
-
-      if (action === 'reject') {
-        await addTransaction(user.id, 'deposit_rejected', 0, {
           requestId: Number(request.id),
           adminId: Number(req.user.id)
         });
@@ -1645,7 +1596,6 @@ app.get('/api/wallet-history', async (req, res) => {
     const hiddenTxTypes = new Set([
       'deposit_request',
       'withdraw_request',
-      'deposit_rejected',
       'withdrawal_approved',
       'withdraw_rejected_refund',
       'withdraw_rejected'
