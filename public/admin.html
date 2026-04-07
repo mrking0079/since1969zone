@@ -1255,7 +1255,7 @@ async function copyHistoryUserData() {
   }
 }
 
-async function deleteHistoryUser(username) {
+async function deleteHistoryUser(userId, username) {
   const token = localStorage.getItem('adminSessionToken') || '';
   const output = document.getElementById('output');
   const backupBeforeDelete = document.getElementById('backupBeforeDelete');
@@ -1283,7 +1283,7 @@ async function deleteHistoryUser(username) {
         'Content-Type': 'application/json'
       }),
       body: JSON.stringify({
-        username,
+        userId,
         backupBeforeDelete: shouldBackup
       })
     });
@@ -1460,7 +1460,7 @@ async function loadUserHistory() {
     Backup before delete
   </label>
 
-  <button onclick="deleteHistoryUser('${user.username}')" style="margin-bottom:0;background:#dc2626;color:#fff;">
+  <button onclick="deleteHistoryUser(${user.id}, '${user.username}')" style="margin-bottom:0;background:#dc2626;color:#fff;">
     Delete User ID
   </button>
 </div>
