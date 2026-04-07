@@ -1890,31 +1890,41 @@ async function loadWalletHistory() {
     els.walletHistoryEmpty.style.display = 'none';
 
     els.walletHistoryList.innerHTML = items.map(item => {
-      const dateText = item.createdAt
-        ? new Date(item.createdAt).toLocaleString()
-        : '-';
+  const dateText = item.createdAt
+    ? new Date(item.createdAt).toLocaleString()
+    : '-';
 
-      const isCredit = item.direction === 'credit';
+  const isCredit = item.direction === 'credit';
+  const status = String(item.status || '').toLowerCase();
+  const statusLabel = item.statusLabel || '';
+  const statusColor = status === 'approved'
+    ? '#2ecc71'
+    : status === 'rejected'
+      ? '#ff5c5c'
+      : status === 'pending'
+        ? '#ffd700'
+        : '#aaaaaa';
 
-      return `
-        <div style="padding:14px;border-radius:14px;background:#111;border:1px solid #333;">
-          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-            <div>
-              <div style="font-size:16px;font-weight:800;color:#fff;">${item.title || 'Wallet Activity'}</div>
-              <div style="font-size:13px;color:#aaaaaa;margin-top:4px;">${item.details || '-'}</div>
-            </div>
-
-            <div style="font-size:18px;font-weight:900;color:${isCredit ? '#2ecc71' : '#ff5c5c'};">
-              ${isCredit ? '+' : '-'}${formatCoins(item.amount || 0)}
-            </div>
-          </div>
-
-          <div style="margin-top:10px;font-size:12px;color:#888;">
-            ${dateText}
-          </div>
+  return `
+    <div style="padding:14px;border-radius:14px;background:#111;border:1px solid #333;">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#fff;">${item.title || 'Wallet Activity'}</div>
+          <div style="font-size:13px;color:#aaaaaa;margin-top:4px;">${item.details || '-'}</div>
+          ${statusLabel ? `<div style="font-size:13px;font-weight:800;color:${statusColor};margin-top:6px;">${statusLabel}</div>` : ''}
         </div>
-      `;
-    }).join('');
+
+        <div style="font-size:18px;font-weight:900;color:${isCredit ? '#2ecc71' : '#ff5c5c'};">
+          ${isCredit ? '+' : '-'}${formatCoins(item.amount || 0)}
+        </div>
+      </div>
+
+      <div style="margin-top:10px;font-size:12px;color:#888;">
+        ${dateText}
+      </div>
+    </div>
+  `;
+}).join('');
   } catch (error) {
     if (els.walletHistoryEmpty) {
       els.walletHistoryEmpty.style.display = 'block';
