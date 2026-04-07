@@ -1295,7 +1295,7 @@ function formatTime(ms) {
 async function api(url, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
-    ...(options.header || {})
+    ...(options.headers || {})
   };
 
   if (currentUser?.sessionToken) {
