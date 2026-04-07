@@ -1028,7 +1028,6 @@ async function forceSettleRound() {
   }
 }
 
-<script>
 async function handleDepositRequest(requestId, action, requestType = 'deposit') {
   const token = localStorage.getItem('adminSessionToken') || '';
   const output = document.getElementById('output');
@@ -1070,7 +1069,6 @@ async function handleDepositRequest(requestId, action, requestType = 'deposit') 
     output.textContent = `Failed to update ${requestType} request: ` + err.message;
   }
 }
-</script>
 
 async function loadDepositRequests(requestType = 'deposit') {
   const token = localStorage.getItem('adminSessionToken') || '';
@@ -1606,8 +1604,20 @@ if (!currentAdminKey) {
   document.body.innerHTML = '<div style="color:#fff;text-align:center;padding:40px;font-family:Arial;">Not found</div>';
   throw new Error('Admin key missing');
 }
-    checkAdminLogin();
+
+checkAdminLogin();
 loadDashboardStats();
+refreshRequestCounts();
+
+if (localStorage.getItem('adminSessionToken')) {
+  if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+  if (depositRefreshInterval) clearInterval(depositRefreshInterval);
+
+  dashboardRefreshInterval = setInterval(loadDashboardStats, 10000);
+  depositRefreshInterval = setInterval(() => {
+    refreshRequestCounts();
+  }, 10000);
+}
   </script>
 <div style="width:100%;text-align:center;padding:18px 12px;color:#ffd700;font-size:14px;font-weight:700;letter-spacing:0.5px;background:#050505;border-top:1px solid rgba(255,215,0,0.12);margin-top:20px;">
   ®️Since 1969 Zone Designed by - MrKinG
