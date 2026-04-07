@@ -1849,7 +1849,6 @@ app.get('/api/wallet-history', (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // 1) Request rows (Deposit + Withdrawal)
     const requestItems = [
       ...(db.deposit_requests || [])
         .filter(request => request.user_id === user.id)
@@ -1884,9 +1883,6 @@ app.get('/api/wallet-history', (req, res) => {
         }))
     ];
 
-    // 2) Hide duplicate tx rows
-    // Deposit Approved should remain visible (Deposit = B)
-    // Withdrawal Approved should be hidden (Withdrawal = A)
     const hiddenTxTypes = new Set([
       'deposit_request',
       'withdraw_request',
@@ -1895,7 +1891,6 @@ app.get('/api/wallet-history', (req, res) => {
       'withdraw_rejected'
     ]);
 
-    // 3) Normal wallet transaction rows
     const transactionItems = (db.transactions || [])
       .filter(tx => tx.user_id === user.id && !hiddenTxTypes.has(String(tx.type || '')))
       .map(tx => {
@@ -1941,11 +1936,7 @@ app.get('/api/wallet-history', (req, res) => {
       });
 
     const items = [...requestItems, ...transactionItems]
-      .sort((a, b) => {
-        const aTime = Number(a.createdAt || 0);
-        const bTime = Number(b.createdAt || 0);
-        return bTime - aTime;
-      })
+      .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
       .slice(0, 200)
       .map(item => ({
         ...item,
