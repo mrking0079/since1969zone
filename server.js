@@ -1152,7 +1152,13 @@ app.post('/api/deposit-request', async (req, res) => {
     };
 
     db.deposit_requests.push(request);
-    saveData(db);
+
+    addTransaction(user.id, 'deposit_request', 0, {
+     requestId: request.id,
+     method,
+     utr,
+     screenshot: screenshotUrl
+    });
 
     return res.json({
       success: true,
@@ -1850,18 +1856,21 @@ app.get('/api/wallet-history', (req, res) => {
         const amount = Math.abs(Number(tx.amount || 0));
         const direction = Number(tx.amount || 0) >= 0 ? 'credit' : 'debit';
 
-        if (tx.type === 'deposit_approved') {
-          title = 'Deposit Approved';
-          details = 'Coins added by admin approval';
+        if (tx.type === 'deposit_request') {
+            title = 'Deposit Request';
+            details = tx.meta?.utr ? `UTR: ${tx.meta.utr}` : 'Deposit request submitted';
+        } else if (tx.type === 'deposit_approved') {
+            title = 'Deposit Approved';
+            details = 'Coins added by admin approval';
         } else if (tx.type === 'withdrawal_approved') {
-          title = 'Withdrawal Approved';
-          details = 'Coins sent by admin approval';
+           title = 'Withdrawal Approved';
+           details = 'Coins sent by admin approval';
         } else if (tx.type === 'bet_debit') {
-          title = 'Bet Placed / Loss';
-          details = tx.meta?.roundId ? `Round ID: ${tx.meta.roundId}` : 'Bet amount deducted';
+           title = 'Bet Placed / Loss';
+           details = tx.meta?.roundId ? `Round ID: ${tx.meta.roundId}` : 'Bet amount deducted';
         } else if (tx.type === 'win_credit') {
           title = 'Winning Credit';
-          details = tx.meta?.luckyNumber !== undefined ? `Lucky Number: ${tx.meta.luckyNumber}` : 'Winning amount added';
+           details = tx.meta?.luckyNumber !== undefined ? `Lucky Number: ${tx.meta.luckyNumber}` : 'Winning amount added';
         } else if (tx.type === 'bonus_credit') {
           title = 'Daily Bonus';
           details = 'Bonus credited';
