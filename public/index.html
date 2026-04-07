@@ -1895,6 +1895,7 @@ async function loadWalletHistory() {
     : '-';
 
   const isCredit = item.direction === 'credit';
+  const isDepositRequest = String(item.title || '').toLowerCase() === 'deposit request';
   const status = String(item.status || '').toLowerCase();
   const statusLabel = item.statusLabel || '';
   const statusColor = status === 'approved'
@@ -1904,6 +1905,12 @@ async function loadWalletHistory() {
       : status === 'pending'
         ? '#ffd700'
         : '#aaaaaa';
+  const amountColor = isDepositRequest
+    ? '#ffd700'
+    : (isCredit ? '#2ecc71' : '#ff5c5c');
+  const amountPrefix = isDepositRequest
+    ? ''
+    : (isCredit ? '+' : '-');
 
   return `
   <div style="padding:14px;border-radius:14px;background:#111;border:1px solid #333;">
@@ -1913,9 +1920,9 @@ async function loadWalletHistory() {
         <div style="font-size:13px;color:#aaaaaa;margin-top:4px;">${item.details || '-'}</div>
       </div>
 
-      <div style="text-align:right;">
-        <div style="font-size:18px;font-weight:900;color:${isCredit ? '#2ecc71' : '#ff5c5c'};">
-          ${isCredit ? '+' : '-'}${formatCoins(item.amount || 0)}
+      <div style="text-align:right;min-width:120px;">
+        <div style="font-size:18px;font-weight:900;color:${amountColor};">
+          ${amountPrefix}${formatCoins(item.amount || 0)}
         </div>
         ${statusLabel ? `<div style="font-size:13px;font-weight:800;color:${statusColor};margin-top:6px;">${statusLabel}</div>` : ''}
       </div>

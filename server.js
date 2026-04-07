@@ -1,3 +1,4 @@
+
 import crypto from 'crypto';
 import express from 'express';
 import helmet from 'helmet';
@@ -15,9 +16,7 @@ const __dirname = path.dirname(__filename);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false }
 });
 
 cloudinary.config({
@@ -38,12 +37,9 @@ const BONUS_AMOUNT = 50;
 const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const PAYOUT_MULTIPLIER = 8;
 const DEMO_USER_ID = 1;
-const DATA_FILE = path.join(__dirname, 'data.json');
 const DELETED_USERS_FILE = path.join(__dirname, 'deleted-users.json');
 
-app.use(helmet({
-  contentSecurityPolicy: false
-}));
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '20mb' }));
 app.use(rateLimit({
   windowMs: 60 * 1000,
@@ -64,17 +60,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get(ADMIN_ROUTE, (req, res) => {
   const key = String(req.query.key || '').trim();
-
   if (!ADMIN_KEY || key !== ADMIN_KEY) {
     return res.status(404).send('Not found');
   }
-
   return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.get('/admin.html', (req, res) => {
-  return res.status(404).send('Not found');
-});
+app.get('/admin.html', (req, res) => res.status(404).send('Not found'));
 
 function nowMs() {
   return Date.now();
@@ -95,17 +87,10 @@ function hashPassword(password) {
 function isPasswordMatch(user, plainPassword) {
   const entered = String(plainPassword || '');
   const stored = String(user?.password || '');
-
-  if (!stored) {
-    return false;
-  }
-
-  // New hashed password format
+  if (!stored) return false;
   if (stored.startsWith('sha256$')) {
     return stored === `sha256$${hashPassword(entered)}`;
   }
-
-  // Fallback for old plain-text users
   return stored === entered;
 }
 
@@ -117,57 +102,23 @@ function jsonParseSafe(value, fallback) {
   }
 }
 
-function createDefaultData() {
-  return {
-    users: [
-      {
-        id: 999,
-        username: 'admin',
-        password: `sha256$${hashPassword('admin123')}`,
-        session_token: '',
-        wallet_balance: 0,
-        total_played: 0,
-        total_wins: 0,
-        bonus_claimed: 0,
-        last_bonus_time: 0,
-        blocked: false,
-        is_admin: true,
-        created_at: nowMs()
-      },
-      {
-        id: DEMO_USER_ID,
-        username: 'demo-user',
-        wallet_balance: 1000,
-        total_played: 0,
-        total_wins: 0,
-        bonus_claimed: 0,
-        last_bonus_time: 0,
-        blocked: false,
-        is_admin: false,
-        created_at: nowMs()
-      }
-    ],
-    rounds: [],
-        bets: [],
-    deposit_requests: [],
-    withdraw_requests: [],
-    transactions: [],
-    live_updates: {
-      paymentMethod: {
-        upiId: '',
-        qrCodeImage: '',
-        bankAccount: ''
-      },
-      offer: ''
-    },
-    counters: {
-      roundId: 1,
-      betId: 1,
-      transactionId: 1,
-      depositRequestId: 1,
-      withdrawRequestId: 1
-    }
-  };
+function loadDeletedUsersData() {
+  if (!fs.existsSync(DELETED_USERS_FILE)) {
+    fs.writeFileSync(DELETED_USERS_FILE, JSON.stringify({ deletedUsers: [] }, null, 2), 'utf8');
+    return { deletedUsers: [] };
+  }
+  try {
+    const raw = fs.readFileSync(DELETED_USERS_FILE, 'utf8');
+    const parsed = jsonParseSafe(raw, { deletedUsers: [] });
+    if (!Array.isArray(parsed.deletedUsers)) parsed.deletedUsers = [];
+    return parsed;
+  } catch {
+    return { deletedUsers: [] };
+  }
+}
+
+function saveDeletedUsersData(data) {
+  fs.writeFileSync(DELETED_USERS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
 async function testDB() {
@@ -180,425 +131,147 @@ async function testDB() {
 }
 
 async function initDatabase() {
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id BIGSERIAL PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        session_token TEXT DEFAULT '',
-        wallet_balance NUMERIC DEFAULT 0,
-        total_played NUMERIC DEFAULT 0,
-        total_wins NUMERIC DEFAULT 0,
-        bonus_claimed INTEGER DEFAULT 0,
-        last_bonus_time BIGINT DEFAULT 0,
-        blocked BOOLEAN DEFAULT FALSE,
-        is_admin BOOLEAN DEFAULT FALSE,
-        created_at BIGINT NOT NULL
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS rounds (
-        id BIGSERIAL PRIMARY KEY,
-        round_number BIGINT NOT NULL,
-        starts_at BIGINT NOT NULL,
-        betting_closes_at BIGINT NOT NULL,
-        ends_at BIGINT NOT NULL,
-        status TEXT NOT NULL,
-        server_seed TEXT NOT NULL,
-        server_seed_hash TEXT NOT NULL,
-        client_seed TEXT NOT NULL,
-        lucky_number INTEGER,
-        settled_at BIGINT,
-        created_at BIGINT NOT NULL
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS bets (
-        id BIGSERIAL PRIMARY KEY,
-        round_id BIGINT NOT NULL,
-        user_id BIGINT NOT NULL,
-        bet_map JSONB NOT NULL,
-        total_coins NUMERIC NOT NULL,
-        matched_number INTEGER,
-        payout NUMERIC DEFAULT 0,
-        result TEXT DEFAULT 'pending',
-        created_at BIGINT NOT NULL
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS deposit_requests (
-        id BIGSERIAL PRIMARY KEY,
-        user_id BIGINT NOT NULL,
-        username TEXT NOT NULL,
-        amount NUMERIC NOT NULL,
-        method TEXT DEFAULT '',
-        utr TEXT DEFAULT '',
-        screenshot TEXT DEFAULT '',
-        status TEXT DEFAULT 'pending',
-        archived BOOLEAN DEFAULT FALSE,
-        created_at BIGINT NOT NULL,
-        updated_at BIGINT
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS withdraw_requests (
-        id BIGSERIAL PRIMARY KEY,
-        user_id BIGINT NOT NULL,
-        username TEXT NOT NULL,
-        amount NUMERIC NOT NULL,
-        method TEXT DEFAULT '',
-        details JSONB DEFAULT '{}'::jsonb,
-        status TEXT DEFAULT 'pending',
-        archived BOOLEAN DEFAULT FALSE,
-        created_at BIGINT NOT NULL,
-        updated_at BIGINT
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS transactions (
-        id BIGSERIAL PRIMARY KEY,
-        user_id BIGINT NOT NULL,
-        type TEXT NOT NULL,
-        amount NUMERIC NOT NULL,
-        meta JSONB DEFAULT '{}'::jsonb,
-        created_at BIGINT NOT NULL
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS live_updates (
-        id BIGSERIAL PRIMARY KEY,
-        payment_method JSONB DEFAULT '{}'::jsonb,
-        offer TEXT DEFAULT ''
-      );
-    `);
-
-    console.log('DB Tables Ready');
-  } catch (err) {
-    console.error('DB Init Error:', err);
-  }
-}
-
-function loadData() {
-  if (!fs.existsSync(DATA_FILE)) {
-    const defaultData = createDefaultData();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(defaultData, null, 2), 'utf8');
-    return defaultData;
-  }
-
-  try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf8');
-    return jsonParseSafe(raw, createDefaultData());
-  } catch {
-    return createDefaultData();
-  }
-}
-
-function saveData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-}
-
-function loadDeletedUsersData() {
-  if (!fs.existsSync(DELETED_USERS_FILE)) {
-    fs.writeFileSync(DELETED_USERS_FILE, JSON.stringify({ deletedUsers: [] }, null, 2), 'utf8');
-    return { deletedUsers: [] };
-  }
-
-  try {
-    const raw = fs.readFileSync(DELETED_USERS_FILE, 'utf8');
-    const parsed = jsonParseSafe(raw, { deletedUsers: [] });
-
-    if (!Array.isArray(parsed.deletedUsers)) {
-      parsed.deletedUsers = [];
-    }
-
-    return parsed;
-  } catch {
-    return { deletedUsers: [] };
-  }
-}
-
-function saveDeletedUsersData(data) {
-  fs.writeFileSync(DELETED_USERS_FILE, JSON.stringify(data, null, 2), 'utf8');
-}
-
-let db = loadData();
-
-if (!Array.isArray(db.users)) {
-  db.users = [];
-}
-
-db.users = db.users.map(user => {
-  const normalizedUser = {
-    blocked: false,
-    is_admin: false,
-    ...user
-  };
-
-  if (typeof normalizedUser.password === 'string' && normalizedUser.password && !normalizedUser.password.startsWith('sha256$')) {
-    normalizedUser.password = `sha256$${hashPassword(normalizedUser.password)}`;
-  }
-
-  return normalizedUser;
-});
-
-if (!Array.isArray(db.deposit_requests)) {
-  db.deposit_requests = [];
-}
-
-if (!Array.isArray(db.transactions)) {
-  db.transactions = [];
-}
-
-if (!Array.isArray(db.rounds)) {
-  db.rounds = [];
-}
-
-if (!Array.isArray(db.withdraw_requests)) {
-  db.withdraw_requests = [];
-}
-
-if (!Array.isArray(db.bets)) {
-  db.bets = [];
-}
-
-if (!db.live_updates) {
-  db.live_updates = {};
-}
-
-if (!db.live_updates.paymentMethod) {
-  db.live_updates.paymentMethod = {};
-}
-
-if (typeof db.live_updates.paymentMethod.upiId !== 'string') {
-  db.live_updates.paymentMethod.upiId = '';
-}
-
-if (typeof db.live_updates.paymentMethod.qrCodeImage !== 'string') {
-  db.live_updates.paymentMethod.qrCodeImage = '';
-}
-
-if (typeof db.live_updates.paymentMethod.bankAccount !== 'string') {
-  db.live_updates.paymentMethod.bankAccount = '';
-}
-
-if (typeof db.live_updates.offer !== 'string') {
-  db.live_updates.offer = '';
-}
-
-if (!db.counters) {
-  db.counters = {};
-}
-
-if (typeof db.counters.roundId !== 'number') {
-  db.counters.roundId = 1;
-}
-
-if (typeof db.counters.betId !== 'number') {
-  db.counters.betId = 1;
-}
-
-if (typeof db.counters.transactionId !== 'number') {
-  db.counters.transactionId = 1;
-}
-
-if (typeof db.counters.depositRequestId !== 'number') {
-  db.counters.depositRequestId = 1;
-}
-
-if (typeof db.counters.withdrawRequestId !== 'number') {
-  db.counters.withdrawRequestId = 1;
-}
-
-const existingAdmin = db.users.find(
-  u => String(u.username || '').toLowerCase() === 'admin'
-);
-
-if (existingAdmin) {
-  existingAdmin.is_admin = true;
-
-  if (typeof existingAdmin.blocked !== 'boolean') {
-    existingAdmin.blocked = false;
-  }
-
-  if (typeof existingAdmin.password === 'string' && !existingAdmin.password.startsWith('sha256$')) {
-    existingAdmin.password = `sha256$${hashPassword(existingAdmin.password)}`;
-  }
-}
-
-const hasAnyAdmin = db.users.some(u => u.is_admin === true);
-
-if (!hasAnyAdmin) {
-  db.users.unshift({
-    id: 999,
-    username: 'admin',
-    password: `sha256$${hashPassword('admin123')}`,
-    session_token: '',
-    wallet_balance: 0,
-    total_played: 0,
-    total_wins: 0,
-    bonus_claimed: 0,
-    last_bonus_time: 0,
-    blocked: false,
-    is_admin: true,
-    created_at: nowMs()
-  });
-}
-
-saveData(db);
-
-async function getUser(userId) {
-  const result = await pool.query(
-    `SELECT * FROM users WHERE id = $1 LIMIT 1`,
-    [userId]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function getUserByUsername(username) {
-  const result = await pool.query(
-    `SELECT * FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
-    [String(username || '').trim()]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function getUserBySessionToken(token) {
-  const result = await pool.query(
-    `SELECT * FROM users WHERE session_token = $1 LIMIT 1`,
-    [String(token || '').trim()]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function updateUserSessionToken(userId, sessionToken) {
-  await pool.query(
-    `UPDATE users SET session_token = $1 WHERE id = $2`,
-    [sessionToken, userId]
-  );
-}
-
-async function createUserRecord({ username, password, walletBalance = 1000, isAdmin = false }) {
-  const createdAt = nowMs();
-
-  const result = await pool.query(
-    `INSERT INTO users (
-      username,
-      password,
-      session_token,
-      wallet_balance,
-      total_played,
-      total_wins,
-      bonus_claimed,
-      last_bonus_time,
-      blocked,
-      is_admin,
-      created_at
-    )
-    VALUES ($1,$2,$3,$4,0,0,0,0,false,$5,$6)
-    RETURNING *`,
-    [
-      username,
-      password,
-      crypto.randomUUID(),
-      walletBalance,
-      isAdmin,
-      createdAt
-    ]
-  );
-
-  return result.rows[0];
-}
-
-async function updateUserWalletAndStats(userId, fields = {}) {
-  const updates = [];
-  const values = [];
-  let index = 1;
-
-  for (const [key, value] of Object.entries(fields)) {
-    updates.push(`${key} = $${index++}`);
-    values.push(value);
-  }
-
-  if (!updates.length) return;
-
-  values.push(userId);
-
-  await pool.query(
-    `UPDATE users SET ${updates.join(', ')} WHERE id = $${index}`,
-    values
-  );
-}
-
-async function incrementUserFields(userId, increments = {}) {
-  const updates = [];
-  const values = [];
-  let index = 1;
-
-  for (const [key, value] of Object.entries(increments)) {
-    updates.push(`${key} = COALESCE(${key}, 0) + $${index++}`);
-    values.push(value);
-  }
-
-  if (!updates.length) return;
-
-  values.push(userId);
-
-  await pool.query(
-    `UPDATE users SET ${updates.join(', ')} WHERE id = $${index}`,
-    values
-  );
-}
-
-async function setUserBlockedStatus(userId, blocked) {
-  await pool.query(
-    `UPDATE users SET blocked = $1 WHERE id = $2`,
-    [Boolean(blocked), userId]
-  );
-}
-
-async function deleteUserById(userId) {
-  await pool.query(
-    `DELETE FROM users WHERE id = $1`,
-    [userId]
-  );
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id BIGSERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      session_token TEXT DEFAULT '',
+      wallet_balance NUMERIC DEFAULT 0,
+      total_played NUMERIC DEFAULT 0,
+      total_wins NUMERIC DEFAULT 0,
+      bonus_claimed INTEGER DEFAULT 0,
+      last_bonus_time BIGINT DEFAULT 0,
+      blocked BOOLEAN DEFAULT FALSE,
+      is_admin BOOLEAN DEFAULT FALSE,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS rounds (
+      id BIGSERIAL PRIMARY KEY,
+      round_number BIGINT NOT NULL,
+      round_code TEXT DEFAULT '',
+      starts_at BIGINT NOT NULL,
+      betting_closes_at BIGINT NOT NULL,
+      ends_at BIGINT NOT NULL,
+      status TEXT NOT NULL,
+      server_seed TEXT NOT NULL,
+      server_seed_hash TEXT NOT NULL,
+      client_seed TEXT NOT NULL,
+      lucky_number INTEGER,
+      settled_at BIGINT,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS bets (
+      id BIGSERIAL PRIMARY KEY,
+      round_id BIGINT NOT NULL,
+      user_id BIGINT NOT NULL,
+      bet_map JSONB NOT NULL,
+      total_coins NUMERIC NOT NULL,
+      matched_number INTEGER,
+      payout NUMERIC DEFAULT 0,
+      result TEXT DEFAULT 'pending',
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS deposit_requests (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      username TEXT NOT NULL,
+      amount NUMERIC NOT NULL,
+      method TEXT DEFAULT '',
+      utr TEXT DEFAULT '',
+      screenshot TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending',
+      archived BOOLEAN DEFAULT FALSE,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT
+    );
+
+    CREATE TABLE IF NOT EXISTS withdraw_requests (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      username TEXT NOT NULL,
+      amount NUMERIC NOT NULL,
+      method TEXT DEFAULT '',
+      upi_id TEXT DEFAULT '',
+      details JSONB DEFAULT '{}'::jsonb,
+      status TEXT DEFAULT 'pending',
+      archived BOOLEAN DEFAULT FALSE,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT
+    );
+
+    CREATE TABLE IF NOT EXISTS transactions (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      type TEXT NOT NULL,
+      amount NUMERIC NOT NULL,
+      meta JSONB DEFAULT '{}'::jsonb,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS live_updates (
+      id BIGSERIAL PRIMARY KEY,
+      payment_method JSONB DEFAULT '{}'::jsonb,
+      offer TEXT DEFAULT ''
+    );
+  `);
+
+  await pool.query(`
+    ALTER TABLE rounds ADD COLUMN IF NOT EXISTS round_code TEXT DEFAULT '';
+    ALTER TABLE withdraw_requests ADD COLUMN IF NOT EXISTS upi_id TEXT DEFAULT '';
+  `);
+
+  console.log('DB Tables Ready');
 }
 
 async function ensureUsersSeeded() {
-  for (const user of db.users || []) {
-    const username = String(user.username || '').trim();
-    if (!username) continue;
+  const seedUsers = [
+    {
+      id: 999,
+      username: 'admin',
+      password: `sha256$${hashPassword('admin123')}`,
+      session_token: '',
+      wallet_balance: 0,
+      total_played: 0,
+      total_wins: 0,
+      bonus_claimed: 0,
+      last_bonus_time: 0,
+      blocked: false,
+      is_admin: true,
+      created_at: nowMs()
+    },
+    {
+      id: DEMO_USER_ID,
+      username: 'demo-user',
+      password: '',
+      session_token: '',
+      wallet_balance: 1000,
+      total_played: 0,
+      total_wins: 0,
+      bonus_claimed: 0,
+      last_bonus_time: 0,
+      blocked: false,
+      is_admin: false,
+      created_at: nowMs()
+    }
+  ];
 
+  for (const user of seedUsers) {
     await pool.query(
       `INSERT INTO users (
-        id,
-        username,
-        password,
-        session_token,
-        wallet_balance,
-        total_played,
-        total_wins,
-        bonus_claimed,
-        last_bonus_time,
-        blocked,
-        is_admin,
-        created_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+        id, username, password, session_token, wallet_balance, total_played, total_wins,
+        bonus_claimed, last_bonus_time, blocked, is_admin, created_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       ON CONFLICT (username) DO NOTHING`,
       [
-        Number(user.id),
-        username,
-        String(user.password || ''),
-        String(user.session_token || ''),
+        user.id,
+        user.username,
+        user.password,
+        user.session_token,
         Number(user.wallet_balance || 0),
         Number(user.total_played || 0),
         Number(user.total_wins || 0),
@@ -612,142 +285,230 @@ async function ensureUsersSeeded() {
   }
 }
 
+async function ensureLiveUpdatesSeeded() {
+  const result = await pool.query(`SELECT id FROM live_updates LIMIT 1`);
+  if (!result.rows.length) {
+    await pool.query(
+      `INSERT INTO live_updates (payment_method, offer) VALUES ($1, $2)`,
+      [JSON.stringify({ upiId: '', qrCodeImage: '', bankAccount: '' }), '']
+    );
+  }
+}
+
+async function getUser(userId) {
+  const result = await pool.query(`SELECT * FROM users WHERE id = $1 LIMIT 1`, [userId]);
+  return result.rows[0] || null;
+}
+
+async function getUserByUsername(username) {
+  const result = await pool.query(
+    `SELECT * FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+    [String(username || '').trim()]
+  );
+  return result.rows[0] || null;
+}
+
+async function getUserBySessionToken(token) {
+  const result = await pool.query(`SELECT * FROM users WHERE session_token = $1 LIMIT 1`, [String(token || '').trim()]);
+  return result.rows[0] || null;
+}
+
+async function updateUserSessionToken(userId, sessionToken) {
+  await pool.query(`UPDATE users SET session_token = $1 WHERE id = $2`, [sessionToken, userId]);
+}
+
+async function createUserRecord({ username, password, walletBalance = 1000, isAdmin = false }) {
+  const createdAt = nowMs();
+  const result = await pool.query(
+    `INSERT INTO users (
+      username, password, session_token, wallet_balance, total_played, total_wins,
+      bonus_claimed, last_bonus_time, blocked, is_admin, created_at
+    )
+    VALUES ($1,$2,$3,$4,0,0,0,0,false,$5,$6)
+    RETURNING *`,
+    [username, password, crypto.randomUUID(), walletBalance, isAdmin, createdAt]
+  );
+  return result.rows[0];
+}
+
+async function updateUserFields(userId, fields = {}) {
+  const updates = [];
+  const values = [];
+  let index = 1;
+  for (const [key, value] of Object.entries(fields)) {
+    updates.push(`${key} = $${index++}`);
+    values.push(value);
+  }
+  if (!updates.length) return;
+  values.push(userId);
+  await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${index}`, values);
+}
+
+async function incrementUserFields(userId, increments = {}) {
+  const updates = [];
+  const values = [];
+  let index = 1;
+  for (const [key, value] of Object.entries(increments)) {
+    updates.push(`${key} = COALESCE(${key}, 0) + $${index++}`);
+    values.push(value);
+  }
+  if (!updates.length) return;
+  values.push(userId);
+  await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${index}`, values);
+}
+
+async function setUserBlockedStatus(userId, blocked) {
+  await pool.query(`UPDATE users SET blocked = $1 WHERE id = $2`, [Boolean(blocked), userId]);
+}
+
+async function deleteUserById(userId) {
+  await pool.query(`DELETE FROM users WHERE id = $1`, [userId]);
+}
+
 async function getUserIdFromReq(req) {
   const token = String(req.header('x-auth-token') || '').trim();
-
-  if (!token) {
-    return null;
-  }
-
+  if (!token) return null;
   const user = await getUserBySessionToken(token);
-  if (!user) {
-    return null;
-  }
-
-  return Number(user.id);
+  return user ? Number(user.id) : null;
 }
 
 async function adminOnly(req, res, next) {
   try {
     const userId = await getUserIdFromReq(req);
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Login required' });
-    }
-
+    if (!userId) return res.status(401).json({ error: 'Login required' });
     const user = await getUser(userId);
-
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-
-    if (user.is_admin !== true) {
-      return res.status(403).json({ error: 'Admin access only' });
-    }
-
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    if (user.is_admin !== true) return res.status(403).json({ error: 'Admin access only' });
     req.user = user;
     next();
   } catch (error) {
+    console.error('ADMIN AUTH ERROR:', error);
     return res.status(500).json({ error: 'Admin auth failed' });
   }
 }
 
-function getCurrentRound() {
-  const active = db.rounds
-    .filter(r => r.status === 'open' || r.status === 'closed')
-    .sort((a, b) => b.round_number - a.round_number);
-  return active[0] || null;
+function toJson(value, fallback = {}) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'object') return value;
+  return jsonParseSafe(value, fallback);
 }
 
-function getLastSettledRound() {
-  const settled = db.rounds
-    .filter(r => r.status === 'settled')
-    .sort((a, b) => b.round_number - a.round_number);
-  return settled[0] || null;
+function buildRoundCode(roundNumber, startsAt) {
+  const dateObj = new Date(startsAt);
+  const year = String(dateObj.getFullYear());
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const displayRoundNumber = ((roundNumber - 1) % 50000) + 1;
+  return `${year}${month}${day}${String(displayRoundNumber).padStart(5, '0')}`;
 }
 
-function getLast10SettledRounds() {
-  return db.rounds
-    .filter(r => r.status === 'settled' && r.lucky_number !== null && r.lucky_number !== undefined)
-    .sort((a, b) => b.round_number - a.round_number)
-    .slice(0, 10)
-    .map(round => ({
-      roundNumber: round.round_number,
-      luckyNumber: round.lucky_number
-    }));
+async function getCurrentRound() {
+  const result = await pool.query(
+    `SELECT * FROM rounds
+     WHERE status IN ('open','closed')
+     ORDER BY round_number DESC
+     LIMIT 1`
+  );
+  return result.rows[0] || null;
 }
 
-function getBetForRound(userId, roundId) {
-  return db.bets.find(b => b.user_id === userId && b.round_id === roundId) || null;
+async function getLastSettledRound() {
+  const result = await pool.query(
+    `SELECT * FROM rounds
+     WHERE status = 'settled'
+     ORDER BY round_number DESC
+     LIMIT 1`
+  );
+  return result.rows[0] || null;
 }
 
-function getRecentHistory(userId = null, limit = 500) {
-  const settledRounds = db.rounds
-    .filter(r => r.status === 'settled')
-    .sort((a, b) => b.round_number - a.round_number)
-    .slice(0, limit);
+async function getLast10SettledRounds() {
+  const result = await pool.query(
+    `SELECT round_number, lucky_number
+     FROM rounds
+     WHERE status = 'settled' AND lucky_number IS NOT NULL
+     ORDER BY round_number DESC
+     LIMIT 10`
+  );
+  return result.rows.map(row => ({
+    roundNumber: Number(row.round_number),
+    luckyNumber: Number(row.lucky_number)
+  }));
+}
+
+async function getBetForRound(userId, roundId) {
+  const result = await pool.query(
+    `SELECT * FROM bets WHERE user_id = $1 AND round_id = $2 LIMIT 1`,
+    [userId, roundId]
+  );
+  const row = result.rows[0] || null;
+  if (!row) return null;
+  row.bet_map = toJson(row.bet_map, {});
+  return row;
+}
+
+async function getRecentHistory(userId = null, limit = 500) {
+  const roundsResult = await pool.query(
+    `SELECT * FROM rounds
+     WHERE status = 'settled'
+     ORDER BY round_number DESC
+     LIMIT $1`,
+    [limit]
+  );
+  const settledRounds = roundsResult.rows;
+
+  let betMapByRound = new Map();
+  if (userId) {
+    const betsResult = await pool.query(
+      `SELECT * FROM bets WHERE user_id = $1`,
+      [userId]
+    );
+    for (const row of betsResult.rows) {
+      row.bet_map = toJson(row.bet_map, {});
+      betMapByRound.set(Number(row.round_id), row);
+    }
+  }
 
   return settledRounds.map(round => {
-    const userBet = userId
-      ? db.bets.find(b => b.user_id === userId && b.round_id === round.id)
-      : null;
-
+    const userBet = userId ? betMapByRound.get(Number(round.id)) : null;
     const betSummary = userBet
-      ? Object.entries(userBet.bet_map || {})
-          .map(([num, amt]) => `${num}:${amt}`)
-          .join(', ')
+      ? Object.entries(userBet.bet_map || {}).map(([num, amt]) => `${num}:${amt}`).join(', ')
       : '-';
 
     return {
-      round_number: round.round_number,
-      round_code: round.round_code || `${new Date(round.starts_at).getFullYear()}${String(new Date(round.starts_at).getMonth() + 1).padStart(2, '0')}${String(new Date(round.starts_at).getDate()).padStart(2, '0')}${String((((round.round_number || 1) - 1) % 50000) + 1).padStart(5, '0')}`,
-      lucky_number: round.lucky_number,
+      round_number: Number(round.round_number),
+      round_code: round.round_code || buildRoundCode(Number(round.round_number || 1), Number(round.starts_at)),
+      lucky_number: round.lucky_number === null ? null : Number(round.lucky_number),
       bet_map: userBet ? userBet.bet_map : {},
       bet_display: betSummary || '-',
       result: userBet ? userBet.result || '-' : '-',
-      payout: userBet && Number(userBet.payout) !== 0 ? userBet.payout : '-',
+      payout: userBet && Number(userBet.payout) !== 0 ? Number(userBet.payout) : '-',
       isWinner: userBet ? userBet.result === 'win' : false,
-      total_coins: userBet ? userBet.total_coins : 0,
+      total_coins: userBet ? Number(userBet.total_coins || 0) : 0,
       hasBet: Boolean(userBet)
     };
   });
 }
 
-function createRound(roundNumber, startsAt) {
+async function createRound(roundNumber, startsAt) {
   const bettingClosesAt = startsAt + (ROUND_SECONDS - BETTING_CLOSE_SECONDS) * 1000;
   const endsAt = startsAt + ROUND_SECONDS * 1000;
   const serverSeed = randomHex(32);
   const clientSeed = `round-${roundNumber}-public-demo-seed`;
   const serverSeedHash = sha256(serverSeed);
+  const roundCode = buildRoundCode(roundNumber, startsAt);
 
-  const dateObj = new Date(startsAt);
-  const year = String(dateObj.getFullYear());
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  const datePart = `${year}${month}${day}`;
+  const result = await pool.query(
+    `INSERT INTO rounds (
+      round_number, round_code, starts_at, betting_closes_at, ends_at, status,
+      server_seed, server_seed_hash, client_seed, lucky_number, settled_at, created_at
+    )
+    VALUES ($1,$2,$3,$4,$5,'open',$6,$7,$8,NULL,NULL,$9)
+    RETURNING *`,
+    [roundNumber, roundCode, startsAt, bettingClosesAt, endsAt, serverSeed, serverSeedHash, clientSeed, nowMs()]
+  );
 
-  const displayRoundNumber = ((roundNumber - 1) % 50000) + 1;
-  const roundCode = `${datePart}${String(displayRoundNumber).padStart(5, '0')}`;
-
-  const round = {
-    id: db.counters.roundId++,
-    round_number: roundNumber,
-    round_code: roundCode,
-    starts_at: startsAt,
-    betting_closes_at: bettingClosesAt,
-    ends_at: endsAt,
-    status: 'open',
-    server_seed: serverSeed,
-    server_seed_hash: serverSeedHash,
-    client_seed: clientSeed,
-    lucky_number: null,
-    settled_at: null,
-    created_at: nowMs()
-  };
-
-  db.rounds.push(round);
-  saveData(db);
-  return round;
+  return result.rows[0];
 }
 
 function computeLuckyNumber(serverSeed, clientSeed, roundNumber) {
@@ -759,75 +520,87 @@ function computeLuckyNumber(serverSeed, clientSeed, roundNumber) {
 function getStatusForRound(round) {
   const now = nowMs();
   if (!round) return 'waiting';
-  if (now < round.betting_closes_at) return 'open';
-  if (now < round.ends_at) return 'closed';
+  if (now < Number(round.betting_closes_at)) return 'open';
+  if (now < Number(round.ends_at)) return 'closed';
   return 'awaiting_settlement';
 }
+
+async function addTransaction(userId, type, amount, meta = {}) {
+  await pool.query(
+    `INSERT INTO transactions (user_id, type, amount, meta, created_at)
+     VALUES ($1,$2,$3,$4,$5)`,
+    [userId, type, amount, JSON.stringify(meta || {}), nowMs()]
+  );
+}
+
 async function settleRoundTx(roundId) {
-  const round = db.rounds.find(r => r.id === roundId);
+  const roundResult = await pool.query(`SELECT * FROM rounds WHERE id = $1 LIMIT 1`, [roundId]);
+  const round = roundResult.rows[0] || null;
   if (!round) throw new Error('Round not found');
   if (round.status === 'settled') throw new Error('Round already settled');
-  if (nowMs() < round.ends_at) throw new Error('Round timer not finished yet');
+  if (nowMs() < Number(round.ends_at)) throw new Error('Round timer not finished yet');
 
-  const luckyNumber = computeLuckyNumber(round.server_seed, round.client_seed, round.round_number);
+  const luckyNumber = computeLuckyNumber(round.server_seed, round.client_seed, Number(round.round_number));
 
-  round.status = 'settled';
-  round.lucky_number = luckyNumber;
-  round.settled_at = nowMs();
+  await pool.query(
+    `UPDATE rounds
+     SET status = 'settled', lucky_number = $1, settled_at = $2
+     WHERE id = $3`,
+    [luckyNumber, nowMs(), round.id]
+  );
 
-  const bets = db.bets.filter(b => b.round_id === round.id);
-
-  for (const bet of bets) {
-    const matchedAmount = Number(bet.bet_map[String(luckyNumber)] || 0);
+  const betsResult = await pool.query(`SELECT * FROM bets WHERE round_id = $1`, [round.id]);
+  for (const bet of betsResult.rows) {
+    const betMap = toJson(bet.bet_map, {});
+    const matchedAmount = Number(betMap[String(luckyNumber)] || 0);
     const payout = matchedAmount > 0 ? matchedAmount * PAYOUT_MULTIPLIER : 0;
     const result = payout > 0 ? 'win' : 'lose';
 
-    bet.matched_number = luckyNumber;
-    bet.payout = payout;
-    bet.result = result;
+    await pool.query(
+      `UPDATE bets
+       SET matched_number = $1, payout = $2, result = $3
+       WHERE id = $4`,
+      [luckyNumber, payout, result, bet.id]
+    );
 
     if (payout > 0) {
-      const user = await getUser(bet.user_id);
-      if (user) {
-        await incrementUserFields(bet.user_id, {
-          wallet_balance: payout,
-          total_wins: 1
-        });
-      }
+      await incrementUserFields(Number(bet.user_id), {
+        wallet_balance: payout,
+        total_wins: 1
+      });
 
-      addTransaction(bet.user_id, 'win_credit', payout, {
-        roundId: round.id,
+      await addTransaction(Number(bet.user_id), 'win_credit', payout, {
+        roundId: Number(round.id),
         luckyNumber
       });
     }
   }
-
-  saveData(db);
 }
 
 async function ensureActiveRound() {
-  const latest = [...db.rounds].sort((a, b) => b.round_number - a.round_number)[0];
+  const result = await pool.query(`SELECT * FROM rounds ORDER BY round_number DESC LIMIT 1`);
+  const latest = result.rows[0] || null;
   const now = nowMs();
 
   if (!latest) {
-    return createRound(1, now);
+    return await createRound(1, now);
   }
 
   if (latest.status !== 'settled') {
-    if (latest.status === 'open' && now >= latest.betting_closes_at) {
+    if (latest.status === 'open' && now >= Number(latest.betting_closes_at)) {
+      await pool.query(`UPDATE rounds SET status = 'closed' WHERE id = $1`, [latest.id]);
       latest.status = 'closed';
-      saveData(db);
     }
 
-    if (now >= latest.ends_at) {
+    if (now >= Number(latest.ends_at)) {
       await settleRoundTx(latest.id);
-      return createRound(latest.round_number + 1, nowMs());
+      return await createRound(Number(latest.round_number) + 1, nowMs());
     }
 
     return latest;
   }
 
-  return createRound(latest.round_number + 1, now);
+  return await createRound(Number(latest.round_number) + 1, now);
 }
 
 async function createNextRoundIfNeeded() {
@@ -840,7 +613,7 @@ async function syncRoundState() {
 
 async function buildGameState(userId = DEMO_USER_ID) {
   const round = await syncRoundState();
-  const user = await getUser(userId);
+  const user = userId ? await getUser(userId) : null;
 
   if (!user) {
     return {
@@ -854,11 +627,11 @@ async function buildGameState(userId = DEMO_USER_ID) {
         lastBonusTime: null
       },
       round: round ? {
-        id: round.id,
-        roundNumber: round.round_number,
-        startsAt: round.starts_at,
-        bettingClosesAt: round.betting_closes_at,
-        endsAt: round.ends_at,
+        id: Number(round.id),
+        roundNumber: Number(round.round_number),
+        startsAt: Number(round.starts_at),
+        bettingClosesAt: Number(round.betting_closes_at),
+        endsAt: Number(round.ends_at),
         status: getStatusForRound(round),
         serverSeedHash: round.server_seed_hash,
         clientSeed: round.client_seed,
@@ -866,61 +639,57 @@ async function buildGameState(userId = DEMO_USER_ID) {
       } : null,
       placedBet: null,
       lastSettledRound: null,
-      last10LuckyNumbers: getLast10SettledRounds(),
+      last10LuckyNumbers: await getLast10SettledRounds(),
       history: []
     };
   }
 
-  const placedBet = round ? getBetForRound(userId, round.id) : null;
-  const lastSettled = getLastSettledRound();
-  const history = getRecentHistory(userId);
-  const depositRequests = (db.deposit_requests || []).filter(
-    request => request.user_id === user.id
-  );
+  const placedBet = round ? await getBetForRound(Number(user.id), Number(round.id)) : null;
+  const lastSettled = await getLastSettledRound();
+  const history = await getRecentHistory(Number(user.id));
 
-    const withdrawRequests = (db.withdraw_requests || []).filter(
-    request => request.user_id === user.id
-  );
+  const depositResult = await pool.query(`SELECT * FROM deposit_requests WHERE user_id = $1 ORDER BY created_at DESC`, [user.id]);
+  const withdrawResult = await pool.query(`SELECT * FROM withdraw_requests WHERE user_id = $1 ORDER BY created_at DESC`, [user.id]);
 
   return {
     user: {
-      id: user.id,
+      id: Number(user.id),
       username: user.username,
-      walletBalance: user.wallet_balance,
-      totalPlayed: user.total_played,
-      totalWins: user.total_wins,
-      bonusClaimed: user.bonus_claimed,
-      lastBonusTime: user.last_bonus_time
+      walletBalance: Number(user.wallet_balance || 0),
+      totalPlayed: Number(user.total_played || 0),
+      totalWins: Number(user.total_wins || 0),
+      bonusClaimed: Number(user.bonus_claimed || 0),
+      lastBonusTime: Number(user.last_bonus_time || 0)
     },
     round: round ? {
-      id: round.id,
-      roundNumber: round.round_number,
-      startsAt: round.starts_at,
-      bettingClosesAt: round.betting_closes_at,
-      endsAt: round.ends_at,
+      id: Number(round.id),
+      roundNumber: Number(round.round_number),
+      startsAt: Number(round.starts_at),
+      bettingClosesAt: Number(round.betting_closes_at),
+      endsAt: Number(round.ends_at),
       status: getStatusForRound(round),
       serverSeedHash: round.server_seed_hash,
       clientSeed: round.client_seed,
       alreadyPlaced: Boolean(placedBet)
     } : null,
     placedBet: placedBet ? {
-      totalCoins: placedBet.total_coins,
-      betMap: placedBet.bet_map,
+      totalCoins: Number(placedBet.total_coins || 0),
+      betMap: toJson(placedBet.bet_map, {}),
       result: placedBet.result,
-      payout: placedBet.payout
+      payout: Number(placedBet.payout || 0)
     } : null,
     lastSettledRound: lastSettled ? {
-      roundNumber: lastSettled.round_number,
-      luckyNumber: lastSettled.lucky_number,
+      roundNumber: Number(lastSettled.round_number),
+      luckyNumber: Number(lastSettled.lucky_number),
       serverSeedHash: lastSettled.server_seed_hash,
       serverSeed: lastSettled.server_seed,
       clientSeed: lastSettled.client_seed,
-      settledAt: lastSettled.settled_at
+      settledAt: Number(lastSettled.settled_at || 0)
     } : null,
-    last10LuckyNumbers: getLast10SettledRounds(),
+    last10LuckyNumbers: await getLast10SettledRounds(),
     history,
-    depositRequests,
-    withdrawRequests
+    depositRequests: depositResult.rows,
+    withdrawRequests: withdrawResult.rows
   };
 }
 
@@ -928,52 +697,23 @@ function validateBetMap(betMap) {
   if (!betMap || typeof betMap !== 'object' || Array.isArray(betMap)) {
     return { ok: false, error: 'Invalid bet map' };
   }
-
   const keys = Object.keys(betMap);
-  if (keys.length === 0) {
-    return { ok: false, error: 'Select at least one number' };
-  }
-  if (keys.length > 10) {
-    return { ok: false, error: 'Too many selections' };
-  }
+  if (keys.length === 0) return { ok: false, error: 'Select at least one number' };
+  if (keys.length > 10) return { ok: false, error: 'Too many selections' };
 
   let total = 0;
   const sanitized = {};
-
   for (const key of keys) {
-    if (!/^\d$/.test(key)) {
-      return { ok: false, error: 'Only numbers 0 to 9 are allowed' };
-    }
+    if (!/^\d$/.test(key)) return { ok: false, error: 'Only numbers 0 to 9 are allowed' };
     const amount = Number(betMap[key]);
-    if (!Number.isInteger(amount) || amount <= 0) {
-      return { ok: false, error: 'Each bet amount must be a positive integer' };
-    }
-    if (amount > 10000) {
-      return { ok: false, error: 'Single number amount limit is 10000' };
-    }
+    if (!Number.isInteger(amount) || amount <= 0) return { ok: false, error: 'Each bet amount must be a positive integer' };
+    if (amount > 10000) return { ok: false, error: 'Single number amount limit is 10000' };
     total += amount;
     sanitized[key] = amount;
   }
-
-  if (total < 1) {
-    return { ok: false, error: 'Minimum total bet is 1 coin' };
-  }
-  if (total > 50000) {
-    return { ok: false, error: 'Maximum total bet is 50000 coins' };
-  }
-
+  if (total < 1) return { ok: false, error: 'Minimum total bet is 1 coin' };
+  if (total > 50000) return { ok: false, error: 'Maximum total bet is 50000 coins' };
   return { ok: true, sanitized, total };
-}
-
-function addTransaction(userId, type, amount, meta = {}) {
-  db.transactions.push({
-    id: db.counters.transactionId++,
-    user_id: userId,
-    type,
-    amount,
-    meta,
-    created_at: nowMs()
-  });
 }
 
 async function placeBetTx(userId, roundId, betMap, totalCoins) {
@@ -981,34 +721,26 @@ async function placeBetTx(userId, roundId, betMap, totalCoins) {
   if (!user) throw new Error('User not found');
   if (Number(user.wallet_balance || 0) < totalCoins) throw new Error('Insufficient wallet balance');
 
-  const existingBet = getBetForRound(userId, roundId);
+  const existingBet = await getBetForRound(userId, roundId);
   if (existingBet) throw new Error('Bet already placed for this round');
 
-  db.bets.push({
-    id: db.counters.betId++,
-    round_id: roundId,
-    user_id: userId,
-    bet_map: betMap,
-    total_coins: totalCoins,
-    matched_number: null,
-    payout: 0,
-    result: 'pending',
-    created_at: nowMs()
-  });
+  await pool.query(
+    `INSERT INTO bets (round_id, user_id, bet_map, total_coins, matched_number, payout, result, created_at)
+     VALUES ($1,$2,$3,$4,NULL,0,'pending',$5)`,
+    [roundId, userId, JSON.stringify(betMap), totalCoins, nowMs()]
+  );
 
   await incrementUserFields(userId, {
     wallet_balance: -totalCoins,
     total_played: totalCoins
   });
 
-  addTransaction(userId, 'bet_debit', -totalCoins, { roundId });
-  saveData(db);
+  await addTransaction(userId, 'bet_debit', -totalCoins, { roundId });
 }
 
 async function claimBonusTx(userId) {
   const user = await getUser(userId);
   if (!user) throw new Error('User not found');
-
   const current = nowMs();
   if (current - Number(user.last_bonus_time || 0) < BONUS_COOLDOWN_MS) {
     throw new Error('Bonus is not available yet');
@@ -1019,12 +751,8 @@ async function claimBonusTx(userId) {
     bonus_claimed: 1
   });
 
-  await updateUserWalletAndStats(userId, {
-    last_bonus_time: current
-  });
-
-  addTransaction(userId, 'bonus_credit', BONUS_AMOUNT, {});
-  saveData(db);
+  await updateUserFields(userId, { last_bonus_time: current });
+  await addTransaction(userId, 'bonus_credit', BONUS_AMOUNT, {});
 }
 
 app.post('/api/login', async (req, res) => {
@@ -1032,27 +760,13 @@ app.post('/api/login', async (req, res) => {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '').trim();
 
-    if (!username) {
-      return res.status(400).json({ error: 'Username required' });
-    }
-
-    if (!password) {
-      return res.status(400).json({ error: 'Password required' });
-    }
+    if (!username) return res.status(400).json({ error: 'Username required' });
+    if (!password) return res.status(400).json({ error: 'Password required' });
 
     const user = await getUserByUsername(username);
-
-    if (!user) {
-      return res.status(404).json({ error: 'Username does not exist. Please sign up first.' });
-    }
-
-    if (!isPasswordMatch(user, password)) {
-      return res.status(401).json({ error: 'Wrong password' });
-    }
-
-    if (user.blocked) {
-      return res.status(403).json({ error: 'Your account is blocked by admin' });
-    }
+    if (!user) return res.status(404).json({ error: 'Username does not exist. Please sign up first.' });
+    if (!isPasswordMatch(user, password)) return res.status(401).json({ error: 'Wrong password' });
+    if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
 
     const newSessionToken = crypto.randomUUID();
     await updateUserSessionToken(user.id, newSessionToken);
@@ -1060,7 +774,7 @@ app.post('/api/login', async (req, res) => {
     return res.json({
       success: true,
       user: {
-        id: user.id,
+        id: Number(user.id),
         username: user.username,
         sessionToken: newSessionToken,
         walletBalance: Number(user.wallet_balance || 0),
@@ -1082,31 +796,14 @@ app.post('/api/admin-login', adminLoginLimiter, async (req, res) => {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '').trim();
 
-    if (!ADMIN_KEY || adminKey !== ADMIN_KEY) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-
-    if (!username) {
-      return res.status(400).json({ error: 'Username required' });
-    }
-
-    if (!password) {
-      return res.status(400).json({ error: 'Password required' });
-    }
+    if (!ADMIN_KEY || adminKey !== ADMIN_KEY) return res.status(404).json({ error: 'Not found' });
+    if (!username) return res.status(400).json({ error: 'Username required' });
+    if (!password) return res.status(400).json({ error: 'Password required' });
 
     const user = await getUserByUsername(username);
-
-    if (!user || user.is_admin !== true) {
-      return res.status(401).json({ error: 'Admin account not found' });
-    }
-
-    if (user.blocked) {
-      return res.status(403).json({ error: 'Your account is blocked by admin' });
-    }
-
-    if (!isPasswordMatch(user, password)) {
-      return res.status(401).json({ error: 'Invalid admin password' });
-    }
+    if (!user || user.is_admin !== true) return res.status(401).json({ error: 'Admin account not found' });
+    if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
+    if (!isPasswordMatch(user, password)) return res.status(401).json({ error: 'Invalid admin password' });
 
     const newSessionToken = crypto.randomUUID();
     await updateUserSessionToken(user.id, newSessionToken);
@@ -1114,7 +811,7 @@ app.post('/api/admin-login', adminLoginLimiter, async (req, res) => {
     return res.json({
       success: true,
       user: {
-        id: user.id,
+        id: Number(user.id),
         username: user.username,
         sessionToken: newSessionToken,
         walletBalance: Number(user.wallet_balance || 0),
@@ -1136,19 +833,11 @@ app.post('/api/signup', async (req, res) => {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '').trim();
 
-    if (!username) {
-      return res.status(400).json({ error: 'Username required' });
-    }
-
-    if (!password) {
-      return res.status(400).json({ error: 'Password required' });
-    }
+    if (!username) return res.status(400).json({ error: 'Username required' });
+    if (!password) return res.status(400).json({ error: 'Password required' });
 
     const existingUser = await getUserByUsername(username);
-
-    if (existingUser) {
-      return res.status(409).json({ error: 'Username already exists' });
-    }
+    if (existingUser) return res.status(409).json({ error: 'Username already exists' });
 
     const user = await createUserRecord({
       username,
@@ -1161,7 +850,7 @@ app.post('/api/signup', async (req, res) => {
       success: true,
       message: 'Signup successful',
       user: {
-        id: user.id,
+        id: Number(user.id),
         username: user.username,
         sessionToken: user.session_token,
         walletBalance: Number(user.wallet_balance || 0),
@@ -1187,6 +876,7 @@ app.get('/api/state', async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
 app.post('/api/place-bet', async (req, res) => {
   try {
     const userId = await getUserIdFromReq(req);
@@ -1200,16 +890,13 @@ app.post('/api/place-bet', async (req, res) => {
     if (!round) return res.status(500).json({ error: 'No active round' });
 
     const status = getStatusForRound(round);
-    if (status !== 'open') {
-      return res.status(400).json({ error: 'Betting is closed for this round' });
-    }
+    if (status !== 'open') return res.status(400).json({ error: 'Betting is closed for this round' });
 
     const validation = validateBetMap(req.body?.betMap);
-    if (!validation.ok) {
-      return res.status(400).json({ error: validation.error });
-    }
+    if (!validation.ok) return res.status(400).json({ error: validation.error });
 
-    await placeBetTx(userId, round.id, validation.sanitized, validation.total);
+    await placeBetTx(userId, Number(round.id), validation.sanitized, validation.total);
+
     return res.json({
       success: true,
       message: 'Bet placed successfully',
@@ -1242,14 +929,8 @@ app.post('/api/claim-bonus', async (req, res) => {
 
 async function uploadDepositProofToCloudinary(base64Image, username) {
   const safeImage = String(base64Image || '').trim();
-
-  if (!safeImage) {
-    throw new Error('Screenshot image is missing');
-  }
-
-  if (!safeImage.startsWith('data:image/')) {
-    throw new Error('Invalid screenshot image format');
-  }
+  if (!safeImage) throw new Error('Screenshot image is missing');
+  if (!safeImage.startsWith('data:image/')) throw new Error('Invalid screenshot image format');
 
   const result = await cloudinary.uploader.upload(safeImage, {
     folder: 'since1969zone/deposit-proofs',
@@ -1274,45 +955,17 @@ app.post('/api/deposit-request', async (req, res) => {
     const utr = String(req.body?.utr || '').trim();
     const screenshot = String(req.body?.screenshot || '').trim();
 
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Valid deposit amount required' });
-    }
-
-    if (!method) {
-      return res.status(400).json({ error: 'Payment method required' });
-    }
-
-    if (!utr && !screenshot) {
-      return res.status(400).json({ error: 'Provide UTR or screenshot proof' });
-    }
-
-    if (!screenshot) {
-      return res.status(400).json({ error: 'Screenshot proof required' });
-    }
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Valid deposit amount required' });
+    if (!method) return res.status(400).json({ error: 'Payment method required' });
+    if (!utr && !screenshot) return res.status(400).json({ error: 'Provide UTR or screenshot proof' });
+    if (!screenshot) return res.status(400).json({ error: 'Screenshot proof required' });
 
     const screenshotUrl = await uploadDepositProofToCloudinary(screenshot, user.username);
-
-    const request = {
-      id: db.counters.depositRequestId++,
-      user_id: user.id,
-      username: user.username,
-      amount,
-      method,
-      utr,
-      screenshot: screenshotUrl,
-      status: 'pending',
-      created_at: nowMs(),
-      updated_at: null
-    };
-
-    db.deposit_requests.push(request);
-
-    addTransaction(user.id, 'deposit_request', 0, {
-     requestId: request.id,
-     method,
-     utr,
-     screenshot: screenshotUrl
-    });
+    await pool.query(
+      `INSERT INTO deposit_requests (user_id, username, amount, method, utr, screenshot, status, archived, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,'pending',false,$7,NULL)`,
+      [user.id, user.username, amount, method, utr, screenshotUrl, nowMs()]
+    );
 
     return res.json({
       success: true,
@@ -1338,76 +991,35 @@ app.post('/api/withdrawal-request', async (req, res) => {
     const details = req.body?.details || {};
     const upiId = String(details?.upiId || '').trim();
 
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Valid withdraw amount required' });
-    }
-
-    if (!method) {
-      return res.status(400).json({ error: 'Withdrawal method required' });
-    }
-
-    if (method === 'UPI' && !upiId) {
-      return res.status(400).json({ error: 'UPI ID required' });
-    }
-
-    if (method === 'QR Code' && !String(details?.qrImage || '').trim()) {
-      return res.status(400).json({ error: 'QR image required' });
-    }
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Valid withdraw amount required' });
+    if (!method) return res.status(400).json({ error: 'Withdrawal method required' });
+    if (method === 'UPI' && !upiId) return res.status(400).json({ error: 'UPI ID required' });
+    if (method === 'QR Code' && !String(details?.qrImage || '').trim()) return res.status(400).json({ error: 'QR image required' });
 
     if (method === 'Bank Account') {
-      if (!String(details?.bankHolderName || '').trim()) {
-        return res.status(400).json({ error: 'Bank holder name required' });
-      }
-
-      if (!String(details?.bankName || '').trim()) {
-        return res.status(400).json({ error: 'Bank name required' });
-      }
-
-      if (!String(details?.ifscCode || '').trim()) {
-        return res.status(400).json({ error: 'IFSC code required' });
-      }
-
-      if (!String(details?.accountNumber || '').trim()) {
-        return res.status(400).json({ error: 'Account number required' });
-      }
+      if (!String(details?.bankHolderName || '').trim()) return res.status(400).json({ error: 'Bank holder name required' });
+      if (!String(details?.bankName || '').trim()) return res.status(400).json({ error: 'Bank name required' });
+      if (!String(details?.ifscCode || '').trim()) return res.status(400).json({ error: 'IFSC code required' });
+      if (!String(details?.accountNumber || '').trim()) return res.status(400).json({ error: 'Account number required' });
     }
 
-    if (Number(user.wallet_balance || 0) < amount) {
-      return res.status(400).json({ error: 'Insufficient wallet balance' });
-    }
+    if (Number(user.wallet_balance || 0) < amount) return res.status(400).json({ error: 'Insufficient wallet balance' });
 
-    const hasPendingRequest = (db.withdraw_requests || []).some(
-      request => request.user_id === user.id && request.status === 'pending'
+    const pendingResult = await pool.query(
+      `SELECT id FROM withdraw_requests WHERE user_id = $1 AND status = 'pending' LIMIT 1`,
+      [user.id]
     );
-
-    if (hasPendingRequest) {
+    if (pendingResult.rows.length) {
       return res.status(400).json({ error: 'You already have a pending withdraw request' });
     }
 
-    const request = {
-      id: db.counters.withdrawRequestId++,
-      user_id: user.id,
-      username: user.username,
-      amount,
-      method,
-      details,
-      upiId,
-      status: 'pending',
-      created_at: nowMs(),
-      updated_at: null
-    };
-
-    db.withdraw_requests.push(request);
-
-    addTransaction(user.id, 'withdraw_request', 0, {
-      requestId: request.id,
-      method,
-      upiId,
-      details,
-      amount
-    });
-
-    saveData(db);
+    await pool.query(
+      `INSERT INTO withdraw_requests (
+        user_id, username, amount, method, upi_id, details, status, archived, created_at, updated_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,'pending',false,$7,NULL)`,
+      [user.id, user.username, amount, method, upiId, JSON.stringify(details || {}), nowMs()]
+    );
 
     return res.json({
       success: true,
@@ -1415,80 +1027,69 @@ app.post('/api/withdrawal-request', async (req, res) => {
       state: await buildGameState(userId)
     });
   } catch (error) {
+    console.error('WITHDRAW REQUEST ERROR:', error);
     return res.status(500).json({ error: error.message || 'Withdraw failed' });
   }
 });
 
-app.get('/api/live-updates', (req, res) => {
-  const liveUpdates = db.live_updates || {
-    paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' },
-    offer: ''
-  };
+app.get('/api/live-updates', async (req, res) => {
+  const result = await pool.query(`SELECT * FROM live_updates ORDER BY id ASC LIMIT 1`);
+  const row = result.rows[0] || null;
+  const liveUpdates = row
+    ? {
+        paymentMethod: toJson(row.payment_method, { upiId: '', qrCodeImage: '', bankAccount: '' }),
+        offer: String(row.offer || '')
+      }
+    : { paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' }, offer: '' };
 
-  return res.json({
-    success: true,
-    liveUpdates
-  });
+  return res.json({ success: true, liveUpdates });
 });
 
-app.get('/api/admin/live-updates', adminOnly, (req, res) => {
-  const liveUpdates = db.live_updates || {
-    paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' },
-    offer: ''
-  };
+app.get('/api/admin/live-updates', adminOnly, async (req, res) => {
+  const result = await pool.query(`SELECT * FROM live_updates ORDER BY id ASC LIMIT 1`);
+  const row = result.rows[0] || null;
+  const liveUpdates = row
+    ? {
+        paymentMethod: toJson(row.payment_method, { upiId: '', qrCodeImage: '', bankAccount: '' }),
+        offer: String(row.offer || '')
+      }
+    : { paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' }, offer: '' };
 
-  return res.json({
-    success: true,
-    liveUpdates
-  });
+  return res.json({ success: true, liveUpdates });
 });
 
-app.post('/api/admin/live-updates', adminOnly, (req, res) => {
+app.post('/api/admin/live-updates', adminOnly, async (req, res) => {
   try {
     const section = String(req.body?.section || '').trim();
     const type = String(req.body?.type || '').trim();
 
-    if (!db.live_updates) {
-      db.live_updates = {
-        paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' },
-        offer: ''
-      };
-    }
-
-    if (!db.live_updates.paymentMethod) {
-      db.live_updates.paymentMethod = {
-        upiId: '',
-        qrCodeImage: '',
-        bankAccount: ''
-      };
-    }
+    const result = await pool.query(`SELECT * FROM live_updates ORDER BY id ASC LIMIT 1`);
+    const row = result.rows[0];
+    let paymentMethod = toJson(row?.payment_method, { upiId: '', qrCodeImage: '', bankAccount: '' });
+    let offer = String(row?.offer || '');
 
     if (section === 'payment-method') {
-      if (type === 'upi-id') {
-        db.live_updates.paymentMethod.upiId = String(req.body?.upiId || '').trim();
-      }
-
-      if (type === 'qr-code') {
-        db.live_updates.paymentMethod.qrCodeImage = String(req.body?.qrCodeImage || '').trim();
-      }
-
-      if (type === 'bank-account') {
-        db.live_updates.paymentMethod.bankAccount = String(req.body?.bankAccount || '').trim();
-      }
+      if (type === 'upi-id') paymentMethod.upiId = String(req.body?.upiId || '').trim();
+      if (type === 'qr-code') paymentMethod.qrCodeImage = String(req.body?.qrCodeImage || '').trim();
+      if (type === 'bank-account') paymentMethod.bankAccount = String(req.body?.bankAccount || '').trim();
     }
 
     if (section === 'offer') {
-      db.live_updates.offer = String(req.body?.offer || '').trim();
+      offer = String(req.body?.offer || '').trim();
     }
 
-    saveData(db);
+    await pool.query(
+      `UPDATE live_updates SET payment_method = $1, offer = $2 WHERE id = $3`,
+      [JSON.stringify(paymentMethod), offer, row.id]
+    );
 
     return res.json({
       success: true,
       message: 'Live updates saved successfully',
-      liveUpdates: db.live_updates
+      liveUpdates: { paymentMethod, offer }
     });
   } catch (error) {
+    console.error('LIVE UPDATES SAVE ERROR:', error);
     return res.status(500).json({ error: 'Unable to save live updates' });
   }
 });
@@ -1497,7 +1098,7 @@ app.get('/api/admin/load-users', adminOnly, async (req, res) => {
   const result = await pool.query(
     `SELECT id, username, wallet_balance, total_played, total_wins, bonus_claimed, blocked, created_at
      FROM users
-     WHERE is_admin IS NOT TRUE
+     WHERE is_admin = false
      ORDER BY id DESC`
   );
 
@@ -1520,35 +1121,28 @@ app.post('/api/admin/add-coin', adminOnly, async (req, res) => {
     const userId = Number(req.body?.userId);
     const amount = Number(req.body?.amount);
 
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(400).json({ error: 'Valid userId required' });
-    }
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Valid amount required' });
-    }
+    if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Valid amount required' });
 
     const user = await getUser(userId);
-    if (!user || user.is_admin === true) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
 
-    await incrementUserFields(user.id, {
-      wallet_balance: amount
-    });
-    addTransaction(user.id, 'admin_add_coin', amount, { adminId: req.user.id });
-    saveData(db);
+    await incrementUserFields(user.id, { wallet_balance: amount });
+    await addTransaction(user.id, 'admin_add_coin', amount, { adminId: req.user.id });
+
+    const refreshed = await getUser(user.id);
 
     return res.json({
       success: true,
       message: `${amount} coins added to ${user.username}`,
       user: {
-        id: user.id,
-        username: user.username,
-        walletBalance: Number(user.wallet_balance || 0) + amount
+        id: Number(refreshed.id),
+        username: refreshed.username,
+        walletBalance: Number(refreshed.wallet_balance || 0)
       }
     });
   } catch (error) {
+    console.error('ADMIN ADD COIN ERROR:', error);
     return res.status(500).json({ error: 'Unable to add coins' });
   }
 });
@@ -1558,39 +1152,29 @@ app.post('/api/admin/withdraw-coin', adminOnly, async (req, res) => {
     const userId = Number(req.body?.userId);
     const amount = Number(req.body?.amount);
 
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(400).json({ error: 'Valid userId required' });
-    }
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Valid amount required' });
-    }
+    if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Valid amount required' });
 
     const user = await getUser(userId);
-    if (!user || user.is_admin === true) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
+    if (Number(user.wallet_balance || 0) < amount) return res.status(400).json({ error: 'User has insufficient balance' });
 
-    if (Number(user.wallet_balance || 0) < amount) {
-      return res.status(400).json({ error: 'User has insufficient balance' });
-    }
+    await incrementUserFields(user.id, { wallet_balance: -amount });
+    await addTransaction(user.id, 'admin_withdraw_coin', -amount, { adminId: req.user.id });
 
-    await incrementUserFields(user.id, {
-      wallet_balance: -amount
-    });
-    addTransaction(user.id, 'admin_withdraw_coin', -amount, { adminId: req.user.id });
-    saveData(db);
+    const refreshed = await getUser(user.id);
 
     return res.json({
       success: true,
       message: `${amount} coins removed from ${user.username}`,
       user: {
-        id: user.id,
-        username: user.username,
-        walletBalance: Number(user.wallet_balance || 0) - amount
+        id: Number(refreshed.id),
+        username: refreshed.username,
+        walletBalance: Number(refreshed.wallet_balance || 0)
       }
     });
   } catch (error) {
+    console.error('ADMIN WITHDRAW COIN ERROR:', error);
     return res.status(500).json({ error: 'Unable to withdraw coins' });
   }
 });
@@ -1598,19 +1182,13 @@ app.post('/api/admin/withdraw-coin', adminOnly, async (req, res) => {
 app.post('/api/admin/block-user', adminOnly, async (req, res) => {
   try {
     const userId = Number(req.body?.userId);
-
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(400).json({ error: 'Valid userId required' });
-    }
+    if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
 
     const user = await getUser(userId);
-    if (!user || user.is_admin === true) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
 
-    const nextBlocked = !user.blocked;
+    const nextBlocked = !Boolean(user.blocked);
     await setUserBlockedStatus(user.id, nextBlocked);
-    saveData(db);
 
     return res.json({
       success: true,
@@ -1618,22 +1196,18 @@ app.post('/api/admin/block-user', adminOnly, async (req, res) => {
       blocked: nextBlocked
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Unable to update block status' });
+    console.error('BLOCK USER ERROR:', error);
+    return res.status(500).json({ error: 'Failed to update block status' });
   }
 });
 
 app.post('/api/admin/delete-user', adminOnly, async (req, res) => {
   try {
     const userId = Number(req.body?.userId);
-
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(400).json({ error: 'Valid userId required' });
-    }
+    if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
 
     const user = await getUser(userId);
-    if (!user || user.is_admin === true) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
 
     const deletedUsersData = loadDeletedUsersData();
     deletedUsersData.deletedUsers.push({
@@ -1642,71 +1216,72 @@ app.post('/api/admin/delete-user', adminOnly, async (req, res) => {
     });
     saveDeletedUsersData(deletedUsersData);
 
+    await pool.query(`DELETE FROM bets WHERE user_id = $1`, [userId]);
+    await pool.query(`DELETE FROM transactions WHERE user_id = $1`, [userId]);
+    await pool.query(`DELETE FROM deposit_requests WHERE user_id = $1`, [userId]);
+    await pool.query(`DELETE FROM withdraw_requests WHERE user_id = $1`, [userId]);
     await deleteUserById(userId);
-
-    db.bets = db.bets.filter(b => b.user_id !== userId);
-    db.transactions = db.transactions.filter(t => t.user_id !== userId);
-    db.deposit_requests = db.deposit_requests.filter(r => r.user_id !== userId);
-    db.withdraw_requests = db.withdraw_requests.filter(r => r.user_id !== userId);
-
-    saveData(db);
 
     return res.json({
       success: true,
       message: `${user.username} deleted successfully`
     });
   } catch (error) {
+    console.error('DELETE USER ERROR:', error);
     return res.status(500).json({ error: 'Unable to delete user' });
   }
 });
 
 app.get('/api/admin/transaction-history', adminOnly, async (req, res) => {
-  const userRows = await pool.query(`SELECT id, username FROM users`);
-  const userMap = new Map(userRows.rows.map(row => [Number(row.id), row.username]));
-
-  const history = [...db.transactions]
-    .sort((a, b) => b.created_at - a.created_at)
-    .slice(0, 1000)
-    .map(item => ({
-      id: item.id,
-      userId: item.user_id,
-      username: userMap.get(Number(item.user_id)) || 'Deleted User',
+  const result = await pool.query(
+    `SELECT * FROM transactions ORDER BY created_at DESC LIMIT 1000`
+  );
+  const history = [];
+  for (const item of result.rows) {
+    const user = await getUser(item.user_id);
+    history.push({
+      id: Number(item.id),
+      userId: Number(item.user_id),
+      username: user?.username || 'Deleted User',
       type: item.type,
-      amount: item.amount,
-      meta: item.meta || {},
-      createdAt: item.created_at
-    }));
-
+      amount: Number(item.amount || 0),
+      meta: toJson(item.meta, {}),
+      createdAt: Number(item.created_at || 0)
+    });
+  }
   return res.json({ history });
 });
 
-app.get('/api/admin/deposit-requests', adminOnly, (req, res) => {
-  const depositRequests = [...(db.deposit_requests || [])].map(item => ({
-    id: item.id,
+app.get('/api/admin/deposit-requests', adminOnly, async (req, res) => {
+  const depositResult = await pool.query(`SELECT * FROM deposit_requests`);
+  const withdrawResult = await pool.query(`SELECT * FROM withdraw_requests`);
+
+  const depositRequests = depositResult.rows.map(item => ({
+    id: Number(item.id),
     type: 'deposit',
-    userId: item.user_id,
+    userId: Number(item.user_id),
     username: item.username,
-    amount: item.amount,
+    amount: Number(item.amount || 0),
     method: item.method || '',
     utr: item.utr || '',
     screenshot: item.screenshot || '',
     status: item.status,
-    createdAt: item.created_at,
-    updatedAt: item.updated_at || null
+    createdAt: Number(item.created_at || 0),
+    updatedAt: item.updated_at ? Number(item.updated_at) : null
   }));
 
-  const withdrawalRequests = [...(db.withdraw_requests || [])].map(item => ({
-    id: item.id,
+  const withdrawalRequests = withdrawResult.rows.map(item => ({
+    id: Number(item.id),
     type: 'withdrawal',
-    userId: item.user_id,
+    userId: Number(item.user_id),
     username: item.username,
-    amount: item.amount,
+    amount: Number(item.amount || 0),
     method: item.method || '',
-    withdrawal_details: item.details || {},
-    upiId: item.upiId || '',
+    withdrawal_details: toJson(item.details, {}),
+    upiId: item.upi_id || '',
     status: item.status,
-    createdAt: item.created_at,
-    updatedAt: item.updated_at || null
+    createdAt: Number(item.created_at || 0),
+    updatedAt: item.updated_at ? Number(item.updated_at) : null
   }));
 
   const requests = [...depositRequests, ...withdrawalRequests]
@@ -1721,130 +1296,105 @@ app.post('/api/admin/deposit-requests/action', adminOnly, async (req, res) => {
     const action = String(req.body?.action || '').trim().toLowerCase();
     const type = String(req.body?.type || '').trim().toLowerCase();
 
-    if (!Number.isInteger(requestId) || requestId <= 0) {
-      return res.status(400).json({ error: 'Valid requestId required' });
-    }
-
-    if (!['approve', 'reject'].includes(action)) {
-      return res.status(400).json({ error: 'Valid action required' });
-    }
-
-    if (!['deposit', 'withdrawal'].includes(type)) {
-      return res.status(400).json({ error: 'Valid request type required' });
-    }
+    if (!Number.isInteger(requestId) || requestId <= 0) return res.status(400).json({ error: 'Valid requestId required' });
+    if (!['approve', 'reject'].includes(action)) return res.status(400).json({ error: 'Valid action required' });
+    if (!['deposit', 'withdrawal'].includes(type)) return res.status(400).json({ error: 'Valid request type required' });
 
     if (type === 'deposit') {
-      const request = db.deposit_requests.find(r => r.id === requestId);
-      if (!request) {
-        return res.status(404).json({ error: 'Deposit request not found' });
-      }
-
-      if (request.status !== 'pending') {
-        return res.status(400).json({ error: 'This deposit request is already processed' });
-      }
+      const requestResult = await pool.query(`SELECT * FROM deposit_requests WHERE id = $1 LIMIT 1`, [requestId]);
+      const request = requestResult.rows[0];
+      if (!request) return res.status(404).json({ error: 'Deposit request not found' });
+      if (request.status !== 'pending') return res.status(400).json({ error: 'This deposit request is already processed' });
 
       const user = await getUser(request.user_id);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+      if (!user) return res.status(404).json({ error: 'User not found' });
 
-      request.status = action === 'approve' ? 'approved' : 'rejected';
-      request.updated_at = nowMs();
+      const nextStatus = action === 'approve' ? 'approved' : 'rejected';
+      await pool.query(
+        `UPDATE deposit_requests SET status = $1, updated_at = $2 WHERE id = $3`,
+        [nextStatus, nowMs(), request.id]
+      );
 
       if (action === 'approve') {
-        await incrementUserFields(user.id, {
-          wallet_balance: Number(request.amount || 0)
-        });
-        addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
-          requestId: request.id,
-          adminId: req.user.id
+        await incrementUserFields(user.id, { wallet_balance: Number(request.amount || 0) });
+        await addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
+          requestId: Number(request.id),
+          adminId: Number(req.user.id)
         });
       }
-
-      saveData(db);
 
       return res.json({
         success: true,
         message: action === 'approve'
           ? 'Deposit request approved successfully'
           : 'Deposit request rejected successfully',
-        request
+        request: { ...request, status: nextStatus, updated_at: nowMs() }
       });
     }
 
     if (type === 'withdrawal') {
-      const request = db.withdraw_requests.find(r => r.id === requestId);
-      if (!request) {
-        return res.status(404).json({ error: 'Withdrawal request not found' });
-      }
-
-      if (request.status !== 'pending') {
-        return res.status(400).json({ error: 'This withdrawal request is already processed' });
-      }
+      const requestResult = await pool.query(`SELECT * FROM withdraw_requests WHERE id = $1 LIMIT 1`, [requestId]);
+      const request = requestResult.rows[0];
+      if (!request) return res.status(404).json({ error: 'Withdrawal request not found' });
+      if (request.status !== 'pending') return res.status(400).json({ error: 'This withdrawal request is already processed' });
 
       const user = await getUser(request.user_id);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+      if (!user) return res.status(404).json({ error: 'User not found' });
 
       if (action === 'approve' && Number(user.wallet_balance || 0) < Number(request.amount || 0)) {
         return res.status(400).json({ error: 'User has insufficient wallet balance for approval' });
       }
 
-      request.status = action === 'approve' ? 'approved' : 'rejected';
-      request.updated_at = nowMs();
+      const nextStatus = action === 'approve' ? 'approved' : 'rejected';
+      await pool.query(
+        `UPDATE withdraw_requests SET status = $1, updated_at = $2 WHERE id = $3`,
+        [nextStatus, nowMs(), request.id]
+      );
 
       if (action === 'approve') {
-        await incrementUserFields(user.id, {
-          wallet_balance: -Number(request.amount || 0)
-        });
-        addTransaction(user.id, 'withdrawal_approved', -Number(request.amount || 0), {
-          requestId: request.id,
-          adminId: req.user.id,
+        await incrementUserFields(user.id, { wallet_balance: -Number(request.amount || 0) });
+        await addTransaction(user.id, 'withdrawal_approved', -Number(request.amount || 0), {
+          requestId: Number(request.id),
+          adminId: Number(req.user.id),
           method: request.method || '',
-          upiId: request.upiId || '',
-          details: request.details || {}
+          upiId: request.upi_id || '',
+          details: toJson(request.details, {})
         });
       }
 
       if (action === 'reject') {
-        addTransaction(user.id, 'withdraw_rejected', 0, {
-          requestId: request.id,
-          adminId: req.user.id,
+        await addTransaction(user.id, 'withdraw_rejected', 0, {
+          requestId: Number(request.id),
+          adminId: Number(req.user.id),
           method: request.method || '',
-          upiId: request.upiId || '',
-          details: request.details || {}
+          upiId: request.upi_id || '',
+          details: toJson(request.details, {})
         });
       }
-
-      saveData(db);
 
       return res.json({
         success: true,
         message: action === 'approve'
           ? 'Withdrawal request approved successfully'
           : 'Withdrawal request rejected successfully',
-        request
+        request: { ...request, status: nextStatus, updated_at: nowMs() }
       });
     }
 
     return res.status(400).json({ error: 'Invalid request type' });
   } catch (error) {
+    console.error('REQUEST ACTION ERROR:', error);
     return res.status(500).json({ error: 'Unable to update request' });
   }
 });
 
-app.get('/api/admin/dashboard-stats', adminOnly, (req, res) => {
+app.get('/api/admin/dashboard-stats', adminOnly, async (req, res) => {
   try {
-    const approvedDeposits = db.transactions
-      .filter(tx => tx.type === 'deposit_approved')
-      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    const dep = await pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'deposit_approved'`);
+    const wit = await pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'withdrawal_approved'`);
 
-    const approvedWithdrawals = Math.abs(
-      db.transactions
-        .filter(tx => tx.type === 'withdrawal_approved')
-        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
-    );
+    const approvedDeposits = Number(dep.rows[0]?.total || 0);
+    const approvedWithdrawals = Math.abs(Number(wit.rows[0]?.total || 0));
 
     return res.json({
       stats: {
@@ -1854,6 +1404,7 @@ app.get('/api/admin/dashboard-stats', adminOnly, (req, res) => {
       }
     });
   } catch (error) {
+    console.error('DASHBOARD STATS ERROR:', error);
     return res.status(500).json({ error: 'Unable to load dashboard stats' });
   }
 });
@@ -1861,21 +1412,20 @@ app.get('/api/admin/dashboard-stats', adminOnly, (req, res) => {
 app.get('/api/admin/current-round', adminOnly, async (req, res) => {
   try {
     const round = await syncRoundState();
-    if (!round) {
-      return res.status(404).json({ error: 'No active round found' });
-    }
+    if (!round) return res.status(404).json({ error: 'No active round found' });
 
-    const relatedBets = db.bets.filter(b => b.round_id === round.id);
+    const relatedBetsResult = await pool.query(`SELECT * FROM bets WHERE round_id = $1`, [round.id]);
+    const relatedBets = relatedBetsResult.rows;
 
     return res.json({
       round: {
-        id: round.id,
-        roundNumber: round.round_number,
+        id: Number(round.id),
+        roundNumber: Number(round.round_number),
         roundCode: round.round_code || '-',
         status: getStatusForRound(round),
-        startsAt: round.starts_at,
-        bettingClosesAt: round.betting_closes_at,
-        endsAt: round.ends_at,
+        startsAt: Number(round.starts_at),
+        bettingClosesAt: Number(round.betting_closes_at),
+        endsAt: Number(round.ends_at),
         serverSeedHash: round.server_seed_hash,
         clientSeed: round.client_seed,
         totalBets: relatedBets.length,
@@ -1883,26 +1433,23 @@ app.get('/api/admin/current-round', adminOnly, async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('CURRENT ROUND ERROR:', error);
     return res.status(500).json({ error: 'Unable to load current round' });
   }
 });
 
 app.post('/api/admin/force-settle-round', adminOnly, async (req, res) => {
   try {
-    const round = getCurrentRound();
-    if (!round) {
-      return res.status(404).json({ error: 'No active round found' });
-    }
+    const round = await getCurrentRound();
+    if (!round) return res.status(404).json({ error: 'No active round found' });
 
-    round.ends_at = Math.min(round.ends_at, nowMs());
+    await pool.query(`UPDATE rounds SET ends_at = LEAST(ends_at, $1) WHERE id = $2`, [nowMs(), round.id]);
     await settleRoundTx(round.id);
     await createNextRoundIfNeeded();
 
-    return res.json({
-      success: true,
-      message: 'Round settled successfully'
-    });
+    return res.json({ success: true, message: 'Round settled successfully' });
   } catch (error) {
+    console.error('FORCE SETTLE ERROR:', error);
     return res.status(400).json({ error: error.message || 'Unable to settle round' });
   }
 });
@@ -1910,74 +1457,67 @@ app.post('/api/admin/force-settle-round', adminOnly, async (req, res) => {
 app.get('/api/admin/user-history/:username', adminOnly, async (req, res) => {
   try {
     const username = String(req.params.username || '').trim();
-    if (!username) {
-      return res.status(400).json({ error: 'Username required' });
-    }
+    if (!username) return res.status(400).json({ error: 'Username required' });
 
     const user = await getUserByUsername(username);
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    const betsResult = await pool.query(`SELECT * FROM bets WHERE user_id = $1 ORDER BY created_at DESC`, [user.id]);
+    const roundsResult = await pool.query(`SELECT * FROM rounds`);
+    const roundMap = new Map(roundsResult.rows.map(r => [Number(r.id), r]));
 
-    const bets = db.bets
-      .filter(b => b.user_id === Number(user.id))
-      .sort((a, b) => b.created_at - a.created_at)
-      .map(bet => {
-        const round = db.rounds.find(r => r.id === bet.round_id);
-        return {
-          id: bet.id,
-          roundId: bet.round_id,
-          roundNumber: round?.round_number || null,
-          roundCode: round?.round_code || '-',
-          betMap: bet.bet_map || {},
-          totalCoins: bet.total_coins || 0,
-          matchedNumber: bet.matched_number,
-          payout: bet.payout || 0,
-          result: bet.result || '-',
-          createdAt: bet.created_at || null
-        };
-      });
+    const bets = betsResult.rows.map(bet => {
+      const round = roundMap.get(Number(bet.round_id));
+      return {
+        id: Number(bet.id),
+        roundId: Number(bet.round_id),
+        roundNumber: round ? Number(round.round_number) : null,
+        roundCode: round?.round_code || '-',
+        betMap: toJson(bet.bet_map, {}),
+        totalCoins: Number(bet.total_coins || 0),
+        matchedNumber: bet.matched_number === null ? null : Number(bet.matched_number),
+        payout: Number(bet.payout || 0),
+        result: bet.result || '-',
+        createdAt: Number(bet.created_at || 0)
+      };
+    });
 
-    const transactions = db.transactions
-      .filter(tx => tx.user_id === Number(user.id))
-      .sort((a, b) => b.created_at - a.created_at)
-      .map(tx => ({
-        id: tx.id,
-        type: tx.type,
-        amount: tx.amount,
-        meta: tx.meta || {},
-        createdAt: tx.created_at || null
-      }));
+    const txResult = await pool.query(`SELECT * FROM transactions WHERE user_id = $1 ORDER BY created_at DESC`, [user.id]);
+    const transactions = txResult.rows.map(tx => ({
+      id: Number(tx.id),
+      type: tx.type,
+      amount: Number(tx.amount || 0),
+      meta: toJson(tx.meta, {}),
+      createdAt: Number(tx.created_at || 0)
+    }));
 
-    const depositHistory = db.deposit_requests
-      .filter(r => r.user_id === Number(user.id))
-      .map(r => ({
-        id: r.id,
-        type: 'deposit',
-        amount: r.amount,
-        method: r.method || '',
-        utr: r.utr || '',
-        screenshot: r.screenshot || '',
-        status: r.status,
-        createdAt: r.created_at || null,
-        updatedAt: r.updated_at || null
-      }));
+    const depResult = await pool.query(`SELECT * FROM deposit_requests WHERE user_id = $1`, [user.id]);
+    const witResult = await pool.query(`SELECT * FROM withdraw_requests WHERE user_id = $1`, [user.id]);
 
-    const withdrawalHistory = db.withdraw_requests
-      .filter(r => r.user_id === Number(user.id))
-      .map(r => ({
-        id: r.id,
-        type: 'withdrawal',
-        amount: r.amount,
-        method: r.method || '',
-        utr: '',
-        screenshot: '',
-        status: r.status,
-        withdrawal_details: r.details || {},
-        createdAt: r.created_at || null,
-        updatedAt: r.updated_at || null
-      }));
+    const depositHistory = depResult.rows.map(r => ({
+      id: Number(r.id),
+      type: 'deposit',
+      amount: Number(r.amount || 0),
+      method: r.method || '',
+      utr: r.utr || '',
+      screenshot: r.screenshot || '',
+      status: r.status,
+      createdAt: Number(r.created_at || 0),
+      updatedAt: r.updated_at ? Number(r.updated_at) : null
+    }));
+
+    const withdrawalHistory = witResult.rows.map(r => ({
+      id: Number(r.id),
+      type: 'withdrawal',
+      amount: Number(r.amount || 0),
+      method: r.method || '',
+      utr: '',
+      screenshot: '',
+      status: r.status,
+      withdrawal_details: toJson(r.details, {}),
+      createdAt: Number(r.created_at || 0),
+      updatedAt: r.updated_at ? Number(r.updated_at) : null
+    }));
 
     const requests = [...depositHistory, ...withdrawalHistory]
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -1995,13 +1535,10 @@ app.get('/api/admin/user-history/:username', adminOnly, async (req, res) => {
         isAdmin: !!user.is_admin,
         createdAt: Number(user.created_at || 0)
       },
-      history: {
-        bets,
-        transactions,
-        requests
-      }
+      history: { bets, transactions, requests }
     });
   } catch (error) {
+    console.error('USER HISTORY ERROR:', error);
     return res.status(500).json({ error: 'Unable to load user history' });
   }
 });
@@ -2009,47 +1546,51 @@ app.get('/api/admin/user-history/:username', adminOnly, async (req, res) => {
 app.get('/api/wallet-history', async (req, res) => {
   try {
     const userId = await getUserIdFromReq(req);
-    if (!userId) {
-      return res.status(401).json({ error: 'Login required' });
-    }
+    if (!userId) return res.status(401).json({ error: 'Login required' });
 
     const user = await getUser(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const depResult = await pool.query(
+      `SELECT * FROM deposit_requests WHERE user_id = $1 ORDER BY created_at DESC`,
+      [user.id]
+    );
+    const witResult = await pool.query(
+      `SELECT * FROM withdraw_requests WHERE user_id = $1 ORDER BY created_at DESC`,
+      [user.id]
+    );
+    const txResult = await pool.query(
+      `SELECT * FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200`,
+      [user.id]
+    );
 
     const requestItems = [
-      ...(db.deposit_requests || [])
-        .filter(request => request.user_id === user.id)
-        .map(request => ({
-          id: `deposit-request-${request.id}`,
-          title: 'Deposit Request',
-          amount: Math.abs(Number(request.amount || 0)),
-          direction: 'debit',
-          details: request.utr
-            ? `UTR: ${request.utr}`
-            : (request.method ? `Method: ${request.method}` : 'Deposit request submitted'),
-          status: String(request.status || 'pending').toLowerCase(),
-          createdAt: request.created_at || null,
-          updatedAt: request.updated_at || null,
-          group: 'request'
-        })),
-
-      ...(db.withdraw_requests || [])
-        .filter(request => request.user_id === user.id)
-        .map(request => ({
-          id: `withdraw-request-${request.id}`,
-          title: 'Withdrawal Request',
-          amount: Math.abs(Number(request.amount || 0)),
-          direction: 'debit',
-          details: request.upiId
-            ? `UPI ID: ${request.upiId}`
-            : (request.method ? `Method: ${request.method}` : 'Withdrawal request submitted'),
-          status: String(request.status || 'pending').toLowerCase(),
-          createdAt: request.created_at || null,
-          updatedAt: request.updated_at || null,
-          group: 'request'
-        }))
+      ...depResult.rows.map(request => ({
+        id: `deposit-request-${request.id}`,
+        title: 'Deposit Request',
+        amount: Math.abs(Number(request.amount || 0)),
+        direction: 'request_deposit',
+        details: request.utr
+          ? `UTR: ${request.utr}`
+          : (request.method ? `Method: ${request.method}` : 'Deposit request submitted'),
+        status: String(request.status || 'pending').toLowerCase(),
+        createdAt: request.created_at ? Number(request.created_at) : null,
+        updatedAt: request.updated_at ? Number(request.updated_at) : null,
+        group: 'request'
+      })),
+      ...witResult.rows.map(request => ({
+        id: `withdraw-request-${request.id}`,
+        title: 'Withdrawal Request',
+        amount: Math.abs(Number(request.amount || 0)),
+        direction: 'debit',
+        details: request.upi_id
+          ? `UPI ID: ${request.upi_id}`
+          : (request.method ? `Method: ${request.method}` : 'Withdrawal request submitted'),
+        status: String(request.status || 'pending').toLowerCase(),
+        createdAt: request.created_at ? Number(request.created_at) : null,
+        updatedAt: request.updated_at ? Number(request.updated_at) : null,
+        group: 'request'
+      }))
     ];
 
     const hiddenTxTypes = new Set([
@@ -2060,9 +1601,10 @@ app.get('/api/wallet-history', async (req, res) => {
       'withdraw_rejected'
     ]);
 
-    const transactionItems = (db.transactions || [])
-      .filter(tx => tx.user_id === user.id && !hiddenTxTypes.has(String(tx.type || '')))
+    const transactionItems = txResult.rows
+      .filter(tx => !hiddenTxTypes.has(String(tx.type || '')))
       .map(tx => {
+        const meta = toJson(tx.meta, {});
         let title = 'Wallet Activity';
         let details = 'Wallet activity';
 
@@ -2074,12 +1616,10 @@ app.get('/api/wallet-history', async (req, res) => {
           details = 'Coins added by admin approval';
         } else if (tx.type === 'bet_debit') {
           title = 'Bet Placed / Loss';
-          details = tx.meta?.roundId ? `Round ID: ${tx.meta.roundId}` : 'Bet amount deducted';
+          details = meta.roundId ? `Round ID: ${meta.roundId}` : 'Bet amount deducted';
         } else if (tx.type === 'win_credit') {
           title = 'Winning Credit';
-          details = tx.meta?.luckyNumber !== undefined
-            ? `Lucky Number: ${tx.meta.luckyNumber}`
-            : 'Winning amount added';
+          details = meta.luckyNumber !== undefined ? `Lucky Number: ${meta.luckyNumber}` : 'Winning amount added';
         } else if (tx.type === 'bonus_credit') {
           title = 'Daily Bonus';
           details = 'Bonus credited';
@@ -2092,13 +1632,13 @@ app.get('/api/wallet-history', async (req, res) => {
         }
 
         return {
-          id: tx.id,
+          id: Number(tx.id),
           title,
           amount,
           direction,
           details,
           status: '',
-          createdAt: tx.created_at || null,
+          createdAt: tx.created_at ? Number(tx.created_at) : null,
           updatedAt: null,
           group: 'transaction'
         };
@@ -2114,10 +1654,7 @@ app.get('/api/wallet-history', async (req, res) => {
           : ''
       }));
 
-    return res.json({
-      success: true,
-      history: items
-    });
+    return res.json({ success: true, history: items });
   } catch (error) {
     console.error('WALLET HISTORY ERROR:', error);
     return res.status(500).json({ error: 'Failed to load wallet history' });
@@ -2127,31 +1664,34 @@ app.get('/api/wallet-history', async (req, res) => {
 /* Compatibility aliases for existing frontend/admin */
 app.post('/api/bet', (req, res) => app._router.handle({ ...req, url: '/api/place-bet', method: 'POST' }, res, () => {}));
 app.post('/api/bonus', (req, res) => app._router.handle({ ...req, url: '/api/claim-bonus', method: 'POST' }, res, () => {}));
-
 app.get('/api/admin/users', (req, res) => app._router.handle({ ...req, url: '/api/admin/load-users', method: 'GET' }, res, () => {}));
+
 app.post('/api/admin/add-coins', async (req, res) => {
   const username = String(req.body?.username || '').trim();
   const amount = req.body?.amount;
   const user = await getUserByUsername(username);
   if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
-  req.body = { userId: user.id, amount };
+  req.body = { userId: Number(user.id), amount };
   return app._router.handle({ ...req, url: '/api/admin/add-coin', method: 'POST' }, res, () => {});
 });
+
 app.post('/api/admin/withdraw-coins', async (req, res) => {
   const username = String(req.body?.username || '').trim();
   const amount = req.body?.amount;
   const user = await getUserByUsername(username);
   if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
-  req.body = { userId: user.id, amount };
+  req.body = { userId: Number(user.id), amount };
   return app._router.handle({ ...req, url: '/api/admin/withdraw-coin', method: 'POST' }, res, () => {});
 });
+
 app.post('/api/admin/toggle-block-user', async (req, res) => {
   const username = String(req.body?.username || '').trim();
   const user = await getUserByUsername(username);
   if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
-  req.body = { userId: user.id };
+  req.body = { userId: Number(user.id) };
   return app._router.handle({ ...req, url: '/api/admin/block-user', method: 'POST' }, res, () => {});
 });
+
 app.get('/api/admin/transactions', (req, res) => app._router.handle({ ...req, url: '/api/admin/transaction-history', method: 'GET' }, res, () => {}));
 app.post('/api/admin/settle', (req, res) => app._router.handle({ ...req, url: '/api/admin/force-settle-round', method: 'POST' }, res, () => {}));
 
@@ -2163,6 +1703,7 @@ app.get('*', (req, res) => {
   await testDB();
   await initDatabase();
   await ensureUsersSeeded();
+  await ensureLiveUpdatesSeeded();
   await ensureActiveRound();
 
   app.listen(PORT, () => {
