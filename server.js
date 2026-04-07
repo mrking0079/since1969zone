@@ -1230,8 +1230,6 @@ app.post('/api/withdrawal-request', (req, res) => {
       return res.status(400).json({ error: 'You already have a pending withdraw request' });
     }
 
-    user.wallet_balance -= amount;
-
     const request = {
       id: db.counters.withdrawRequestId++,
       user_id: user.id,
@@ -1247,11 +1245,12 @@ app.post('/api/withdrawal-request', (req, res) => {
 
     db.withdraw_requests.push(request);
 
-    addTransaction(user.id, 'withdraw_request', -amount, {
+    addTransaction(user.id, 'withdraw_request', 0, {
       requestId: request.id,
       method,
       upiId,
-      details
+      details,
+      amount
     });
 
     saveData(db);
@@ -1262,7 +1261,7 @@ app.post('/api/withdrawal-request', (req, res) => {
       state: buildGameState(userId)
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Withdraw failed' });
+    return res.status(500).json({ error: error.message || 'Withdraw failed' });
   }
 });
 
@@ -1619,10 +1618,15 @@ app.post('/api/admin/deposit-requests/action', adminOnly, (req, res) => {
         return res.status(404).json({ error: 'User not found' });
       }
 
+      if (action === 'approve' && Number(user.wallet_balance || 0) < Number(request.amount || 0)) {
+        return res.status(400).json({ error: 'User has insufficient wallet balance for approval' });
+      }
+
       request.status = action === 'approve' ? 'approved' : 'rejected';
       request.updated_at = nowMs();
 
       if (action === 'approve') {
+        user.wallet_balance -= Number(request.amount || 0);
         addTransaction(user.id, 'withdrawal_approved', -Number(request.amount || 0), {
           requestId: request.id,
           adminId: req.user.id,
@@ -1633,8 +1637,7 @@ app.post('/api/admin/deposit-requests/action', adminOnly, (req, res) => {
       }
 
       if (action === 'reject') {
-        user.wallet_balance += Number(request.amount || 0);
-        addTransaction(user.id, 'withdraw_rejected_refund', Number(request.amount || 0), {
+        addTransaction(user.id, 'withdraw_rejected', 0, {
           requestId: request.id,
           adminId: req.user.id,
           method: request.method || '',
@@ -1846,43 +1849,69 @@ app.get('/api/wallet-history', (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const items = db.transactions
-      .filter(tx => tx.user_id === user.id)
-      .sort((a, b) => b.created_at - a.created_at)
-      .slice(0, 200)
+    const requestItems = [
+      ...(db.deposit_requests || [])
+        .filter(request => request.user_id === user.id)
+        .map(request => ({
+          id: `deposit-request-${request.id}`,
+          title: 'Deposit Request',
+          amount: Math.abs(Number(request.amount || 0)),
+          direction: 'debit',
+          details: request.utr ? `UTR: ${request.utr}` : (request.method ? `Method: ${request.method}` : 'Deposit request submitted'),
+          status: String(request.status || 'pending').toLowerCase(),
+          createdAt: request.created_at || null,
+          updatedAt: request.updated_at || null,
+          group: 'request'
+        })),
+      ...(db.withdraw_requests || [])
+        .filter(request => request.user_id === user.id)
+        .map(request => ({
+          id: `withdraw-request-${request.id}`,
+          title: 'Withdrawal Request',
+          amount: Math.abs(Number(request.amount || 0)),
+          direction: 'debit',
+          details: request.upiId
+            ? `UPI ID: ${request.upiId}`
+            : (request.method ? `Method: ${request.method}` : 'Withdrawal request submitted'),
+          status: String(request.status || 'pending').toLowerCase(),
+          createdAt: request.created_at || null,
+          updatedAt: request.updated_at || null,
+          group: 'request'
+        }))
+    ];
+
+    const hiddenTxTypes = new Set([
+      'deposit_request',
+      'deposit_approved',
+      'withdraw_request',
+      'withdrawal_approved',
+      'withdraw_rejected_refund',
+      'withdraw_rejected'
+    ]);
+
+    const transactionItems = (db.transactions || [])
+      .filter(tx => tx.user_id === user.id && !hiddenTxTypes.has(String(tx.type || '')))
       .map(tx => {
         let title = 'Wallet Activity';
         let details = 'Wallet activity';
         const amount = Math.abs(Number(tx.amount || 0));
         const direction = Number(tx.amount || 0) >= 0 ? 'credit' : 'debit';
 
-        if (tx.type === 'deposit_request') {
-            title = 'Deposit Request';
-            details = tx.meta?.utr ? `UTR: ${tx.meta.utr}` : 'Deposit request submitted';
-        } else if (tx.type === 'deposit_approved') {
-            title = 'Deposit Approved';
-            details = 'Coins added by admin approval';
-        } else if (tx.type === 'withdrawal_approved') {
-           title = 'Withdrawal Approved';
-           details = 'Coins sent by admin approval';
-        } else if (tx.type === 'bet_debit') {
-           title = 'Bet Placed / Loss';
-           details = tx.meta?.roundId ? `Round ID: ${tx.meta.roundId}` : 'Bet amount deducted';
+        if (tx.type === 'bet_debit') {
+          title = 'Bet Placed / Loss';
+          details = tx.meta?.roundId ? `Round ID: ${tx.meta.roundId}` : 'Bet amount deducted';
         } else if (tx.type === 'win_credit') {
           title = 'Winning Credit';
-           details = tx.meta?.luckyNumber !== undefined ? `Lucky Number: ${tx.meta.luckyNumber}` : 'Winning amount added';
+          details = tx.meta?.luckyNumber !== undefined ? `Lucky Number: ${tx.meta.luckyNumber}` : 'Winning amount added';
         } else if (tx.type === 'bonus_credit') {
           title = 'Daily Bonus';
           details = 'Bonus credited';
-        } else if (tx.type === 'withdraw_request') {
-          title = 'Withdrawal Request';
-          details = tx.meta?.upiId ? `UPI ID: ${tx.meta.upiId}` : 'Withdrawal request submitted';
-        } else if (tx.type === 'withdrawal_approved') {
-          title = 'Withdrawal Approved';
-          details = tx.meta?.upiId ? `UPI ID: ${tx.meta.upiId}` : 'Withdrawal approved by admin';
-        } else if (tx.type === 'withdraw_rejected_refund') {
-          title = 'Withdrawal Rejected Refund';
-          details = tx.meta?.upiId ? `UPI ID: ${tx.meta.upiId}` : 'Rejected withdrawal refunded';
+        } else if (tx.type === 'admin_add_coin') {
+          title = 'Admin Added Coins';
+          details = 'Coins added by admin';
+        } else if (tx.type === 'admin_withdraw_coin') {
+          title = 'Admin Removed Coins';
+          details = 'Coins removed by admin';
         }
 
         return {
@@ -1891,9 +1920,26 @@ app.get('/api/wallet-history', (req, res) => {
           amount,
           direction,
           details,
-          createdAt: tx.created_at || null
+          status: '',
+          createdAt: tx.created_at || null,
+          updatedAt: null,
+          group: 'transaction'
         };
       });
+
+    const items = [...requestItems, ...transactionItems]
+      .sort((a, b) => {
+        const aTime = Number(a.createdAt || 0);
+        const bTime = Number(b.createdAt || 0);
+        return bTime - aTime;
+      })
+      .slice(0, 200)
+      .map(item => ({
+        ...item,
+        statusLabel: item.status
+          ? item.status.charAt(0).toUpperCase() + item.status.slice(1)
+          : ''
+      }));
 
     return res.json({
       success: true,

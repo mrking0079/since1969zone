@@ -701,8 +701,8 @@ body.auth-open {
           </p>
 
           <div class="quick-links">
-            <button type="button" class="quick-link-btn" onclick="setAuthMode('login')">Login</button>
-            <button type="button" class="quick-link-btn" onclick="setAuthMode('signup')">Create Account</button>
+            <button type="button" id="heroLoginBtn" class="quick-link-btn" onclick="setAuthMode('login')">Login</button>
+            <button type="button" id="heroSignupBtn" class="quick-link-btn" onclick="setAuthMode('signup')">Create Account</button>
             <button type="button" class="quick-link-btn" onclick="document.getElementById('rulesSection').scrollIntoView({ behavior: 'smooth' })">Game Rules</button>
             <button type="button" class="quick-link-btn" onclick="document.getElementById('supportSection').scrollIntoView({ behavior: 'smooth' })">Contact Support</button>
           </div>
@@ -1895,6 +1895,15 @@ async function loadWalletHistory() {
         : '-';
 
       const isCredit = item.direction === 'credit';
+      const status = String(item.status || '').toLowerCase();
+      const statusLabel = item.statusLabel || '';
+      const statusColor = status === 'approved'
+        ? '#2ecc71'
+        : status === 'rejected'
+          ? '#ff5c5c'
+          : status === 'pending'
+            ? '#ffd700'
+            : '#aaaaaa';
 
       return `
         <div style="padding:14px;border-radius:14px;background:#111;border:1px solid #333;">
@@ -1902,6 +1911,7 @@ async function loadWalletHistory() {
             <div>
               <div style="font-size:16px;font-weight:800;color:#fff;">${item.title || 'Wallet Activity'}</div>
               <div style="font-size:13px;color:#aaaaaa;margin-top:4px;">${item.details || '-'}</div>
+              ${statusLabel ? `<div style="font-size:13px;font-weight:800;color:${statusColor};margin-top:6px;">${statusLabel}</div>` : ''}
             </div>
 
             <div style="font-size:18px;font-weight:900;color:${isCredit ? '#2ecc71' : '#ff5c5c'};">
@@ -2608,6 +2618,20 @@ document.getElementById('password').addEventListener('keydown', (e) => {
 document.getElementById('confirmPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleAuthAction();
 });
+
+const heroLoginBtn = document.getElementById('heroLoginBtn');
+const heroSignupBtn = document.getElementById('heroSignupBtn');
+const loginTabBtnEl = document.getElementById('loginTabBtn');
+const signupTabBtnEl = document.getElementById('signupTabBtn');
+const authMainBtnEl = document.getElementById('authMainBtn');
+const authSwitchBtnEl = document.getElementById('authSwitchBtn');
+
+if (heroLoginBtn) heroLoginBtn.addEventListener('click', () => setAuthMode('login'));
+if (heroSignupBtn) heroSignupBtn.addEventListener('click', () => setAuthMode('signup'));
+if (loginTabBtnEl) loginTabBtnEl.addEventListener('click', () => setAuthMode('login'));
+if (signupTabBtnEl) signupTabBtnEl.addEventListener('click', () => setAuthMode('signup'));
+if (authMainBtnEl) authMainBtnEl.addEventListener('click', handleAuthAction);
+if (authSwitchBtnEl) authSwitchBtnEl.addEventListener('click', toggleAuthMode);
 
 buildNumbers();
 
