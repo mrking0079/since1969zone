@@ -66,7 +66,13 @@ app.get(ADMIN_ROUTE, (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.get('/admin.html', (req, res) => res.status(404).send('Not found'));
+app.get('/admin.html', (req, res) => {
+  return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/admin', (req, res) => {
+  return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 
 function nowMs() {
   return Date.now();
