@@ -1849,6 +1849,7 @@ app.get('/api/wallet-history', (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // 1) Request rows (Deposit + Withdrawal)
     const requestItems = [
       ...(db.deposit_requests || [])
         .filter(request => request.user_id === user.id)
@@ -1857,12 +1858,15 @@ app.get('/api/wallet-history', (req, res) => {
           title: 'Deposit Request',
           amount: Math.abs(Number(request.amount || 0)),
           direction: 'debit',
-          details: request.utr ? `UTR: ${request.utr}` : (request.method ? `Method: ${request.method}` : 'Deposit request submitted'),
+          details: request.utr
+            ? `UTR: ${request.utr}`
+            : (request.method ? `Method: ${request.method}` : 'Deposit request submitted'),
           status: String(request.status || 'pending').toLowerCase(),
           createdAt: request.created_at || null,
           updatedAt: request.updated_at || null,
           group: 'request'
         })),
+
       ...(db.withdraw_requests || [])
         .filter(request => request.user_id === user.id)
         .map(request => ({
@@ -1880,29 +1884,38 @@ app.get('/api/wallet-history', (req, res) => {
         }))
     ];
 
+    // 2) Hide duplicate tx rows
+    // Deposit Approved should remain visible (Deposit = B)
+    // Withdrawal Approved should be hidden (Withdrawal = A)
     const hiddenTxTypes = new Set([
       'deposit_request',
-      'deposit_approved',
       'withdraw_request',
       'withdrawal_approved',
       'withdraw_rejected_refund',
       'withdraw_rejected'
     ]);
 
+    // 3) Normal wallet transaction rows
     const transactionItems = (db.transactions || [])
       .filter(tx => tx.user_id === user.id && !hiddenTxTypes.has(String(tx.type || '')))
       .map(tx => {
         let title = 'Wallet Activity';
         let details = 'Wallet activity';
+
         const amount = Math.abs(Number(tx.amount || 0));
         const direction = Number(tx.amount || 0) >= 0 ? 'credit' : 'debit';
 
-        if (tx.type === 'bet_debit') {
+        if (tx.type === 'deposit_approved') {
+          title = 'Deposit Approved';
+          details = 'Coins added by admin approval';
+        } else if (tx.type === 'bet_debit') {
           title = 'Bet Placed / Loss';
           details = tx.meta?.roundId ? `Round ID: ${tx.meta.roundId}` : 'Bet amount deducted';
         } else if (tx.type === 'win_credit') {
           title = 'Winning Credit';
-          details = tx.meta?.luckyNumber !== undefined ? `Lucky Number: ${tx.meta.luckyNumber}` : 'Winning amount added';
+          details = tx.meta?.luckyNumber !== undefined
+            ? `Lucky Number: ${tx.meta.luckyNumber}`
+            : 'Winning amount added';
         } else if (tx.type === 'bonus_credit') {
           title = 'Daily Bonus';
           details = 'Bonus credited';
@@ -1946,6 +1959,7 @@ app.get('/api/wallet-history', (req, res) => {
       history: items
     });
   } catch (error) {
+    console.error('WALLET HISTORY ERROR:', error);
     return res.status(500).json({ error: 'Failed to load wallet history' });
   }
 });
