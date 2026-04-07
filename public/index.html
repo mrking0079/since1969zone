@@ -1295,7 +1295,7 @@ function formatTime(ms) {
 async function api(url, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
-    ...(options.headers || {})
+    .(options.headers || {})
   };
 
   if (currentUser?.sessionToken) {
@@ -1304,7 +1304,7 @@ async function api(url, options = {}) {
 
   const response = await fetch(url, {
     headers,
-    ...options
+    .options
   });
 
   const data = await response.json();
