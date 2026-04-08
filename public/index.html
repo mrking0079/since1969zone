@@ -3,8 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Since 1969 Zone</title>
+
+  <title>Since1969Zone - Play Online Game</title>
+
+  <meta name="description" content="Play Since1969Zone online with secure wallet, deposit, withdrawal and live game history. Fast, safe and exciting gameplay.">
+  <meta name="keywords" content="since1969zone, online game, wallet game, betting game, india game zone">
+  <meta name="author" content="Since1969Zone">
+
+  <link rel="icon" href="/icon-192.png" />
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#000000">
+
+  <meta property="og:title" content="Since1969Zone - Play Online Game">
+  <meta property="og:description" content="Play and win coins with Since1969Zone. Fast gameplay, wallet system and real-time results.">
+  <meta property="og:image" content="https://since1969zone.online/icon-512.png">
+  <meta property="og:url" content="https://since1969zone.online">
+  <meta property="og:type" content="website">
+
   <style>
+
     :root {
   --bg: #050505;
   --panel: #0f0f0f;
@@ -838,8 +855,30 @@ body.auth-open {
   <div style="font-size: 20px; color: #ffffff; letter-spacing: 3px;">
     ZONE
   </div>
-<div style="font-size: 14px; color: #b8b8b8; margin-top: 8px; letter-spacing: 1px;">
+<div style="font-size:14px;color:#b8b8b8;margin-top:8px;letter-spacing:1px;">
   Premium Live Game Experience
+</div>
+
+<div style="margin-top:18px;display:flex;justify-content:center;">
+  <button id="installBtn" style="
+    display:none;
+    padding:12px 24px;
+    background:linear-gradient(180deg,#ffe066 0%,#ffd700 45%,#d4a900 100%);
+    color:#111;
+    border:none;
+    border-radius:999px;
+    font-size:15px;
+    font-weight:800;
+    letter-spacing:0.4px;
+    cursor:pointer;
+    box-shadow:0 0 18px rgba(255,215,0,0.35), 0 6px 18px rgba(0,0,0,0.35);
+    transition:transform 0.2s ease, box-shadow 0.2s ease;
+  "
+  onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 0 22px rgba(255,215,0,0.5), 0 8px 22px rgba(0,0,0,0.4)'"
+  onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 0 18px rgba(255,215,0,0.35), 0 6px 18px rgba(0,0,0,0.35)'">
+    Install App
+  </button>
+</div>
 </div>
 </div>
 
@@ -2665,11 +2704,51 @@ if (els.historyNextBtn) {
 }
 loadLiveUpdates();
 setInterval(updateTimer, 1000);
-setInterval(loadState, 1000);
+setInterval(loadState, 2000);
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(() => console.log('Service Worker Registered'))
+      .catch(err => console.log('Service Worker Registration Failed:', err));
+  });
+}
+
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (installBtn) {
+    installBtn.style.display = 'inline-block';
+  }
+});
+
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const choiceResult = await deferredPrompt.userChoice;
+    console.log('Install choice:', choiceResult.outcome);
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  console.log('PWA was installed');
+  if (installBtn) {
+    installBtn.style.display = 'none';
+  }
+});
 </script>
 
 <div style="width:100%;text-align:center;padding:18px 12px;color:#ffd700;font-size:14px;font-weight:700;letter-spacing:0.5px;background:#050505;border-top:1px solid rgba(255,215,0,0.12);margin-top:20px;">
   ®️Since 1969 Zone Designed by - MrKinG
 </div>
+
 </body>
 </html>
