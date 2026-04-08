@@ -1331,6 +1331,189 @@ body.auth-open {
   }
 }
 
+
+/* ===== Final Premium Polish ===== */
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.hero-stat {
+  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid rgba(255,215,0,0.14);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.hero-stat .label {
+  color: #c7b16a;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.hero-stat .value {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+}
+.hero-stat .sub {
+  margin-top: 6px;
+  color: #cfcfcf;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.trust-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.trust-chip {
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,215,0,0.12);
+  background: rgba(255,255,255,0.03);
+  color: #f1f1f1;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+.game-hero {
+  margin-bottom: 20px;
+  padding: 24px 22px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top center, rgba(255,215,0,0.14), transparent 32%),
+    linear-gradient(180deg, #121212, #050505);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,215,0,0.14);
+}
+.game-hero-title {
+  font-size: 58px;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow: 0 0 14px rgba(255,215,0,0.4);
+  line-height: 1;
+}
+.game-hero-subtitle {
+  font-size: 24px;
+  color: #fff;
+  letter-spacing: 4px;
+}
+.game-hero-note {
+  font-size: 16px;
+  color: #c9c9c9;
+  margin-top: 8px;
+  letter-spacing: .8px;
+}
+.header-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+.header-mini-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.header-mini-card {
+  padding: 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  border: 1px solid rgba(255,215,0,0.12);
+  text-align: center;
+}
+.header-mini-card strong {
+  display: block;
+  color: #ffd700;
+  font-size: 13px;
+  margin-bottom: 6px;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+}
+.header-mini-card span {
+  color: #ececec;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.wallet-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.quick-guide {
+  margin-bottom: 18px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: #ffd700;
+  margin-bottom: 6px;
+  letter-spacing: .5px;
+}
+.section-subtitle {
+  color: #c9c9c9;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.guide-item {
+  border-radius: 18px;
+  padding: 16px;
+  background: linear-gradient(180deg, #131313, #0b0b0b);
+  border: 1px solid rgba(255,215,0,0.12);
+}
+.guide-item strong {
+  display: block;
+  color: #ffd700;
+  margin-bottom: 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+.guide-item span {
+  color: #ededed;
+  font-size: 14px;
+  line-height: 1.65;
+}
+@media (max-width: 1100px) {
+  .hero-stats,
+  .trust-strip,
+  .header-mini-strip,
+  .guide-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .game-hero {
+    padding: 18px 14px;
+    border-radius: 18px;
+  }
+  .game-hero-title {
+    font-size: 36px;
+  }
+  .game-hero-subtitle {
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+  .game-hero-note {
+    font-size: 13px;
+  }
+  .wallet-actions {
+    flex-direction: column;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1357,9 +1540,7 @@ body.auth-open {
           </h1>
 
           <p class="landing-text">
-            Secure live game experience with a clean black and gold interface. Create your account,
-            log in in seconds, then enter the main game page to place bets, watch live lucky numbers,
-            track wallet history, and manage deposit or withdrawal requests.
+            Secure live game experience with a premium black and gold interface. Create your account, log in quickly, and enter a cleaner main game page to place bets, track live lucky numbers, review wallet history, and manage deposit or withdrawal requests with less confusion.
           </p>
 
           <div class="quick-links">
@@ -1367,6 +1548,31 @@ body.auth-open {
             <button type="button" class="quick-link-btn" onclick="setAuthMode('signup')">Create Account</button>
             <button type="button" class="quick-link-btn" onclick="document.getElementById('rulesSection').scrollIntoView({ behavior: 'smooth' })">Game Rules</button>
             <button type="button" class="quick-link-btn" onclick="document.getElementById('supportSection').scrollIntoView({ behavior: 'smooth' })">Contact Support</button>
+          </div>
+
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="label">Fast Access</div>
+              <div class="value">Login in Seconds</div>
+              <div class="sub">Simple username and password flow with direct game entry after successful login or signup.</div>
+            </div>
+            <div class="hero-stat">
+              <div class="label">Live Round Play</div>
+              <div class="value">0 to 9 Selection</div>
+              <div class="sub">Choose one or many numbers, set separate coin values, and place bets only during active rounds.</div>
+            </div>
+            <div class="hero-stat">
+              <div class="label">Wallet Tracking</div>
+              <div class="value">Clear History</div>
+              <div class="sub">Check wallet activity, request deposits and withdrawals, and watch live results from one clean dashboard.</div>
+            </div>
+          </div>
+
+          <div class="trust-strip">
+            <div class="trust-chip">Black + Gold Premium UI</div>
+            <div class="trust-chip">Wallet History Visibility</div>
+            <div class="trust-chip">Live Lucky Number Tracking</div>
+            <div class="trust-chip">Telegram Support Ready</div>
           </div>
 
           <div class="landing-points">
@@ -1493,18 +1699,18 @@ body.auth-open {
 </div>
 
   <div class="wrap" style="display:none;">
-    <div style="text-align:center; margin-bottom: 20px; padding: 20px; border-radius: 18px; background: linear-gradient(180deg, #111, #050505); box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 1px solid #2c2c2c;">
-  <div style="font-size: 56px; font-weight: 900; color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.4);">
+    <div class="game-hero">
+  <div class="game-hero-title">
     Since 1969
   </div>
-  <div style="font-size: 24px; color: #ffffff; letter-spacing: 3px;">
+  <div class="game-hero-subtitle">
     ZONE
   </div>
-<div style="font-size:16px;color:#b8b8b8;margin-top:8px;letter-spacing:1px;">
-  Premium Live Game Experience
+<div class="game-hero-note">
+  Premium Live Game Experience • Fast Play • Clean Wallet Tracking
 </div>
 
-<div style="margin-top:18px;display:flex;justify-content:center;flex-direction:column;align-items:center;">
+<div class="header-actions">
   <button id="installBtn" style="
     display:none;
     padding:12px 24px;
@@ -1527,6 +1733,20 @@ body.auth-open {
     To install, use your browser menu and tap <strong>Install App</strong> or <strong>Open in app</strong>.
   </div>
 </div>
+
+<div class="header-mini-strip">
+  <div class="header-mini-card">
+    <strong>How to Start</strong>
+    <span>Login, choose numbers, enter coins, and place your bet before the round closes.</span>
+  </div>
+  <div class="header-mini-card">
+    <strong>What to Track</strong>
+    <span>Watch the live timer, latest lucky number, wallet movement, and recent game history.</span>
+  </div>
+  <div class="header-mini-card">
+    <strong>Need Help</strong>
+    <span>Use deposit request, withdrawal request, and Telegram support when you need assistance.</span>
+  </div>
 </div>
 </div>
 
@@ -1535,7 +1755,7 @@ body.auth-open {
         <div class="mini-label">Wallet Balance</div>
         <div class="big" id="walletTop">0 Coins</div>
         <div class="muted" id="walletSummary"></div>
-<div style="display:flex;gap:10px;margin-top:10px;">
+<div class="wallet-actions">
   <button id="logoutBtn" class="secondary" style="flex:1;">Logout</button>
   <button id="addCoinBtn" class="secondary" style="flex:1;">Deposit Request</button>
   <button id="withdrawCoinBtn" class="secondary" style="flex:1;">Withdrawal Request</button>
@@ -1582,6 +1802,25 @@ body.auth-open {
 
           <div class="fair-box" id="fairnessBox">
             Server seed hash loading...
+          </div>
+        </div>
+
+        <div class="card quick-guide">
+          <div class="section-title">How To Use This Page</div>
+          <div class="section-subtitle">Everything important is now grouped clearly so the player can act fast without confusion.</div>
+          <div class="guide-grid">
+            <div class="guide-item">
+              <strong>1. Select Numbers</strong>
+              <span>Tap one or many numbers from 0 to 9 and enter a separate coin amount for each selected number.</span>
+            </div>
+            <div class="guide-item">
+              <strong>2. Place Bet In Time</strong>
+              <span>Use the round timer and status badge to place bets only while betting is open.</span>
+            </div>
+            <div class="guide-item">
+              <strong>3. Check Result + Wallet</strong>
+              <span>After settlement, use recent game history, wallet history, and latest lucky number panels to verify the outcome.</span>
+            </div>
           </div>
         </div>
 
