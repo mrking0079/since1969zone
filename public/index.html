@@ -1688,6 +1688,7 @@ function showLandingView() {
   if (confirmPassword) confirmPassword.value = '';
 
   setAuthMode('login');
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function showGameView() {
@@ -2157,6 +2158,7 @@ els.logoutBtn.addEventListener('click', () => {
   currentUser = null;
   localStorage.removeItem('user');
   showLandingView();
+  window.scrollTo({ top: 0, behavior: 'instant' });
   document.getElementById('username').value = '';
   document.getElementById('password').value = '';
 resetLivePaymentDisplay();
