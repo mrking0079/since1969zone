@@ -120,7 +120,7 @@
     }
     .stats-grid{
       display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
+      grid-template-columns:repeat(4,minmax(0,1fr));
       gap:12px;
       margin:0 0 14px;
     }
@@ -312,6 +312,16 @@
   <div class="stat-box"><div class="stat-label">Total Withdrawals</div><div id="totalWithdrawalsStat" class="stat-value" style="color:#ff4d4f;">0</div></div>
 
   <div class="stat-box"><div class="stat-label">Profit / Loss</div><div id="profitLossStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Total Users</div><div id="totalUsersStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Active Users (24h)</div><div id="activeUsersStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Total Bets Today</div><div id="totalBetsTodayStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Total Wins Today</div><div id="totalWinsTodayStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Pending Requests</div><div id="pendingRequestsStat" class="stat-value">0</div></div>
+</div>
+<div id="proInsightRow" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px;">
+  <div class="stat-box"><div class="stat-label">Top Depositor</div><div id="topDepositorStat" class="stat-value" style="font-size:20px;">-</div></div>
+  <div class="stat-box"><div class="stat-label">Top Winner</div><div id="topWinnerStat" class="stat-value" style="font-size:20px;">-</div></div>
+  <div class="stat-box"><div class="stat-label">Today vs Yesterday</div><div id="todayVsYesterdayStat" class="stat-value" style="font-size:20px;">-</div></div>
 </div>
 
 <div id="selectedUserInfo">No user selected</div>
@@ -438,6 +448,14 @@ async function loadDashboardStats() {
     document.getElementById('totalDepositsStat').textContent = data.stats?.totalDeposits || 0;
     document.getElementById('totalWithdrawalsStat').textContent = data.stats?.totalWithdrawals || 0;
     document.getElementById('profitLossStat').textContent = data.stats?.profitLoss || 0;
+    document.getElementById('totalUsersStat').textContent = data.stats?.totalUsers || 0;
+    document.getElementById('activeUsersStat').textContent = data.stats?.activeUsers24h || 0;
+    document.getElementById('totalBetsTodayStat').textContent = data.stats?.totalBetsToday || 0;
+    document.getElementById('totalWinsTodayStat').textContent = data.stats?.totalWinsToday || 0;
+    document.getElementById('pendingRequestsStat').textContent = data.stats?.pendingRequests || 0;
+    document.getElementById('topDepositorStat').textContent = data.stats?.topDepositor ? `${data.stats.topDepositor.username} (${data.stats.topDepositor.amount})` : '-';
+    document.getElementById('topWinnerStat').textContent = data.stats?.topWinner ? `${data.stats.topWinner.username} (${data.stats.topWinner.amount})` : '-';
+    document.getElementById('todayVsYesterdayStat').textContent = data.stats?.todayVsYesterday ? `${data.stats.todayVsYesterday.today} / ${data.stats.todayVsYesterday.yesterday}` : '-';
 const profit = Number(data.stats?.profitLoss || 0);
 const el = document.getElementById('profitLossStat');
 
@@ -892,6 +910,7 @@ async function loadLiveUpdatesData() {
         }
 
         localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
+        localStorage.setItem('adminRole', data.user.role || 'super_admin');
         loginMsg.textContent = 'Admin login successful';
         checkAdminLogin();
 loadDashboardStats();

@@ -67,11 +67,20 @@ app.get(ADMIN_ROUTE, (req, res) => {
 });
 
 app.get('/admin.html', (req, res) => {
-  return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  return res.status(404).send('Not found');
 });
 
 app.get('/admin', (req, res) => {
-  return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  return res.status(404).send('Not found');
+});
+
+app.get('/healthz', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    return res.status(200).json({ ok: true });
+  } catch (error) {
+    return res.status(500).json({ ok: false });
+  }
 });
 
 function nowMs() {
@@ -150,6 +159,19 @@ async function initDatabase() {
       last_bonus_time BIGINT DEFAULT 0,
       blocked BOOLEAN DEFAULT FALSE,
       is_admin BOOLEAN DEFAULT FALSE,
+      admin_role TEXT DEFAULT 'read_only',
+      last_active_at BIGINT DEFAULT 0,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_activity_logs (
+      id BIGSERIAL PRIMARY KEY,
+      admin_user_id BIGINT NOT NULL,
+      admin_username TEXT NOT NULL,
+      action TEXT NOT NULL,
+      target_user_id BIGINT,
+      target_username TEXT DEFAULT '',
+      meta JSONB DEFAULT '{}'::jsonb,
       created_at BIGINT NOT NULL
     );
 
@@ -228,6 +250,8 @@ async function initDatabase() {
   await pool.query(`
     ALTER TABLE rounds ADD COLUMN IF NOT EXISTS round_code TEXT DEFAULT '';
     ALTER TABLE withdraw_requests ADD COLUMN IF NOT EXISTS upi_id TEXT DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_role TEXT DEFAULT 'read_only';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at BIGINT DEFAULT 0;
   `);
 
   await pool.query(`
@@ -281,9 +305,9 @@ async function ensureUsersSeeded() {
     await pool.query(
       `INSERT INTO users (
         id, username, password, session_token, wallet_balance, total_played, total_wins,
-        bonus_claimed, last_bonus_time, blocked, is_admin, created_at
+        bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       ON CONFLICT (username) DO NOTHING`,
       [
         user.id,
@@ -355,11 +379,11 @@ async function createUserRecord({ username, password, walletBalance = 1000, isAd
   const result = await pool.query(
     `INSERT INTO users (
       username, password, session_token, wallet_balance, total_played, total_wins,
-      bonus_claimed, last_bonus_time, blocked, is_admin, created_at
+      bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at
     )
-    VALUES ($1,$2,$3,$4,0,0,0,0,false,$5,$6)
+    VALUES ($1,$2,$3,$4,0,0,0,0,false,$5,$6,0,$7)
     RETURNING *`,
-    [username, password, crypto.randomUUID(), walletBalance, isAdmin, createdAt]
+    [username, password, crypto.randomUUID(), walletBalance, isAdmin, isAdmin ? 'super_admin' : 'read_only', createdAt]
   );
   return result.rows[0];
 }
@@ -412,6 +436,8 @@ async function adminOnly(req, res, next) {
     const user = await getUser(userId);
     if (!user) return res.status(401).json({ error: 'User not found' });
     if (user.is_admin !== true) return res.status(403).json({ error: 'Admin access only' });
+    await updateUserFields(user.id, { last_active_at: nowMs() });
+    user.admin_role = user.admin_role || 'super_admin';
     req.user = user;
     next();
   } catch (error) {
@@ -788,6 +814,28 @@ async function claimBonusTx(userId) {
   await addTransaction(userId, 'bonus_credit', BONUS_AMOUNT, {});
 }
 
+
+async function logAdminActivity(adminUser, action, targetUser = null, meta = {}) {
+  try {
+    await pool.query(
+      `INSERT INTO admin_activity_logs (
+        admin_user_id, admin_username, action, target_user_id, target_username, meta, created_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [
+        Number(adminUser?.id || 0),
+        String(adminUser?.username || 'admin'),
+        String(action || ''),
+        targetUser ? Number(targetUser.id || 0) : null,
+        targetUser ? String(targetUser.username || '') : '',
+        JSON.stringify(meta || {}),
+        nowMs()
+      ]
+    );
+  } catch (error) {
+    console.error('ADMIN ACTIVITY LOG ERROR:', error);
+  }
+}
+
 app.post('/api/login', async (req, res) => {
   try {
     const username = String(req.body?.username || '').trim();
@@ -814,7 +862,8 @@ app.post('/api/login', async (req, res) => {
         totalPlayed: Number(user.total_played || 0),
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
-        lastBonusTime: Number(user.last_bonus_time || 0)
+        lastBonusTime: Number(user.last_bonus_time || 0),
+        role: user.admin_role || (user.is_admin ? 'super_admin' : 'read_only')
       }
     });
   } catch (error) {
@@ -890,7 +939,8 @@ app.post('/api/signup', async (req, res) => {
         totalPlayed: Number(user.total_played || 0),
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
-        lastBonusTime: Number(user.last_bonus_time || 0)
+        lastBonusTime: Number(user.last_bonus_time || 0),
+        role: user.admin_role || (user.is_admin ? 'super_admin' : 'read_only')
       }
     });
   } catch (error) {
@@ -1142,6 +1192,57 @@ app.post('/api/admin/live-updates', adminOnly, async (req, res) => {
   }
 });
 
+
+app.get('/api/admin/dashboard-stats', adminOnly, async (req, res) => {
+  try {
+    const now = Date.now();
+    const startToday = new Date();
+    startToday.setHours(0,0,0,0);
+    const todayMs = startToday.getTime();
+    const yesterdayMs = todayMs - 24 * 60 * 60 * 1000;
+
+    const [usersCount, activeUsers, pendingDep, pendingWit, totalDep, totalWit, betsToday, winsToday, betsYesterday, topDepositor, topWinner] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE is_admin = false`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE is_admin = false AND COALESCE(last_active_at,0) >= $1`, [now - 24*60*60*1000]),
+      pool.query(`SELECT COUNT(*)::int AS count FROM deposit_requests WHERE status = 'pending'`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM withdraw_requests WHERE status = 'pending'`),
+      pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'deposit_approved'`),
+      pool.query(`SELECT COALESCE(SUM(ABS(amount)),0) AS total FROM transactions WHERE type = 'withdrawal_approved'`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at >= $1`, [todayMs]),
+      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at >= $1 AND result = 'win'`, [todayMs]),
+      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at >= $1 AND created_at < $2`, [yesterdayMs, todayMs]),
+      pool.query(`SELECT username, COALESCE(SUM(amount),0) AS total FROM transactions t JOIN users u ON u.id=t.user_id WHERE t.type='deposit_approved' AND u.is_admin=false GROUP BY username ORDER BY total DESC LIMIT 1`),
+      pool.query(`SELECT username, COALESCE(SUM(amount),0) AS total FROM transactions t JOIN users u ON u.id=t.user_id WHERE t.type='win_credit' AND u.is_admin=false GROUP BY username ORDER BY total DESC LIMIT 1`)
+    ]);
+
+    const totalDeposits = Number(totalDep.rows[0]?.total || 0);
+    const totalWithdrawals = Number(totalWit.rows[0]?.total || 0);
+
+    return res.json({
+      success: true,
+      stats: {
+        totalDeposits,
+        totalWithdrawals,
+        profitLoss: totalDeposits - totalWithdrawals,
+        totalUsers: Number(usersCount.rows[0]?.count || 0),
+        activeUsers24h: Number(activeUsers.rows[0]?.count || 0),
+        totalBetsToday: Number(betsToday.rows[0]?.count || 0),
+        totalWinsToday: Number(winsToday.rows[0]?.count || 0),
+        pendingRequests: Number(pendingDep.rows[0]?.count || 0) + Number(pendingWit.rows[0]?.count || 0),
+        topDepositor: topDepositor.rows[0] ? { username: topDepositor.rows[0].username, amount: Number(topDepositor.rows[0].total || 0) } : null,
+        topWinner: topWinner.rows[0] ? { username: topWinner.rows[0].username, amount: Number(topWinner.rows[0].total || 0) } : null,
+        todayVsYesterday: {
+          today: Number(betsToday.rows[0]?.count || 0),
+          yesterday: Number(betsYesterday.rows[0]?.count || 0)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('DASHBOARD STATS ERROR:', error);
+    return res.status(500).json({ error: 'Unable to load dashboard stats' });
+  }
+});
+
 app.get('/api/admin/load-users', adminOnly, async (req, res) => {
   const result = await pool.query(
     `SELECT id, username, wallet_balance, total_played, total_wins, bonus_claimed, blocked, created_at
@@ -1179,6 +1280,7 @@ app.post('/api/admin/add-coin', adminOnly, async (req, res) => {
     await addTransaction(user.id, 'admin_add_coin', amount, { adminId: req.user.id });
 
     const refreshed = await getUser(user.id);
+    await logAdminActivity(req.user, 'admin_add_coin', user, { amount });
 
     return res.json({
       success: true,
@@ -1211,6 +1313,7 @@ app.post('/api/admin/withdraw-coin', adminOnly, async (req, res) => {
     await addTransaction(user.id, 'admin_withdraw_coin', -amount, { adminId: req.user.id });
 
     const refreshed = await getUser(user.id);
+    await logAdminActivity(req.user, 'admin_withdraw_coin', user, { amount });
 
     return res.json({
       success: true,
