@@ -831,6 +831,312 @@ body.auth-open {
     width: 100%;
   }
 }
+@media (max-width: 900px) {
+  body {
+    background:
+      radial-gradient(circle at top, rgba(255,215,0,0.08), transparent 26%),
+      linear-gradient(180deg, #050505 0%, #0b0b0b 48%, #050505 100%);
+  }
+
+  .wrap {
+    padding: 10px;
+  }
+
+  .topbar,
+  .grid,
+  .side-stack,
+  .stat-grid,
+  .btns,
+  .admin {
+    grid-template-columns: 1fr !important;
+  }
+
+  .topbar {
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .grid {
+    gap: 14px;
+  }
+
+  .card {
+    padding: 14px;
+    border-radius: 18px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.34);
+  }
+
+  .card:hover {
+    transform: none;
+  }
+
+  .mini-label {
+    font-size: 12px;
+    letter-spacing: 0.9px;
+  }
+
+  .big {
+    font-size: 28px;
+  }
+
+  .lucky-mini-box {
+    padding: 12px;
+    border-radius: 14px;
+    margin-top: 12px;
+  }
+
+  .lucky-mini-number {
+    font-size: 36px;
+  }
+
+  .numbers {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  .num {
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .num button {
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+    margin-bottom: 8px;
+    box-shadow: 0 6px 14px rgba(255, 215, 0, 0.18);
+  }
+
+  .num input {
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+
+  button.primary,
+  button.secondary,
+  button.danger {
+    width: 100%;
+    padding: 13px 14px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+
+  .btns {
+    gap: 10px;
+  }
+
+  .msg,
+  .fair-box {
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .history-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    border-radius: 12px;
+  }
+
+  .history-table th,
+  .history-table td {
+    font-size: 13px;
+    padding: 10px 8px;
+  }
+
+  #historyPager {
+    justify-content: center !important;
+    gap: 8px;
+  }
+
+  #historyPrevBtn,
+  #historyNextBtn {
+    padding: 9px 12px !important;
+    font-size: 13px;
+    border-radius: 10px !important;
+  }
+
+  .stat {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .stat h4 {
+    font-size: 12px;
+  }
+
+  .stat p {
+    font-size: 20px;
+  }
+
+  #liveOfferText {
+    font-size: 14px !important;
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+
+  #walletHistoryList > div {
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  .wrap > div[style*="text-align:center"] {
+    margin-bottom: 14px !important;
+    padding: 16px 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .wrap > div[style*="text-align:center"] > div:first-child {
+    font-size: 34px !important;
+    line-height: 1.05 !important;
+  }
+
+  .wrap > div[style*="text-align:center"] > div:nth-child(2) {
+    font-size: 18px !important;
+    letter-spacing: 2px !important;
+  }
+
+  .wrap > div[style*="text-align:center"] > div:nth-child(3) {
+    font-size: 12px !important;
+    margin-top: 6px !important;
+  }
+
+  #installBtn {
+    width: 100%;
+    max-width: 240px;
+    font-size: 14px !important;
+    padding: 12px 18px !important;
+  }
+
+  #installHint {
+    font-size: 12px !important;
+    max-width: 280px !important;
+  }
+
+  .wrap .card > div[style*="display:flex;gap:10px;margin-top:10px;"] {
+    flex-direction: column;
+  }
+
+  #logoutBtn,
+  #addCoinBtn,
+  #withdrawCoinBtn {
+    width: 100% !important;
+    font-size: 13px !important;
+    padding: 12px 10px !important;
+  }
+
+  #depositMethodOptions,
+  #addCoinQuickOptions,
+  #withdrawMethodOptions {
+    grid-template-columns: 1fr !important;
+  }
+
+  #addCoinModal,
+  #withdrawCoinModal,
+  #confirmActionModal {
+    padding: 12px !important;
+  }
+
+  #addCoinModal > div,
+  #withdrawCoinModal > div,
+  #confirmActionModal > div {
+    max-width: 100% !important;
+    border-radius: 18px !important;
+    padding: 16px !important;
+  }
+
+  #confirmActionModal div[style*="display:flex;gap:12px;"] {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 600px) {
+  .landing-shell {
+    padding: 14px 10px 24px;
+  }
+
+  .landing-wrap {
+    gap: 16px;
+  }
+
+  .landing-hero {
+    padding: 18px 14px;
+    border-radius: 20px;
+  }
+
+  .landing-badge {
+    font-size: 10px;
+    padding: 7px 10px;
+  }
+
+  .landing-title {
+    font-size: 30px;
+    line-height: 1.08;
+  }
+
+  .landing-text {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .landing-point,
+  .info-card,
+  .auth-card,
+  .support-card {
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .auth-card h2 {
+    font-size: 24px;
+  }
+
+  .auth-subtext,
+  .auth-helper,
+  .info-card p,
+  .info-card li,
+  .support-card p {
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .auth-input,
+  .auth-main-btn,
+  .auth-alt-btn,
+  .auth-tab,
+  .quick-link-btn,
+  .support-btn {
+    font-size: 14px;
+  }
+
+  .quick-links,
+  .support-actions {
+    gap: 8px;
+  }
+
+  .info-grid,
+  .landing-points,
+  .landing-hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #flashLuckyNumber {
+    font-size: 82px !important;
+    letter-spacing: 2px !important;
+  }
+
+  #flashMessage {
+    font-size: 22px !important;
+  }
+
+  #flashSubMessage {
+    font-size: 16px !important;
+  }
+}
 
 </style>
 </head>
