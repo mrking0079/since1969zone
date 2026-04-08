@@ -39,15 +39,17 @@
       font-family: Arial, Helvetica, sans-serif;
       background: linear-gradient(180deg, #050505, #111);
       color: var(--text);
+      overflow-x: hidden;
     }
     .wrap {
-      max-width: 1440px;
-      margin: 0 auto;
-      padding: 24px;
-    }
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
     .topbar {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 16px;
       margin-bottom: 18px;
     }
@@ -104,7 +106,7 @@ text-align: center;
 }
     .grid {
       display: grid;
-      grid-template-columns: 1.3fr .95fr;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.95fr);
       gap: 18px;
     }
     .numbers {
@@ -286,6 +288,27 @@ button.secondary:hover {
     }
     .hidden { display: none; }
     .muted { color: var(--muted); }
+    .topbar > .card,
+.grid > div,
+.side-stack,
+.side-stack > .card,
+.stat-grid > .stat {
+  min-width: 0;
+}
+
+.history-table {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+#historyPager {
+  flex-wrap: wrap;
+}
+
+#lastLuckyList {
+  justify-content: center !important;
+}
 @keyframes offerBlink {
   0% {
     opacity: 0.85;
@@ -368,13 +391,44 @@ button.secondary:hover {
     font-size: 28px;
   }
 }
-    @media (max-width: 900px) {
-  .topbar, .grid { grid-template-columns: 1fr; }
-  .numbers { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .btns, .admin { grid-template-columns: 1fr; }
+   @media (max-width: 1280px) {
+  .topbar,
+  .grid {
+    grid-template-columns: 1fr;
+  }
 
   .wrap {
-    padding: 14px;
+    padding: 16px;
+  }
+
+  .card {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .numbers {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .btns,
+  .admin {
+    grid-template-columns: 1fr;
+  }
+
+  .wrap {
+    padding: 12px;
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 16px;
   }
 
   .num {
@@ -394,41 +448,24 @@ button.secondary:hover {
     font-size: 14px;
   }
 
-  .topbar > .card,
-  .grid > div,
-  .side-stack > .card {
-    min-width: 0;
+  .wrap > div[style*="text-align:center"] {
+    padding: 16px 12px !important;
   }
 
-  #lastLuckyList {
-    justify-content: center !important;
+  .wrap > div[style*="text-align:center"] > div:first-child {
+    font-size: 38px !important;
   }
 
-  .history-table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+  .wrap > div[style*="text-align:center"] > div:nth-child(2) {
+    font-size: 18px !important;
+  }
+
+  .wrap > div[style*="text-align:center"] > div:nth-child(3) {
+    font-size: 13px !important;
   }
 
   #historyPager {
-    flex-wrap: wrap;
     justify-content: center !important;
-  }
-
-  #installBtn {
-    width: 100%;
-    max-width: 240px;
-  }
-
-  #logoutBtn,
-  #addCoinBtn,
-  #withdrawCoinBtn {
-    font-size: 13px !important;
-    padding: 12px 10px !important;
-  }
-
-  .wrap .card > div[style*="display:flex;gap:10px;margin-top:10px;"] {
-    flex-direction: column;
   }
 }
   
