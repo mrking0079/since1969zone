@@ -321,6 +321,8 @@ async function ensureUsersSeeded() {
         Number(user.last_bonus_time || 0),
         Boolean(user.blocked),
         Boolean(user.is_admin),
+        Boolean(user.is_admin) ? 'super_admin' : 'read_only',
+        0,
         Number(user.created_at || nowMs())
       ]
     );
