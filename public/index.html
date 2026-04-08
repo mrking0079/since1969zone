@@ -12,7 +12,14 @@
 
   <link rel="icon" href="/icon-192.png" />
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#050505">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Since1969Zone">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Since1969Zone">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-touch-fullscreen" content="yes">
 
   <meta property="og:title" content="Since1969Zone - Play Online Game">
   <meta property="og:description" content="Play and win coins with Since1969Zone. Fast gameplay, wallet system and real-time results.">
@@ -1748,6 +1755,14 @@ body.auth-open {
     <span>Use deposit request, withdrawal request, and Telegram support when you need assistance.</span>
   </div>
 </div>
+</div>
+
+    
+<div id="pwaStatusCard" class="card" style="display:none;margin-top:18px;">
+  <div class="mini-label">App Install Status</div>
+  <div id="pwaStatusText" class="muted" style="line-height:1.7;">
+    Install Since1969Zone for a faster full-screen experience on mobile.
+  </div>
 </div>
 
     <div class="topbar">
@@ -3594,6 +3609,80 @@ if (els.historyNextBtn) {
 loadLiveUpdates();
 setInterval(updateTimer, 1000);
 setInterval(loadState, 2000);
+
+// ===== PWA FINAL POLISH =====
+const installBtn = document.getElementById('installBtn');
+const installHint = document.getElementById('installHint');
+const pwaStatusCard = document.getElementById('pwaStatusCard');
+const pwaStatusText = document.getElementById('pwaStatusText');
+let deferredPrompt = null;
+
+function isStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function updatePwaStatus() {
+  if (!pwaStatusCard || !pwaStatusText) return;
+
+  pwaStatusCard.style.display = 'block';
+
+  if (isStandaloneMode()) {
+    pwaStatusText.innerHTML = '<strong style="color:#ffd700;">App Installed:</strong> Since1969Zone is running in app mode.';
+    if (installBtn) installBtn.style.display = 'none';
+    if (installHint) installHint.style.display = 'none';
+    return;
+  }
+
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+  if (isIOS) {
+    pwaStatusText.innerHTML = '<strong style="color:#ffd700;">Install Tip:</strong> Open browser menu and tap <strong>Add to Home Screen</strong> for full-screen app mode.';
+  } else {
+    pwaStatusText.innerHTML = '<strong style="color:#ffd700;">Install Tip:</strong> Use the Install App button for faster access and cleaner mobile experience.';
+  }
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (installBtn) installBtn.style.display = 'inline-flex';
+  if (installHint) installHint.style.display = 'none';
+  updatePwaStatus();
+});
+
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      try { await deferredPrompt.userChoice; } catch (e) {}
+      deferredPrompt = null;
+      updatePwaStatus();
+      return;
+    }
+
+    if (installHint) {
+      installHint.style.display = 'block';
+    }
+    updatePwaStatus();
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  if (installBtn) installBtn.style.display = 'none';
+  if (installHint) installHint.style.display = 'none';
+  updatePwaStatus();
+});
+
+window.addEventListener('load', () => {
+  updatePwaStatus();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+  }
+});
+
 </script>
 
 <script>
