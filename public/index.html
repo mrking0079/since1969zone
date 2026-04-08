@@ -41,7 +41,7 @@
       color: var(--text);
     }
     .wrap {
-      max-width: 1200px;
+      max-width: 1440px;
       margin: 0 auto;
       padding: 24px;
     }
@@ -104,7 +104,7 @@ text-align: center;
 }
     .grid {
       display: grid;
-      grid-template-columns: 1.2fr .8fr;
+      grid-template-columns: 1.3fr .95fr;
       gap: 18px;
     }
     .numbers {
@@ -296,6 +296,78 @@ button.secondary:hover {
     text-shadow: 0 0 18px rgba(255,215,0,0.65), 0 0 28px rgba(255,140,0,0.22);
   }
 }
+@media (min-width: 1200px) {
+  .wrap {
+    max-width: 1420px;
+    padding: 28px;
+  }
+
+  .topbar {
+    gap: 20px;
+  }
+
+  .topbar .card {
+    min-height: 190px;
+  }
+
+  .grid {
+    grid-template-columns: 1.3fr 0.95fr;
+    gap: 20px;
+  }
+
+  .card {
+    padding: 22px;
+    border-radius: 22px;
+  }
+
+  .mini-label {
+    font-size: 14px;
+  }
+
+  .big {
+    font-size: 40px;
+  }
+
+  .lucky-mini-number {
+    font-size: 52px;
+  }
+
+  .numbers {
+    gap: 14px;
+  }
+
+  .num {
+    padding: 16px;
+  }
+
+  .num button {
+    width: 78px;
+    height: 78px;
+    font-size: 30px;
+  }
+
+  .num input {
+    padding: 13px;
+    font-size: 17px;
+  }
+
+  button.primary,
+  button.secondary,
+  button.danger {
+    padding: 15px 18px;
+    font-size: 16px;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 14px 12px;
+    font-size: 15px;
+  }
+
+  .stat p {
+    font-size: 28px;
+  }
+}
     @media (max-width: 900px) {
   .topbar, .grid { grid-template-columns: 1fr; }
   .numbers { grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -320,6 +392,43 @@ button.secondary:hover {
   .num input {
     padding: 10px;
     font-size: 14px;
+  }
+
+  .topbar > .card,
+  .grid > div,
+  .side-stack > .card {
+    min-width: 0;
+  }
+
+  #lastLuckyList {
+    justify-content: center !important;
+  }
+
+  .history-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  #historyPager {
+    flex-wrap: wrap;
+    justify-content: center !important;
+  }
+
+  #installBtn {
+    width: 100%;
+    max-width: 240px;
+  }
+
+  #logoutBtn,
+  #addCoinBtn,
+  #withdrawCoinBtn {
+    font-size: 13px !important;
+    padding: 12px 10px !important;
+  }
+
+  .wrap .card > div[style*="display:flex;gap:10px;margin-top:10px;"] {
+    flex-direction: column;
   }
 }
   
@@ -849,17 +958,17 @@ body.auth-open {
 
   <div class="wrap" style="display:none;">
     <div style="text-align:center; margin-bottom: 20px; padding: 20px; border-radius: 18px; background: linear-gradient(180deg, #111, #050505); box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 1px solid #2c2c2c;">
-  <div style="font-size: 46px; font-weight: 900; color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.4);">
+  <div style="font-size: 56px; font-weight: 900; color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.4);">
     Since 1969
   </div>
-  <div style="font-size: 20px; color: #ffffff; letter-spacing: 3px;">
+  <div style="font-size: 24px; color: #ffffff; letter-spacing: 3px;">
     ZONE
   </div>
-<div style="font-size:14px;color:#b8b8b8;margin-top:8px;letter-spacing:1px;">
+<div style="font-size:16px;color:#b8b8b8;margin-top:8px;letter-spacing:1px;">
   Premium Live Game Experience
 </div>
 
-<div style="margin-top:18px;display:flex;justify-content:center;">
+<div style="margin-top:18px;display:flex;justify-content:center;flex-direction:column;align-items:center;">
   <button id="installBtn" style="
     display:none;
     padding:12px 24px;
@@ -878,6 +987,9 @@ body.auth-open {
   onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 0 18px rgba(255,215,0,0.35), 0 6px 18px rgba(0,0,0,0.35)'">
     Install App
   </button>
+  <div id="installHint" style="display:none;margin-top:10px;color:#b8b8b8;font-size:13px;font-weight:600;text-align:center;max-width:420px;line-height:1.5;">
+    To install, use your browser menu and tap <strong>Install App</strong> or <strong>Open in app</strong>.
+  </div>
 </div>
 </div>
 </div>
@@ -2720,31 +2832,57 @@ if ('serviceWorker' in navigator) {
 
 let deferredPrompt;
 const installBtn = document.getElementById('installBtn');
+const installHint = document.getElementById('installHint');
+
+function showInstallHint() {
+  if (installHint) {
+    installHint.style.display = 'block';
+  }
+}
+
+function hideInstallUI() {
+  if (installBtn) installBtn.style.display = 'none';
+  if (installHint) installHint.style.display = 'none';
+}
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  if (installBtn) {
-    installBtn.style.display = 'inline-block';
-  }
+  if (installBtn) installBtn.style.display = 'inline-block';
+  if (installHint) installHint.style.display = 'none';
 });
 
 if (installBtn) {
   installBtn.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      showInstallHint();
+      return;
+    }
+
     deferredPrompt.prompt();
     const choiceResult = await deferredPrompt.userChoice;
     console.log('Install choice:', choiceResult.outcome);
     deferredPrompt = null;
-    installBtn.style.display = 'none';
+
+    if (choiceResult.outcome === 'accepted') {
+      hideInstallUI();
+    } else {
+      showInstallHint();
+    }
   });
 }
 
 window.addEventListener('appinstalled', () => {
   console.log('PWA was installed');
-  if (installBtn) {
-    installBtn.style.display = 'none';
-  }
+  hideInstallUI();
+});
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if (!deferredPrompt && installBtn && installBtn.style.display !== 'inline-block') {
+      showInstallHint();
+    }
+  }, 2500);
 });
 </script>
 
