@@ -4,149 +4,388 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Since1969Zone Admin</title>
+  
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #060b16;
-      color: #fff;
-      padding: 20px;
+    :root{
+      --bg:#05070d;
+      --bg2:#0b1220;
+      --panel:#0f172a;
+      --panel2:#111827;
+      --panel3:#0b1324;
+      --line:#243041;
+      --line2:rgba(255,213,74,0.16);
+      --gold:#ffd54a;
+      --gold2:#ffb800;
+      --text:#f8fafc;
+      --muted:#9ca3af;
+      --green:#22c55e;
+      --red:#ff4d4f;
+      --blue:#2563eb;
+      --shadow:0 18px 50px rgba(0,0,0,.34);
     }
-    .box {
-      max-width: 900px;
-      margin: 40px auto;
-      background: #10192b;
-      border-radius: 18px;
-      padding: 24px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.35);
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Arial,sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(255,213,74,0.08), transparent 28%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      color:var(--text);
+      padding:16px;
+      min-height:100vh;
     }
-    h1 {
-      text-align: center;
-      color: gold;
-      margin-top: 0;
-      margin-bottom: 24px;
+    .box{
+      width:100%;
+      max-width:1380px;
+      margin:18px auto 34px;
+      background:linear-gradient(180deg, rgba(16,25,43,.96), rgba(9,15,27,.98));
+      border-radius:28px;
+      padding:24px;
+      border:1px solid rgba(255,213,74,0.10);
+      box-shadow:var(--shadow);
+      overflow:hidden;
     }
-    input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 12px;
-      margin-bottom: 12px;
-      border-radius: 10px;
-      border: 1px solid #2a3550;
-      background: #0a1020;
-      color: #fff;
-      font-size: 15px;
+    h1{
+      text-align:center;
+      color:var(--gold);
+      margin:0 0 8px;
+      font-size:34px;
+      letter-spacing:.5px;
+      text-shadow:0 0 18px rgba(255,213,74,.16);
     }
-    button {
-      padding: 12px 16px;
-      border: none;
-      border-radius: 10px;
-      background: linear-gradient(45deg, gold, orange);
-      color: #111;
-      font-weight: bold;
-      cursor: pointer;
-      margin-bottom: 12px;
+    .subhead{
+      text-align:center;
+      color:#d1d5db;
+      margin:0 0 22px;
+      font-size:14px;
+      line-height:1.7;
     }
-    .full {
-      width: 100%;
+    .hero-grid{
+      display:grid;
+      grid-template-columns:1.15fr .95fr;
+      gap:16px;
+      margin-bottom:18px;
     }
-    .hidden {
-      display: none;
+    .hero-card,.mini-card,.section-card,.surface-card{
+      background:linear-gradient(180deg, rgba(17,24,39,.94), rgba(11,18,32,.98));
+      border:1px solid var(--line);
+      border-radius:22px;
+      box-shadow:0 10px 28px rgba(0,0,0,.18);
     }
-    pre {
-      background: #070c18;
-      padding: 14px;
-      border-radius: 12px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      min-height: 120px;
+    .hero-card{padding:20px}
+    .hero-title{
+      font-size:28px;
+      font-weight:900;
+      color:var(--gold);
+      margin-bottom:10px;
     }
-    #loginMsg {
-      margin-bottom: 12px;
-      color: #ffd54a;
-      font-size: 14px;
+    .hero-text{
+      color:#dbe2ea;
+      line-height:1.75;
+      font-size:14px;
+    }
+    .hero-mini-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    .mini-card{padding:16px}
+    .mini-card strong{
+      display:block;
+      color:var(--gold);
+      margin-bottom:6px;
+      font-size:16px;
+    }
+    .mini-card span{
+      color:#dbe2ea;
+      font-size:13px;
+      line-height:1.6;
+    }
+    .login-shell{
+      max-width:520px;
+      margin:0 auto 6px;
+    }
+    .section-card{padding:18px}
+    .section-title{
+      margin:0 0 12px;
+      color:var(--gold);
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.3px;
+    }
+    .dashboard-shell{
+      display:grid;
+      gap:16px;
+    }
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+      margin:0 0 14px;
+    }
+    .stat-box{
+      background:var(--panel2);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:16px;
+    }
+    .stat-label{
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:8px;
+    }
+    .stat-value{
+      font-size:28px;
+      font-weight:900;
+      color:var(--gold);
+    }
+    #selectedUserInfo{
+      margin:0;
+      padding:14px 16px;
+      background:linear-gradient(135deg,#111827,#0b1220);
+      border:1px solid #3a4b63;
+      border-radius:16px;
+      color:var(--gold);
+      box-shadow:0 0 14px rgba(255,213,74,0.08);
+      font-weight:700;
+      line-height:1.6;
+    }
+    .toolbar-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-top:16px;
+    }
+    .toolbar-card{
+      padding:16px;
+      border-radius:18px;
+      background:linear-gradient(180deg,#131c2f,#0c1322);
+      border:1px solid var(--line);
+    }
+    .toolbar-card h3{
+      margin:0 0 12px;
+      font-size:15px;
+      color:var(--gold);
+      letter-spacing:.4px;
+    }
+    .action-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    .single-action{
+      display:grid;
+      gap:10px;
+    }
+    input, textarea{
+      width:100%;
+      box-sizing:border-box;
+      padding:13px 14px;
+      margin:0 0 12px;
+      border-radius:14px;
+      border:1px solid #2a3550;
+      background:#0a1020;
+      color:#fff;
+      font-size:15px;
+      outline:none;
+    }
+    input:focus, textarea:focus{
+      border-color:rgba(255,213,74,.65);
+      box-shadow:0 0 0 3px rgba(255,213,74,.08);
+    }
+    button{
+      padding:12px 16px;
+      border:none;
+      border-radius:14px;
+      background:linear-gradient(180deg,var(--gold),var(--gold2));
+      color:#111;
+      font-weight:800;
+      cursor:pointer;
+      margin:0;
+      min-height:46px;
+      transition:transform .16s ease, box-shadow .16s ease, opacity .16s ease;
+      box-shadow:0 10px 24px rgba(255,213,74,.14);
+    }
+    button:hover{transform:translateY(-1px)}
+    button.full{width:100%}
+    .hidden{display:none}
+    pre{
+      background:#070c18;
+      padding:16px;
+      border-radius:16px;
+      overflow:auto;
+      white-space:pre-wrap;
+      word-break:break-word;
+      min-height:120px;
+      border:1px solid var(--line);
+      line-height:1.65;
+      margin:0;
+    }
+    #loginMsg{
+      margin-bottom:12px;
+      color:var(--gold);
+      font-size:14px;
+      line-height:1.6;
+    }
+    .content-layout{
+      display:grid;
+      grid-template-columns:minmax(0,1.05fr) minmax(330px,.95fr);
+      gap:16px;
+      margin-top:16px;
+      align-items:start;
+    }
+    .left-stack,.right-stack{display:grid;gap:16px}
+    .panel-title{
+      margin:0 0 12px;
+      color:var(--gold);
+      font-size:19px;
+      font-weight:900;
+    }
+    .footer-note{
+      width:100%;
+      text-align:center;
+      padding:18px 12px;
+      color:var(--gold);
+      font-size:14px;
+      font-weight:700;
+      letter-spacing:.5px;
+      background:#050505;
+      border-top:1px solid rgba(255,215,0,0.12);
+      margin-top:20px;
+      border-radius:0 0 18px 18px;
+    }
+    @media (max-width:1150px){
+      .hero-grid,.content-layout{grid-template-columns:1fr}
+      .toolbar-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (max-width:760px){
+      body{padding:10px}
+      .box{padding:14px;border-radius:22px}
+      h1{font-size:28px}
+      .hero-title{font-size:22px}
+      .hero-mini-grid,.stats-grid,.toolbar-grid,.action-grid{grid-template-columns:1fr}
+      .hero-card,.mini-card,.section-card,.toolbar-card{padding:14px;border-radius:18px}
+      button{width:100%}
+      .subhead{font-size:13px}
     }
   </style>
+
 </head>
 <body>
   <div class="box">
     <h1>Since1969Zone Admin Panel</h1>
+    <div class="subhead">Premium responsive admin control center for users, wallet actions, requests, rounds, live updates and full account history.</div>
 
-    <div id="loginSection">
-      <input id="adminUsername" type="text" placeholder="Admin username" />
-      <input id="adminPassword" type="password" placeholder="Admin password" />
-      <button class="full" onclick="adminLogin()">Admin Login</button>
-      <div id="loginMsg">Pehle admin login karo.</div>
+
+    <div id="loginSection" class="login-shell">
+      <div class="hero-grid">
+        <div class="hero-card">
+          <div class="hero-title">Admin Command Center</div>
+          <div class="hero-text">
+            Yaha se tum users load kar sakte ho, transaction history dekh sakte ho, deposit / withdrawal requests handle kar sakte ho, round control use kar sakte ho, live updates change kar sakte ho, aur ek hi jagah se full user history manage kar sakte ho.
+          </div>
+        </div>
+        <div class="hero-mini-grid">
+          <div class="mini-card"><strong>User Controls</strong><span>Load, search, select, block, unblock aur delete actions cleaner flow me.</span></div>
+          <div class="mini-card"><strong>Wallet Actions</strong><span>Add / withdraw coins with quick selected-user workflow.</span></div>
+          <div class="mini-card"><strong>Requests</strong><span>Deposit aur withdrawal approval cards ke andar direct action.</span></div>
+          <div class="mini-card"><strong>Mobile Safe</strong><span>Responsive layout taaki zoom ya mobile width me UI na bikhre.</span></div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-title">Admin Login</div>
+        <input id="adminUsername" type="text" placeholder="Admin username" />
+        <input id="adminPassword" type="password" placeholder="Admin password" />
+        <button class="full" onclick="adminLogin()">Admin Login</button>
+        <div id="loginMsg">Pehle admin login karo.</div>
+      </div>
     </div>
 
     <div id="panelSection" class="hidden">
-<div id="dashboardStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0 16px 0;">
-  <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
-    <div style="color:#9ca3af;font-size:13px;">Total Deposits</div>
-    <div id="totalDepositsStat" style="font-size:24px;font-weight:800;color:#22c55e;margin-top:6px;">0</div>
-  </div>
+      <div class="dashboard-shell">
+        <div class="section-card">
+          <div class="section-title">Dashboard Overview</div>
+<div id="dashboardStats" class="stats-grid">
+  <div class="stat-box"><div class="stat-label">Total Deposits</div><div id="totalDepositsStat" class="stat-value" style="color:#22c55e;">0</div></div>
 
-  <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
-    <div style="color:#9ca3af;font-size:13px;">Total Withdrawals</div>
-    <div id="totalWithdrawalsStat" style="font-size:24px;font-weight:800;color:#ff4d4f;margin-top:6px;">0</div>
-  </div>
+  <div class="stat-box"><div class="stat-label">Total Withdrawals</div><div id="totalWithdrawalsStat" class="stat-value" style="color:#ff4d4f;">0</div></div>
 
-  <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
-    <div style="color:#9ca3af;font-size:13px;">Profit / Loss</div>
-    <div id="profitLossStat" style="font-size:24px;font-weight:800;color:#ffd54a;margin-top:6px;">0</div>
-  </div>
-</div>
-<div id="selectedUserInfo" style="margin:12px 0;padding:12px 14px;background:linear-gradient(135deg,#111827,#0b1220);border:1px solid #3a4b63;border-radius:12px;color:#ffd54a;box-shadow:0 0 14px rgba(255,213,74,0.08);font-weight:600;">No user selected</div>
-
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-  <button onclick="openLiveUpdatesPanel()" style="margin-bottom:0;background:#22c55e;color:#111;">LIVE UPDATES</button>
-  <button onclick="addCoins()" style="margin-bottom:0;">Add Coins</button>
-  <button onclick="withdrawCoins()" style="margin-bottom:0;">Withdraw Coins</button>
-  <button onclick="adminLogout()" style="margin-bottom:0;">Logout</button>
+  <div class="stat-box"><div class="stat-label">Profit / Loss</div><div id="profitLossStat" class="stat-value">0</div></div>
 </div>
 
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-  <button onclick="loadUsers()" style="margin-bottom:0;">Load Users</button>
-  <button onclick="loadTransactions()" style="margin-bottom:0;">Transaction History</button>
-  <button id="depositRequestsBtn" onclick="loadDepositRequests('deposit')" style="margin-bottom:0;">
-    Deposit Requests (0)
-  </button>
-  <button id="withdrawalRequestsBtn" onclick="loadDepositRequests('withdrawal')" style="margin-bottom:0;">
-    Withdrawal Requests (0)
-  </button>
-  <button onclick="loadCurrentRound()" style="margin-bottom:0;">Round Control</button>
-  <button onclick="clearAllSelections()" style="margin-bottom:0;background:#374151;color:#fff;">Clear All Selections</button>
-</div>
+<div id="selectedUserInfo">No user selected</div>
+        </div>
 
-<button onclick="toggleBlockUser()" style="margin-bottom:10px;background:#ff4d4f;color:#fff;">
-  Block / Unblock User
-</button>
+        <div class="toolbar-grid">
+          <div class="toolbar-card">
+            <h3>Quick Controls</h3>
+            <div class="action-grid">
+              <button onclick="openLiveUpdatesPanel()" style="background:#22c55e;color:#111;">LIVE UPDATES</button>
+              <button onclick="adminLogout()">Logout</button>
+              <button onclick="loadUsers()">Load Users</button>
+              <button onclick="loadTransactions()">Transaction History</button>
+            </div>
+          </div>
 
-<input id="coinUsername" type="text" placeholder="Username to add coins" />
-<input id="coinAmount" type="number" placeholder="Coins amount" />
+          <div class="toolbar-card">
+            <h3>Requests & Round</h3>
+            <div class="action-grid">
+              <button id="depositRequestsBtn" onclick="loadDepositRequests('deposit')">Deposit Requests (0)</button>
+              <button id="withdrawalRequestsBtn" onclick="loadDepositRequests('withdrawal')">Withdrawal Requests (0)</button>
+              <button onclick="loadCurrentRound()">Round Control</button>
+              <button onclick="clearAllSelections()" style="background:#374151;color:#fff;">Clear All Selections</button>
+            </div>
+          </div>
 
-<input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
+          <div class="toolbar-card">
+            <h3>Selected User Actions</h3>
+            <input id="coinUsername" type="text" placeholder="Username to add coins" />
+            <input id="coinAmount" type="number" placeholder="Coins amount" />
+            <div class="action-grid">
+              <button onclick="addCoins()">Add Coins</button>
+              <button onclick="withdrawCoins()">Withdraw Coins</button>
+              <button onclick="toggleBlockUser()" style="background:#ff4d4f;color:#fff;grid-column:1/-1;">Block / Unblock User</button>
+            </div>
+          </div>
 
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
-  <input id="historyUsername" type="text" placeholder="Enter username for full history" style="margin-bottom:0;flex:1;min-width:260px;" />
-  <button onclick="loadUserHistory()" style="margin-bottom:0;">User Full History</button>
-</div>
+          <div class="toolbar-card">
+            <h3>User Search & Full History</h3>
+            <input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
+            <input id="historyUsername" type="text" placeholder="Enter username for full history" />
+            <div class="single-action">
+              <button onclick="loadUserHistory()">User Full History</button>
+            </div>
+          </div>
+        </div>
 
-<div id="usersList" style="margin-top:16px;"></div>
-<pre id="output">Admin action results will appear here....</pre>
+        <div class="content-layout">
+          <div class="left-stack">
+            <div class="section-card">
+              <div class="panel-title">Users</div>
+              <div id="usersList" style="display:grid;gap:10px;"></div>
+            </div>
 
-<div id="userHistoryPanel" style="margin-top:16px;display:none;">
+            <div class="section-card">
+              <div class="panel-title">Admin Output</div>
+              <pre id="output">Admin action results will appear here....</pre>
+            </div>
+          </div>
+
+          <div class="right-stack">
+
+
+<div id="userHistoryPanel" class="section-card" style="display:none;">
   <h3 style="margin:0 0 10px 0;color:#ffd54a;">User Full History</h3>
   <div id="userHistoryContent" style="display:grid;gap:12px;"></div>
 </div>
 
-<div id="transactionsPanel" style="margin-top:16px;display:none;">
+<div id="transactionsPanel" class="section-card" style="display:none;">
   <h3 style="margin:0 0 10px 0;color:#ffd54a;">Transaction History</h3>
   <div id="transactionsList" style="display:grid;gap:10px;"></div>
 </div>
 
-<div id="roundPanel" style="margin-top:16px;display:none;">
+<div id="roundPanel" class="section-card" style="display:none;">
   <h3 style="margin:0 0 10px 0;color:#ffd54a;">Round Control</h3>
   <div id="roundInfo" style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;line-height:1.8;">
     Round info will appear here...
@@ -155,13 +394,13 @@
     <button onclick="forceSettleRound()" style="background:#ff9800;color:#111;">Force Settle Round</button>
   </div>
 </div>
-<div id="depositRequestsPanel" style="margin-top:16px;display:none;">
+<div id="depositRequestsPanel" class="section-card" style="display:none;">
   <h3 style="margin:0 0 10px 0;color:#ffd54a;">Deposit Requests</h3>
 <div id="pendingRequestCount" style="margin:0 0 10px 0;color:#93c5fd;font-weight:700;">Pending: 0</div>
   <div id="depositRequestsList" style="display:grid;gap:10px;"></div>
 </div>
 
-<div id="liveUpdatesPanel" style="margin-top:16px;display:none;">
+<div id="liveUpdatesPanel" class="section-card" style="display:none;">
   <h3 style="margin:0 0 10px 0;color:#22c55e;">LIVE UPDATES</h3>
 
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
@@ -177,9 +416,10 @@
     Live update options will appear here...
   </div>
 </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-
 
 <script>
   let allUsers = [];
@@ -1631,7 +1871,7 @@ if (localStorage.getItem('adminSessionToken')) {
   }, 10000);
 }
   </script>
-<div style="width:100%;text-align:center;padding:18px 12px;color:#ffd700;font-size:14px;font-weight:700;letter-spacing:0.5px;background:#050505;border-top:1px solid rgba(255,215,0,0.12);margin-top:20px;">
+<div class="footer-note">
   ®️Since 1969 Zone Designed by - MrKinG
 </div>
 </body>
