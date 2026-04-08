@@ -1495,7 +1495,7 @@ async function loadTransactions() {
   const panel = document.getElementById('transactionsPanel');
   const list = document.getElementById('transactionsList');
 
-hideAllAdminSections();
+  hideAllAdminSections();
 
   if (!token) {
     output.textContent = 'Admin login required';
@@ -1503,10 +1503,10 @@ hideAllAdminSections();
   }
 
   panel.style.display = 'block';
-  list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading transactions...</div>';
+  list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading transactions.</div>';
 
   try {
-    const res = await fetch('/api/admin/transactions', {
+    const res = await fetch('/api/admin/transaction-history', {
       headers: getAdminHeaders()
     });
 
@@ -1518,35 +1518,47 @@ hideAllAdminSections();
       return;
     }
 
-    if (!data.transactions || !data.transactions.length) {
+    const transactions = Array.isArray(data.history)
+      ? data.history
+      : Array.isArray(data.transactions)
+      ? data.transactions
+      : [];
+
+    if (!transactions.length) {
       list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No transactions found</div>';
       output.textContent = 'Transaction history loaded';
       return;
     }
 
-    list.innerHTML = data.transactions.map(tx => {
-  const dateText = tx.createdAt
-    ? new Date(tx.createdAt).toLocaleString()
-    : '-';
+    list.innerHTML = transactions.map(tx => {
+      const dateText = tx.createdAt
+        ? new Date(Number(tx.createdAt)).toLocaleString()
+        : '-';
 
-  let typeText = tx.type || '-';
+      let typeText = tx.type || '-';
 
-  if (tx.type === 'admin_add_coin') typeText = 'Admin Added Coins';
-  else if (tx.type === 'admin_withdraw_coin') typeText = 'Admin Withdraw Coins';
-  else if (tx.type === 'admin_block_user') typeText = 'User Blocked';
-  else if (tx.type === 'admin_unblock_user') typeText = 'User Unblocked';
-  else if (tx.type === 'deposit_approved') typeText = 'Deposit Approved';
-  else if (tx.type === 'withdrawal_approved') typeText = 'Withdrawal Approved';
+      if (tx.type === 'admin_add_coin') typeText = 'Admin Added Coins';
+      else if (tx.type === 'admin_withdraw_coin') typeText = 'Admin Withdraw Coins';
+      else if (tx.type === 'admin_block_user') typeText = 'User Blocked';
+      else if (tx.type === 'admin_unblock_user') typeText = 'User Unblocked';
+      else if (tx.type === 'deposit_approved') typeText = 'Deposit Approved';
+      else if (tx.type === 'withdrawal_approved') typeText = 'Withdrawal Approved';
+      else if (tx.type === 'bet_debit') typeText = 'Bet Debit';
+      else if (tx.type === 'win_credit') typeText = 'Win Credit';
+      else if (tx.type === 'bonus_credit') typeText = 'Bonus Credit';
+      else if (tx.type === 'deposit_request') typeText = 'Deposit Request';
+      else if (tx.type === 'withdraw_request') typeText = 'Withdraw Request';
 
-  return `
-    <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;">
-      <div><strong>User:</strong> ${tx.username}</div>
-      <div><strong>Type:</strong> ${typeText}</div>
-      <div><strong>Amount:</strong> ${tx.amount}</div>
-      <div><strong>Time:</strong> ${dateText}</div>
-    </div>
-  `;
-}).join('');
+      return `
+        <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;">
+          <div><strong>ID:</strong> ${tx.id ?? '-'}</div>
+          <div><strong>Username:</strong> ${tx.username || 'Deleted User'}</div>
+          <div><strong>Type:</strong> ${typeText}</div>
+          <div><strong>Amount:</strong> ${Number(tx.amount || 0)}</div>
+          <div><strong>Time:</strong> ${dateText}</div>
+        </div>
+      `;
+    }).join('');
 
     output.textContent = 'Transaction history loaded';
   } catch (err) {
@@ -1594,7 +1606,7 @@ function getAdminHeaders(extra = {}) {
   const token = localStorage.getItem('adminSessionToken') || '';
 
   return {
-    ...extra,
+   ...extra,
     'x-auth-token': token,
     'x-admin-key': currentAdminKey
   };
