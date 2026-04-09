@@ -273,47 +273,10 @@ button.secondary:hover {
 .history-table td {
   padding: 12px 10px;
   border-bottom: 1px solid #2f2f2f;
-  text-align: center;
+  text-align: left;
   font-size: 14px;
   vertical-align: top;
 }
-    #pwaStatusCard .mini-label,
-    #pwaStatusText,
-    .quick-guide .section-title,
-    .quick-guide .section-subtitle,
-    .guide-item,
-    .history-card .mini-label,
-    .history-card .muted,
-    .wallet-history-card .mini-label {
-      text-align: center;
-    }
-    #walletHistoryBox {
-      margin-top: 12px;
-      max-height: 760px;
-      overflow-y: auto;
-      padding-right: 6px;
-    }
-    #walletHistoryList {
-      display: grid;
-      gap: 12px;
-    }
-    .last-lucky-offer-box {
-      margin-top: 14px;
-      padding: 12px;
-      border-radius: 14px;
-      background: linear-gradient(180deg, #111, #0a0a0a);
-      border: 1px solid #3a2d00;
-      box-shadow: inset 0 0 18px rgba(255,215,0,0.05), 0 8px 20px rgba(0,0,0,0.25);
-      text-align: center;
-    }
-    .last-lucky-offer-title {
-      font-size: 12px;
-      font-weight: 900;
-      color: #ffd700;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-    }
     .fair-box {
       margin-top: 14px;
       padding: 14px;
@@ -1489,23 +1452,6 @@ body.auth-open {
   font-size: 14px;
   line-height: 1.55;
 }
-.header-mini-card summary {
-  list-style: none;
-  cursor: pointer;
-}
-.header-mini-card summary::-webkit-details-marker {
-  display: none;
-}
-.header-mini-card details, .header-mini-card[open] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-}
-.header-mini-card span {
-  display: none;
-  margin-top: 8px;
-}
-.header-mini-card[open] span {
-  display: block;
-}
 .wallet-breakdown {
   display: grid;
   grid-template-columns: 1fr;
@@ -1571,13 +1517,11 @@ body.auth-open {
   color: #ffd700;
   margin-bottom: 6px;
   letter-spacing: .5px;
-  text-align: center;
 }
 .section-subtitle {
   color: #c9c9c9;
   line-height: 1.7;
   font-size: 14px;
-  text-align: center;
 }
 .guide-grid {
   display: grid;
@@ -1590,7 +1534,6 @@ body.auth-open {
   padding: 16px;
   background: linear-gradient(180deg, #131313, #0b0b0b);
   border: 1px solid rgba(255,215,0,0.12);
-  text-align: center;
 }
 .guide-item strong {
   display: block;
@@ -1630,6 +1573,93 @@ body.auth-open {
   }
   .wallet-actions {
     flex-direction: column;
+  }
+}
+
+
+/* === User panel alignment + auto-adjust fixes === */
+.game-hero,
+.quick-guide,
+.quick-guide .section-title,
+.quick-guide .section-subtitle,
+.quick-guide .guide-item,
+.quick-guide .guide-item strong,
+.quick-guide .guide-item span,
+#pwaStatusText {
+  text-align: center;
+}
+
+.game-hero {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.header-mini-strip,
+.topbar,
+.grid,
+.side-stack,
+.guide-grid {
+  align-items: stretch;
+}
+
+.card {
+  min-width: 0;
+}
+
+.history-table th,
+.history-table td {
+  text-align: center;
+}
+
+#historyBody td:first-child,
+#historyBody td:nth-child(2),
+#historyBody td:nth-child(3),
+#historyBody td:nth-child(4),
+#historyBody td:nth-child(5) {
+  text-align: center;
+}
+
+#historyPager {
+  justify-content: center !important;
+}
+
+#historyPageInfo {
+  min-width: 72px;
+  text-align: center;
+}
+
+#walletHistoryBox {
+  margin-top: 12px;
+  max-height: 760px;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-gutter: stable both-edges;
+}
+
+#walletHistoryList {
+  display: grid;
+  gap: 10px;
+}
+
+#walletHistoryBox::-webkit-scrollbar {
+  width: 10px;
+}
+
+#walletHistoryBox::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.35);
+  border-radius: 999px;
+}
+
+#walletHistoryBox::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.04);
+  border-radius: 999px;
+}
+
+@media (max-width: 900px) {
+  #walletHistoryBox {
+    max-height: 620px;
+    padding-right: 4px;
   }
 }
 
@@ -1854,18 +1884,18 @@ body.auth-open {
 </div>
 
 <div class="header-mini-strip">
-  <details class="header-mini-card">
-    <summary><strong>How to Start</strong></summary>
+  <div class="header-mini-card">
+    <strong>How to Start</strong>
     <span>Login, choose numbers, enter coins, and place your bet before the round closes.</span>
-  </details>
-  <details class="header-mini-card">
-    <summary><strong>What to Track</strong></summary>
+  </div>
+  <div class="header-mini-card">
+    <strong>What to Track</strong>
     <span>Watch the live timer, latest lucky number, wallet movement, and recent game history.</span>
-  </details>
-  <details class="header-mini-card">
-    <summary><strong>Need Help</strong></summary>
+  </div>
+  <div class="header-mini-card">
+    <strong>Need Help</strong>
     <span>Use deposit request, withdrawal request, and Telegram support when you need assistance.</span>
-  </details>
+  </div>
 </div>
 </div>
 
@@ -1932,10 +1962,6 @@ body.auth-open {
         <div class="big" id="lastLucky">--</div>
         </div>
         <div class="muted" id="lastRoundText" style="margin-top:14px;display:block;text-align:center;line-height:1.4;">Waiting.</div>
-        <div class="last-lucky-offer-box">
-          <div class="last-lucky-offer-title">Live Today Offer</div>
-          <div id="liveOfferText" style="text-align:center;font-size:14px;font-weight:800;line-height:1.7;color:#ffffff;">Loading today offer...</div>
-        </div>
       </div>
     </div>
 
@@ -1979,7 +2005,7 @@ body.auth-open {
           </div>
         </div>
 
-        <div class="card history-card" style="margin-top:18px;">
+        <div class="card" style="margin-top:18px;">
           <div class="mini-label">Recent Game History</div>
           <table class="history-table">
             <thead>
@@ -1993,7 +2019,7 @@ body.auth-open {
             </thead>
             <tbody id="historyBody"></tbody>
           </table>
-	<div id="historyPager" style="display:flex;justify-content:center;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;">
+	<div id="historyPager" style="display:flex;justify-content:center;align-items:center;margin-top:12px;gap:14px;flex-wrap:wrap;">
   <button id="historyPrevBtn" type="button" style="padding:8px 12px;border:none;border-radius:8px;background:#222;color:#fff;cursor:pointer;">
     ◀ Prev
   </button>
@@ -2036,15 +2062,24 @@ body.auth-open {
           </div>
         </div>
 
-        <div class="card wallet-history-card">
+<div class="card" id="liveOfferCard" style="position:relative;overflow:hidden;">
+  <div style="font-size:18px;font-weight:900;color:#ffd700;text-align:center;letter-spacing:1px;margin-bottom:12px;text-shadow:0 0 10px rgba(255,215,0,0.35);animation:offerBlink 1.2s infinite alternate;">
+    LIVE TODAY OFFER
+  </div>
+
+  <div id="liveOfferText" style="text-align:center;font-size:16px;font-weight:800;line-height:1.7;color:#ffffff;background:linear-gradient(180deg,#111,#0a0a0a);border:1px solid #3a2d00;border-radius:14px;padding:16px;box-shadow:inset 0 0 18px rgba(255,215,0,0.05),0 8px 20px rgba(0,0,0,0.25);">
+    Loading today offer...
+  </div>
+</div>
+        <div class="card">
   <div class="mini-label">User Wallet History</div>
 
-  <div id="walletHistoryBox">
+  <div id="walletHistoryBox" style="margin-top:12px;max-height:760px;overflow-y:auto;padding-right:6px;scrollbar-gutter:stable both-edges;">
   <div class="muted" id="walletHistoryEmpty" style="text-align:center;padding:16px;">
     No wallet history yet
   </div>
 
-  <div id="walletHistoryList"></div>
+  <div id="walletHistoryList" style="display:grid;gap:12px;"></div>
 </div>
 </div>
       </div>
@@ -2990,24 +3025,22 @@ async function loadWalletHistory() {
     : (isCredit ? '+' : '-');
 
   return `
-  <div style="padding:14px;border-radius:14px;background:#111;border:1px solid #333;">
-    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-      <div>
-        <div style="font-size:16px;font-weight:800;color:#fff;">${item.title || 'Wallet Activity'}</div>
-        <div style="font-size:13px;color:#aaaaaa;margin-top:4px;">${item.details || '-'}</div>
+  <div style="padding:10px 12px;border-radius:14px;background:#111;border:1px solid #333;display:grid;gap:6px;">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:15px;font-weight:800;color:#fff;line-height:1.3;">${item.title || 'Wallet Activity'}</div>
+        <div style="font-size:12px;color:#aaaaaa;margin-top:2px;line-height:1.45;word-break:break-word;">${item.details || '-'}</div>
       </div>
 
-      <div style="text-align:right;min-width:120px;">
-        <div style="font-size:18px;font-weight:900;color:${amountColor};">
+      <div style="text-align:right;min-width:104px;">
+        <div style="font-size:16px;font-weight:900;color:${amountColor};line-height:1.2;">
           ${amountPrefix}${formatCoins(item.amount || 0)}
         </div>
-        ${statusLabel ? `<div style="font-size:13px;font-weight:800;color:${statusColor};margin-top:6px;">${statusLabel}</div>` : ''}
+        ${statusLabel ? `<div style="font-size:12px;font-weight:800;color:${statusColor};margin-top:4px;">${statusLabel}</div>` : ''}
       </div>
     </div>
 
-    <div style="margin-top:10px;font-size:12px;color:#888;">
-      ${dateText}
-    </div>
+    <div style="font-size:11px;color:#888;line-height:1.35;">${dateText}</div>
   </div>
 `;
 }).join('');
@@ -3060,7 +3093,18 @@ function renderServerState() {
 els.placeBetBtn.disabled = data.round.status !== 'open';
     els.fairnessBox.innerHTML = `
   <strong>Fairness:</strong><br>
-  Current round hash: ${data.round.serverSeedHash}
+  Current round hash: ${data.round.serverSeedHash}<br>
+  Round #: ${data.round.roundNumber}
+  ${
+    data.lastSettledRound
+      ? `<br><br><strong>Previous Round Reveal:</strong><br>
+         Round #: ${data.lastSettledRound.roundNumber}<br>
+         Server seed hash: ${data.lastSettledRound.serverSeedHash}<br>
+         Server seed: ${data.lastSettledRound.serverSeed}<br>
+         Client seed: ${data.lastSettledRound.clientSeed}<br>
+         Lucky number: ${data.lastSettledRound.luckyNumber}`
+      : ''
+  }
 `;
   } else {
     els.statusBadge.textContent = 'waiting';
