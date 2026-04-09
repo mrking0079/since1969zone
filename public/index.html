@@ -273,9 +273,17 @@ button.secondary:hover {
 .history-table td {
   padding: 12px 10px;
   border-bottom: 1px solid #2f2f2f;
-  text-align: left;
+  text-align: center;
   font-size: 14px;
-  vertical-align: top;
+  vertical-align: middle;
+}
+
+.history-table th {
+  text-align: center;
+}
+
+.history-table td {
+  text-align: center;
 }
     .fair-box {
       margin-top: 14px;
@@ -2070,8 +2078,9 @@ body.auth-open {
           <div class="msg" id="message"></div>
 
           <div class="fair-box" id="fairnessBox">
-            Server seed hash loading...
-          </div>
+          <strong>Fairness:</strong><br>
+          Current round hash: Loading...
+        </div>
         </div>
 
         <div class="card quick-guide">
@@ -3172,21 +3181,9 @@ function renderServerState() {
     : 'Result Soon';
     els.statusBadge.className = `status ${data.round.status}`;
 els.placeBetBtn.disabled = data.round.status !== 'open';
-    els.fairnessBox.innerHTML = `
+  els.fairnessBox.innerHTML = `
   <strong>Fairness:</strong><br>
-  Current round hash: ${data.round.serverSeedHash}<br>
-  Client seed: ${data.round.clientSeed}<br>
-  Round #: ${data.round.roundNumber}
-  ${
-    data.lastSettledRound
-      ? `<br><br><strong>Previous Round Reveal:</strong><br>
-         Round #: ${data.lastSettledRound.roundNumber}<br>
-         Server seed hash: ${data.lastSettledRound.serverSeedHash}<br>
-         Server seed: ${data.lastSettledRound.serverSeed}<br>
-         Client seed: ${data.lastSettledRound.clientSeed}<br>
-         Lucky number: ${data.lastSettledRound.luckyNumber}`
-      : ''
-  }
+  Current round hash: ${data.round.serverSeedHash}
 `;
   } else {
     els.statusBadge.textContent = 'waiting';
