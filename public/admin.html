@@ -2307,8 +2307,8 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
 .live-round-host-card .section-title{margin-bottom:10px !important;}
 .live-round-host-card h3{margin:0 0 12px;font-size:15px;color:#ffd54a;letter-spacing:.4px;}
 .users-modal-card .panel-title,.transactions-modal-card h3,.round-modal-card h3,.deposit-modal-card h3,.live-updates-modal-card h3,.history-modal-card h3{display:none !important;}
-.admin-modal-overlay{position:fixed;inset:0;background:rgba(1,7,18,.78);backdrop-filter:blur(6px);z-index:999999;display:none;align-items:center;justify-content:center;padding:18px;}
-.admin-modal-shell{width:min(1180px,100%);max-height:min(90vh,900px);background:linear-gradient(180deg,rgba(16,25,43,.98),rgba(9,15,27,.99));border:1px solid rgba(255,213,74,.18);border-radius:24px;box-shadow:0 22px 60px rgba(0,0,0,.38);display:flex;flex-direction:column;overflow:hidden;}
+.admin-modal-overlay{position:fixed;inset:0;background:rgba(5,7,13,.98);backdrop-filter:blur(10px);z-index:999999;display:none;align-items:center;justify-content:center;padding:18px;pointer-events:none;}
+.admin-modal-shell{width:min(1180px,100%);max-height:min(90vh,900px);min-height:min(82vh,820px);background:linear-gradient(180deg,rgba(16,25,43,.995),rgba(9,15,27,.998));border:1px solid rgba(255,213,74,.18);border-radius:24px;box-shadow:0 22px 60px rgba(0,0,0,.38);display:flex;flex-direction:column;overflow:hidden;}
 .admin-modal-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 20px;border-bottom:1px solid #243041;background:linear-gradient(180deg,rgba(19,28,47,.92),rgba(10,17,31,.92));}
 .admin-modal-title{color:#ffd54a;font-size:22px;font-weight:900;line-height:1.2;}
 .admin-modal-subtitle{color:#9ca3af;font-size:13px;margin-top:4px;}
@@ -2427,6 +2427,7 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
   }
 
   function mountNodeToModal(key, title){
+    closeAdminModal(true);
     const overlay = byId('adminGlobalModal');
     const body = byId('adminModalBody');
     const titleEl = byId('adminModalTitle');
@@ -2436,7 +2437,6 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
     const node = nodeMap[key];
     if (!node) return;
 
-    if (currentModalKey && currentModalKey !== key) closeAdminModal();
     currentModalKey = key;
 
     if (!placeholderMap.has(node)) {
@@ -2451,10 +2451,12 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
     titleEl.textContent = title;
     body.appendChild(node);
     overlay.style.display = 'flex';
+    overlay.style.pointerEvents = 'auto';
     document.body.classList.add('admin-modal-open');
+    document.documentElement.style.overflow = 'hidden';
   }
 
-  function closeAdminModal(){
+  function closeAdminModal(forceOnly = false){
     const overlay = byId('adminGlobalModal');
     const body = byId('adminModalBody');
     if (!overlay || !body) return;
@@ -2464,9 +2466,14 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
       ph.parentNode && ph.parentNode.insertBefore(first, ph);
     }
     overlay.style.display = 'none';
+    overlay.style.pointerEvents = 'none';
     document.body.classList.remove('admin-modal-open');
-    body.innerHTML = '';
+    document.documentElement.style.overflow = '';
+    if (!forceOnly) body.innerHTML = '';
+    else body.innerHTML = '';
     currentModalKey = null;
+    const active = document.activeElement;
+    if (active && typeof active.blur === 'function') active.blur();
   }
   window.closeAdminModal = closeAdminModal;
 
@@ -2477,6 +2484,7 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
       ensureDashboardLayout();
       ensureToolbarLayout();
       ensureModal();
+      closeAdminModal(true);
       const result = await original.apply(this, args);
       const title = typeof titleBuilder === 'function' ? titleBuilder(...args) : titleBuilder;
       mountNodeToModal(key, title);
