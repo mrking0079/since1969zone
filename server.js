@@ -34,6 +34,8 @@ const ADMIN_ROUTE = process.env.ADMIN_ROUTE || '/secure-admin-1969';
 const ROUND_SECONDS = 60;
 const BETTING_CLOSE_SECONDS = 10;
 const JOINING_BONUS_AMOUNT = 100;
+const DEVICE_SIGNUP_LIMIT = 2;
+const DEVICE_BONUS_LIMIT = 2;
 const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const DAILY_BONUS_MIN = 10;
 const DAILY_BONUS_MAX = 50;
@@ -98,6 +100,46 @@ function sha256(value) {
 function randomHex(size = 32) {
   return crypto.randomBytes(size).toString('hex');
 }
+
+function sanitizeDeviceFingerprint(value) {
+  return String(value || '').trim().slice(0, 200);
+}
+
+async function ensureDeviceColumnsReady() {
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS device_fingerprint TEXT DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS signup_bonus_given BOOLEAN DEFAULT FALSE;
+  `);
+
+  await pool.query(`
+    UPDATE users
+    SET
+      device_fingerprint = COALESCE(device_fingerprint, ''),
+      signup_bonus_given = COALESCE(signup_bonus_given, FALSE)
+  `);
+}
+
+async function getDeviceSignupStats(deviceFingerprint) {
+  const safeFingerprint = sanitizeDeviceFingerprint(deviceFingerprint);
+  if (!safeFingerprint) {
+    return { totalAccounts: 0, bonusAccounts: 0 };
+  }
+
+  const result = await pool.query(
+    `SELECT
+      COUNT(*)::int AS total_accounts,
+      COUNT(*) FILTER (WHERE COALESCE(signup_bonus_given, FALSE) = TRUE)::int AS bonus_accounts
+     FROM users
+     WHERE device_fingerprint = $1 AND is_admin = FALSE`,
+    [safeFingerprint]
+  );
+
+  return {
+    totalAccounts: Number(result.rows[0]?.total_accounts || 0),
+    bonusAccounts: Number(result.rows[0]?.bonus_accounts || 0)
+  };
+}
+
 
 function hashPassword(password) {
   return sha256(`secure-live-game-password:${String(password || '')}`);
@@ -259,6 +301,7 @@ async function initDatabase() {
   `);
 
   await ensureWalletColumnsReady();
+  await ensureDeviceColumnsReady();
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_users_session_token ON users(session_token);
@@ -407,7 +450,7 @@ async function updateUserSessionToken(userId, sessionToken) {
   await pool.query(`UPDATE users SET session_token = $1 WHERE id = $2`, [sessionToken, userId]);
 }
 
-async function createUserRecord({ username, password, walletBalance = JOINING_BONUS_AMOUNT, isAdmin = false, bonusBalance = null, depositBalance = null, winningBalance = null }) {
+async function createUserRecord({ username, password, walletBalance = JOINING_BONUS_AMOUNT, isAdmin = false, bonusBalance = null, depositBalance = null, winningBalance = null, deviceFingerprint = '', signupBonusGiven = false }) {
   const createdAt = nowMs();
   const resolvedBonusBalance = Number(bonusBalance !== null ? bonusBalance : (isAdmin ? 0 : JOINING_BONUS_AMOUNT));
   const resolvedDepositBalance = Number(depositBalance !== null ? depositBalance : 0);
@@ -421,11 +464,11 @@ async function createUserRecord({ username, password, walletBalance = JOINING_BO
   const result = await pool.query(
     `INSERT INTO users (
       username, password, session_token, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins,
-      bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at
+      bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at, device_fingerprint, signup_bonus_given
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,0,0,0,0,false,$8,$9,0,$10)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,0,0,0,0,false,$8,$9,0,$10,$11,$12)
     RETURNING *`,
-    [username, password, crypto.randomUUID(), resolvedWalletBalance, resolvedBonusBalance, resolvedDepositBalance, resolvedWinningBalance, isAdmin, isAdmin ? 'super_admin' : 'read_only', createdAt]
+    [username, password, crypto.randomUUID(), resolvedWalletBalance, resolvedBonusBalance, resolvedDepositBalance, resolvedWinningBalance, isAdmin, isAdmin ? 'super_admin' : 'read_only', createdAt, sanitizeDeviceFingerprint(deviceFingerprint), Boolean(signupBonusGiven)]
   );
   return normalizeWalletUser(result.rows[0]);
 }
@@ -1243,21 +1286,35 @@ app.post('/api/signup', async (req, res) => {
   try {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '').trim();
+    const deviceFingerprint = sanitizeDeviceFingerprint(req.body?.deviceFingerprint || '');
 
     if (!username) return res.status(400).json({ error: 'Username required' });
     if (!password) return res.status(400).json({ error: 'Password required' });
+    if (username.length < 3) return res.status(400).json({ error: 'Username minimum 3 characters' });
+    if (password.length < 4) return res.status(400).json({ error: 'Password minimum 4 characters' });
+    if (!deviceFingerprint) return res.status(400).json({ error: 'Device verification failed. Refresh and try again.' });
 
     const existingUser = await getUserByUsername(username);
     if (existingUser) return res.status(409).json({ error: 'Username already exists' });
 
+    const stats = await getDeviceSignupStats(deviceFingerprint);
+    if (stats.totalAccounts >= DEVICE_SIGNUP_LIMIT) {
+      return res.status(403).json({ error: 'This device has reached the signup limit' });
+    }
+
+    const canGiveBonus = stats.bonusAccounts < DEVICE_BONUS_LIMIT;
+    const joiningBonus = canGiveBonus ? JOINING_BONUS_AMOUNT : 0;
+
     const user = await createUserRecord({
       username,
       password: `sha256$${hashPassword(password)}`,
-      walletBalance: JOINING_BONUS_AMOUNT,
-      bonusBalance: JOINING_BONUS_AMOUNT,
+      walletBalance: joiningBonus,
+      bonusBalance: joiningBonus,
       depositBalance: 0,
       winningBalance: 0,
-      isAdmin: false
+      isAdmin: false,
+      deviceFingerprint,
+      signupBonusGiven: canGiveBonus
     });
 
     return res.json({
@@ -1277,7 +1334,8 @@ app.post('/api/signup', async (req, res) => {
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
         lastBonusTime: Number(user.last_bonus_time || 0),
-        role: user.admin_role || (user.is_admin ? 'super_admin' : 'read_only')
+        isAdmin: false,
+        role: 'user'
       }
     });
   } catch (error) {

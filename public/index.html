@@ -2862,6 +2862,29 @@ function showWithdrawMethodForm(method) {
   }
 }
 
+
+function generateDeviceFingerprint() {
+  try {
+    const raw = [
+      navigator.userAgent || '',
+      navigator.language || '',
+      String(screen.width || 0) + 'x' + String(screen.height || 0),
+      Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+      navigator.platform || '',
+      navigator.hardwareConcurrency || ''
+    ].join('||');
+
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+      hash |= 0;
+    }
+    return 'dev_' + Math.abs(hash);
+  } catch (e) {
+    return 'dev_fallback';
+  }
+}
+
 let authMode = 'login';
 
 function setAuthMode(mode) {
@@ -2981,7 +3004,7 @@ async function login() {
   try {
     const data = await api('/api/login', {
       method: 'POST',
-      body: JSON.stringify({ username: name, password })
+      body: JSON.stringify({ username: name, password, deviceFingerprint: generateDeviceFingerprint() })
     });
 
     currentUser = data.user;
@@ -3025,7 +3048,7 @@ async function signup() {
   try {
     const data = await api('/api/signup', {
       method: 'POST',
-      body: JSON.stringify({ username: name, password })
+      body: JSON.stringify({ username: name, password, deviceFingerprint: generateDeviceFingerprint() })
     });
 
     currentUser = data.user;
