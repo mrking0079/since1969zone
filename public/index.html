@@ -261,25 +261,28 @@ button.secondary:hover {
       font-size: 24px;
       font-weight: 800;
     }
-    .history-table {
+  .history-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 12px;
   background: #101010;
   border-radius: 14px;
   overflow: hidden;
+  table-layout: fixed;
 }
-    .history-table th,
+.history-table th,
 .history-table td {
   padding: 12px 10px;
   border-bottom: 1px solid #2f2f2f;
   text-align: center;
   font-size: 14px;
   vertical-align: middle;
+   word-break: break-word;
 }
 
 .history-table th {
-  text-align: center;
+  color: #f3f3f3;
+  font-weight: 800;
 }
 
 .history-table td {
@@ -312,9 +315,9 @@ button.secondary:hover {
 }
 
 .history-table {
-  display: block;
-  overflow-x: auto;
-  white-space: nowrap;
+  display: table;
+  overflow-x: visible;
+  white-space: normal;
 }
 
 #historyPager {
@@ -950,11 +953,12 @@ body.auth-open {
   }
 
   .history-table {
-    display: block;
+    display: table;
     width: 100%;
-    overflow-x: auto;
-    white-space: nowrap;
+    overflow-x: visible;
+    white-space: normal;
     border-radius: 12px;
+    table-layout: fixed;
   }
 
   .history-table th,
@@ -1585,6 +1589,32 @@ body.auth-open {
 }
 
 
+
+#historyCard .mini-label,
+#historyCard .history-table,
+#historyCard .history-table thead,
+#historyCard .history-table tbody,
+#historyCard .history-table tr,
+#historyCard .history-table th,
+#historyCard .history-table td,
+#historyCard #historyPageInfo {
+  text-align: center !important;
+}
+
+#historyCard .history-table {
+  table-layout: fixed;
+}
+
+#historyCard .history-table th,
+#historyCard .history-table td {
+  vertical-align: middle !important;
+}
+
+#historyCard .history-table td {
+  white-space: normal;
+}
+
+
 /* ===== Final User Panel Auto-Adjust Fix ===== */
 .game-hero,
 #pwaStatusCard,
@@ -2079,7 +2109,7 @@ body.auth-open {
 
           <div class="fair-box" id="fairnessBox">
           <strong>Fairness:</strong><br>
-          Current round hash: Loading...
+          Current round hash: Loading.....
         </div>
         </div>
 
