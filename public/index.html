@@ -223,6 +223,69 @@ button.secondary:hover {
     .status.open { background: rgba(38,162,105,.18); color: #7ef0b1; }
     .status.closed { background: rgba(207,63,63,.18); color: #ff9696; }
     .status.waiting { background: rgba(240,194,79,.18); color: #ffd770; }
+    @keyframes timerBlinkLastFive {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    color: #ffd700;
+    text-shadow:
+      0 0 10px rgba(255,215,0,0.28),
+      0 0 18px rgba(255,215,0,0.14);
+  }
+  50% {
+    opacity: 0.38;
+    transform: scale(1.10);
+    color: #ff4d4d;
+    text-shadow:
+      0 0 12px rgba(255,77,77,0.55),
+      0 0 22px rgba(255,77,77,0.42),
+      0 0 36px rgba(255,77,77,0.22);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    color: #ffd700;
+    text-shadow:
+      0 0 10px rgba(255,215,0,0.28),
+      0 0 18px rgba(255,215,0,0.14);
+  }
+}
+
+@keyframes timerBlinkLastThree {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    color: #ff7373;
+    text-shadow:
+      0 0 12px rgba(255,77,77,0.55),
+      0 0 24px rgba(255,77,77,0.35);
+  }
+  50% {
+    opacity: 0.18;
+    transform: scale(1.16);
+    color: #ffffff;
+    text-shadow:
+      0 0 12px rgba(255,255,255,0.55),
+      0 0 28px rgba(255,77,77,0.50),
+      0 0 42px rgba(255,77,77,0.30);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    color: #ff7373;
+    text-shadow:
+      0 0 12px rgba(255,77,77,0.55),
+      0 0 24px rgba(255,77,77,0.35);
+  }
+}
+
+.timer-last-five {
+  animation: timerBlinkLastFive 0.72s infinite;
+}
+
+.timer-last-three {
+  animation: timerBlinkLastThree 0.42s infinite !important;
+}
     .msg {
   margin-top: 14px;
   min-height: 22px;
@@ -3322,18 +3385,33 @@ els.placeBetBtn.disabled = !state.server?.round || state.server.round.status !==
 function updateTimer() {
   if (!state.server?.round) {
     els.timer.textContent = '--:--';
+    els.timer.classList.remove('timer-last-five', 'timer-last-three');
     return;
   }
 
   const now = Date.now();
   const round = state.server.round;
-  const left = Math.max(0, round.endsAt - now);
+  const left = Math.max(0, Number(round.endsAt || 0) - now);
 
   const totalSeconds = Math.ceil(left / 1000);
   const min = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
   const sec = String(totalSeconds % 60).padStart(2, '0');
 
   els.timer.textContent = `${min}:${sec}`;
+
+  els.timer.classList.remove('timer-last-five', 'timer-last-three');
+
+  if (totalSeconds <= 5 && totalSeconds > 3) {
+    els.timer.classList.add('timer-last-five');
+  }
+
+  if (totalSeconds <= 3 && totalSeconds > 0) {
+    els.timer.classList.add('timer-last-three');
+  }
+
+  if (totalSeconds <= 0) {
+    els.timer.classList.remove('timer-last-five', 'timer-last-three');
+  }
 }
 
 async function loadState() {
