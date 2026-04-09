@@ -1951,5 +1951,205 @@ if (localStorage.getItem('adminSessionToken')) {
 <div class="footer-note">
   ®️Since 1969 Zone Designed by - MrKinG
 </div>
+
+<style id="phase2RoleCss">
+.role-badge-card,.admin-mini-live-card,.admin-management-card,.admin-activity-card{background:linear-gradient(180deg,#131c2f,#0c1322);border:1px solid #243041;border-radius:18px;padding:16px;}
+.role-badge-text{color:#dbe2ea;font-size:14px;line-height:1.6;font-weight:700;}
+.admin-mini-live-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.admin-mini-live-box{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;text-align:center;}
+.admin-mini-live-label{color:#9ca3af;font-size:12px;margin-bottom:6px;}
+.admin-mini-live-value{color:#ffd54a;font-size:24px;font-weight:900;}
+.admin-mini-live-sub{color:#dbe2ea;font-size:13px;margin-top:4px;}
+.admin-management-grid{display:grid;gap:16px;margin-top:16px;}
+.admin-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;}
+.admin-list-grid,.activity-log-grid{display:grid;gap:10px;}
+.admin-row{background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;display:grid;gap:10px;}
+.admin-row-top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.admin-actions select,.admin-actions input{margin:0;max-width:180px;}
+.admin-role-pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,213,74,.12);color:#ffd54a;font-size:12px;font-weight:800;}
+.admin-blocked-pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,77,79,.12);color:#ff8e8f;font-size:12px;font-weight:800;}
+.activity-log-item{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;line-height:1.6;color:#dbe2ea;}
+[data-role-guard-hidden="true"]{display:none !important;}
+@media (max-width:900px){.admin-mini-live-grid,.admin-form-grid{grid-template-columns:1fr;}}
+</style>
+<script id="phase2RoleScript">
+(function(){
+  const ROLE_SETS = {
+    super_admin: ['dashboard','users','money','requests','round','live_updates','admin_management','history'],
+    finance_admin: ['dashboard','money','requests','history'],
+    game_admin: ['dashboard','round','live_updates','history'],
+    support_admin: ['dashboard','users','history'],
+    read_only: ['dashboard','history','users','requests']
+  };
+
+  function currentRole(){ return localStorage.getItem('adminRole') || 'read_only'; }
+  function hasAccess(key){ const role=currentRole(); return (ROLE_SETS[role]||[]).includes(key); }
+  function fmtDate(ms){ return ms ? new Date(Number(ms)).toLocaleString() : 'Never'; }
+
+  function ensureUiContainers(){
+    const dashboardCard = document.querySelector('#panelSection .section-card');
+    if (dashboardCard && !document.getElementById('adminRoleBadgeCard')) {
+      dashboardCard.insertAdjacentHTML('beforeend', `<div id="adminRoleBadgeCard" class="role-badge-card" style="margin-top:14px;"><div class="section-title" style="margin-bottom:8px;">Admin Session</div><div id="adminRoleBadgeText" class="role-badge-text">Logged in role: -</div></div>`);
+    }
+    const quickControlsCard = document.querySelector('.toolbar-grid .toolbar-card');
+    if (quickControlsCard && !document.getElementById('adminMiniLiveCard')) {
+      quickControlsCard.insertAdjacentHTML('beforeend', `<div id="adminMiniLiveCard" class="admin-mini-live-card" style="margin-top:14px;"><div class="section-title" style="margin-bottom:8px;font-size:15px;">Live Round Mini Card</div><div class="admin-mini-live-grid"><div class="admin-mini-live-box"><div class="admin-mini-live-label">Round Timer</div><div id="adminMiniTimer" class="admin-mini-live-value">--:--</div><div id="adminMiniStatus" class="admin-mini-live-sub">Waiting</div></div><div class="admin-mini-live-box"><div class="admin-mini-live-label">Latest Lucky</div><div id="adminMiniLucky" class="admin-mini-live-value">--</div><div id="adminMiniLuckyRound" class="admin-mini-live-sub">Waiting</div></div></div></div>`);
+    }
+    const rightStack = document.querySelector('.right-stack');
+    if (rightStack && !document.getElementById('adminManagementPanel')) {
+      rightStack.insertAdjacentHTML('beforeend', `<div id="adminManagementPanel" class="section-card" style="display:none;"><h3 style="margin:0 0 10px 0;color:#ffd54a;">Admin Management Panel</h3><div class="admin-management-grid"><div class="admin-management-card"><div class="section-title" style="font-size:16px;">Create New Admin</div><div class="admin-form-grid"><input id="newAdminUsername" type="text" placeholder="New admin username" /><input id="newAdminPassword" type="text" placeholder="New admin password" /><select id="newAdminRole" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"><option value="finance_admin">finance_admin</option><option value="game_admin">game_admin</option><option value="support_admin">support_admin</option><option value="read_only">read_only</option><option value="super_admin">super_admin</option></select><button type="button" onclick="createAdminAccount()">Create Admin</button></div></div><div class="admin-management-card"><div class="section-title" style="font-size:16px;">All Admins</div><div id="adminList" class="admin-list-grid"></div></div><div class="admin-activity-card"><div class="section-title" style="font-size:16px;">Admin Activity Logs</div><div id="adminActivityLogs" class="activity-log-grid"></div></div></div></div>`);
+    }
+  }
+
+  window.updateRoleBadge = function(){
+    const role = currentRole();
+    const el = document.getElementById('adminRoleBadgeText');
+    if (el) el.textContent = `Logged in as role: ${role}`;
+  };
+
+  window.applyRoleUi = function(){
+    ensureUiContainers();
+    updateRoleBadge();
+    const role = currentRole();
+    const btn = (sel, show=true) => { const el = document.querySelector(sel); if (el) el.closest('button') ? null : null; };
+    const setVisible = (selector, visible) => { document.querySelectorAll(selector).forEach(el => { el.dataset.roleGuardHidden = visible ? 'false' : 'true'; el.style.display = visible ? '' : 'none'; }); };
+    setVisible('button[onclick="openLiveUpdatesPanel()"]', hasAccess('live_updates'));
+    setVisible('button[onclick="loadUsers()"]', hasAccess('users'));
+    setVisible('button[onclick="loadTransactions()"]', hasAccess('history'));
+    setVisible('#depositRequestsBtn', hasAccess('requests'));
+    setVisible('#withdrawalRequestsBtn', hasAccess('requests'));
+    setVisible('button[onclick="loadCurrentRound()"]', hasAccess('round'));
+    setVisible('button[onclick="addCoins()"]', hasAccess('money'));
+    setVisible('button[onclick="withdrawCoins()"]', hasAccess('money'));
+    setVisible('button[onclick="toggleBlockUser()"]', role === 'super_admin' || role === 'support_admin');
+    const adminPanel = document.getElementById('adminManagementPanel');
+    if (adminPanel) adminPanel.style.display = role === 'super_admin' ? 'block' : 'none';
+    const coinWalletType = document.getElementById('coinWalletType');
+    if (coinWalletType) coinWalletType.parentElement.style.display = hasAccess('money') ? '' : 'none';
+    loadAdminMiniLiveCard();
+    if (role === 'super_admin') { loadAdminManagementData(); loadAdminActivityLogs(); }
+  };
+
+  window.loadAdminMiniLiveCard = async function(){
+    const token = localStorage.getItem('adminSessionToken') || '';
+    if (!token || !document.getElementById('adminMiniTimer')) return;
+    try {
+      const res = await fetch('/api/admin/current-round', { headers: getAdminHeaders() });
+      const data = await res.json();
+      if (!res.ok || !data.round) return;
+      const round = data.round;
+      const now = Date.now();
+      const target = Number(round.bettingClosesAt || round.endsAt || now);
+      const diff = Math.max(0, target - now);
+      const totalSec = Math.floor(diff / 1000);
+      const m = String(Math.floor(totalSec / 60)).padStart(2,'0');
+      const s = String(totalSec % 60).padStart(2,'0');
+      document.getElementById('adminMiniTimer').textContent = `${m}:${s}`;
+      document.getElementById('adminMiniStatus').textContent = round.status || 'Waiting';
+      const lucky = document.getElementById('latestLuckyNumber')?.textContent || '--';
+      const luckyRound = document.getElementById('latestLuckyRound')?.textContent || 'Waiting';
+      document.getElementById('adminMiniLucky').textContent = lucky;
+      document.getElementById('adminMiniLuckyRound').textContent = luckyRound;
+    } catch (e) {}
+  };
+
+  window.loadAdminManagementData = async function(){
+    const list = document.getElementById('adminList');
+    if (!list || currentRole() !== 'super_admin') return;
+    list.innerHTML = '<div class="activity-log-item">Loading admins...</div>';
+    try {
+      const res = await fetch('/api/admin/admins', { headers: getAdminHeaders() });
+      const data = await res.json();
+      if (!res.ok) { list.innerHTML = `<div class="activity-log-item">${data.error || 'Failed to load admins'}</div>`; return; }
+      const admins = Array.isArray(data.admins) ? data.admins : [];
+      if (!admins.length) { list.innerHTML = '<div class="activity-log-item">No admins found.</div>'; return; }
+      list.innerHTML = admins.map(admin => {
+        const roleOptions = ['super_admin','finance_admin','game_admin','support_admin','read_only'].map(role => `<option value="${role}" ${admin.role===role?'selected':''}>${role}</option>`).join('');
+        return `<div class="admin-row"><div class="admin-row-top"><div><strong style="color:#fff;font-size:16px;">${admin.username}</strong><div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;"><span class="admin-role-pill">${admin.role}</span>${admin.blocked ? '<span class="admin-blocked-pill">Blocked</span>' : ''}</div><div style="margin-top:8px;color:#9ca3af;font-size:12px;">Created: ${fmtDate(admin.createdAt)} | Last Active: ${fmtDate(admin.lastActiveAt)}</div></div></div><div class="admin-actions"><select id="roleFor_${admin.id}" style="width:auto;min-width:170px;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:14px;">${roleOptions}</select><button type="button" onclick="updateAdminRoleAction(${admin.id})">Update Role</button><input id="passwordFor_${admin.id}" type="text" placeholder="New password" style="width:auto;min-width:160px;padding:10px 12px;border-radius:12px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:14px;" /><button type="button" onclick="resetAdminPasswordAction(${admin.id})">Reset Password</button><button type="button" onclick="toggleAdminBlockAction(${admin.id})" style="background:${admin.blocked ? '#22c55e' : '#ff4d4f'};color:#fff;">${admin.blocked ? 'Unblock' : 'Block'}</button><button type="button" onclick="deleteAdminAction(${admin.id})" style="background:#374151;color:#fff;">Delete</button></div></div>`;
+      }).join('');
+    } catch (err) {
+      list.innerHTML = `<div class="activity-log-item">Failed to load admins: ${err.message}</div>`;
+    }
+  };
+
+  window.createAdminAccount = async function(){
+    const username = document.getElementById('newAdminUsername')?.value.trim() || '';
+    const password = document.getElementById('newAdminPassword')?.value.trim() || '';
+    const role = document.getElementById('newAdminRole')?.value || 'finance_admin';
+    const output = document.getElementById('output');
+    if (!username || !password) { output.textContent = 'Admin username and password required'; return; }
+    try {
+      const res = await fetch('/api/admin/create-admin', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ username, password, role }) });
+      const data = await res.json();
+      output.textContent = data.message || data.error || 'Request completed';
+      if (res.ok) { document.getElementById('newAdminUsername').value=''; document.getElementById('newAdminPassword').value=''; loadAdminManagementData(); loadAdminActivityLogs(); }
+    } catch (err) { output.textContent = 'Failed to create admin: ' + err.message; }
+  };
+  window.updateAdminRoleAction = async function(adminId){
+    const role = document.getElementById(`roleFor_${adminId}`)?.value || 'read_only';
+    const output = document.getElementById('output');
+    try { const res = await fetch('/api/admin/update-admin-role', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ adminId, role }) }); const data = await res.json(); output.textContent = data.message || data.error || 'Done'; if (res.ok) { loadAdminManagementData(); loadAdminActivityLogs(); } } catch (err) { output.textContent = 'Failed to update role: ' + err.message; }
+  };
+  window.toggleAdminBlockAction = async function(adminId){
+    const output = document.getElementById('output');
+    try { const res = await fetch('/api/admin/toggle-admin-block', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ adminId }) }); const data = await res.json(); output.textContent = data.message || data.error || 'Done'; if (res.ok) { loadAdminManagementData(); loadAdminActivityLogs(); } } catch (err) { output.textContent = 'Failed to update admin status: ' + err.message; }
+  };
+  window.resetAdminPasswordAction = async function(adminId){
+    const password = document.getElementById(`passwordFor_${adminId}`)?.value.trim() || '';
+    const output = document.getElementById('output');
+    if (!password) { output.textContent = 'Enter new password first'; return; }
+    try { const res = await fetch('/api/admin/reset-admin-password', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ adminId, password }) }); const data = await res.json(); output.textContent = data.message || data.error || 'Done'; if (res.ok) { document.getElementById(`passwordFor_${adminId}`).value=''; loadAdminActivityLogs(); } } catch (err) { output.textContent = 'Failed to reset admin password: ' + err.message; }
+  };
+  window.deleteAdminAction = async function(adminId){
+    const output = document.getElementById('output');
+    if (!confirm('Delete this admin account?')) return;
+    try { const res = await fetch('/api/admin/delete-admin', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ adminId }) }); const data = await res.json(); output.textContent = data.message || data.error || 'Done'; if (res.ok) { loadAdminManagementData(); loadAdminActivityLogs(); } } catch (err) { output.textContent = 'Failed to delete admin: ' + err.message; }
+  };
+  window.loadAdminActivityLogs = async function(){
+    const box = document.getElementById('adminActivityLogs');
+    if (!box || currentRole() !== 'super_admin') return;
+    box.innerHTML = '<div class="activity-log-item">Loading logs...</div>';
+    try {
+      const res = await fetch('/api/admin/activity-logs', { headers: getAdminHeaders() });
+      const data = await res.json();
+      if (!res.ok) { box.innerHTML = `<div class="activity-log-item">${data.error || 'Failed to load logs'}</div>`; return; }
+      const logs = Array.isArray(data.logs) ? data.logs : [];
+      if (!logs.length) { box.innerHTML = '<div class="activity-log-item">No activity logs yet.</div>'; return; }
+      box.innerHTML = logs.map(log => `<div class="activity-log-item"><strong style="color:#ffd54a;">${log.adminUsername}</strong> → ${log.action.replaceAll('_',' ')} ${log.targetUsername ? `<span style="color:#9ca3af;">(${log.targetUsername})</span>` : ''}<div style="margin-top:6px;color:#9ca3af;font-size:12px;">${fmtDate(log.createdAt)}</div></div>`).join('');
+    } catch (err) { box.innerHTML = `<div class="activity-log-item">Failed to load logs: ${err.message}</div>`; }
+  };
+
+  const originalCheckAdminLogin = window.checkAdminLogin;
+  window.checkAdminLogin = function(){ if (typeof originalCheckAdminLogin === 'function') originalCheckAdminLogin(); applyRoleUi(); };
+  window.adminLogin = async function(){
+    const username = document.getElementById('adminUsername').value.trim();
+    const password = document.getElementById('adminPassword').value.trim();
+    const loginMsg = document.getElementById('loginMsg');
+    if (!username) { loginMsg.textContent = 'Username required'; return; }
+    if (!password) { loginMsg.textContent = 'Password required'; return; }
+    try {
+      const res = await fetch('/api/admin-login', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-admin-key': currentAdminKey }, body: JSON.stringify({ username, password }) });
+      const data = await res.json();
+      if (!res.ok) { loginMsg.textContent = data.error || 'Login failed'; return; }
+      localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
+      localStorage.setItem('adminRole', data.user.role || 'super_admin');
+      loginMsg.textContent = 'Admin login successful';
+      checkAdminLogin();
+      loadDashboardStats();
+      refreshRequestCounts();
+      if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+      if (depositRefreshInterval) clearInterval(depositRefreshInterval);
+      dashboardRefreshInterval = setInterval(() => { loadDashboardStats(); loadAdminMiniLiveCard(); }, 10000);
+      depositRefreshInterval = setInterval(() => { refreshRequestCounts(); if (currentRole()==='super_admin') { loadAdminActivityLogs(); } }, 10000);
+    } catch (err) { loginMsg.textContent = 'Server error'; }
+  };
+  const originalAdminLogout = window.adminLogout;
+  window.adminLogout = function(){ localStorage.removeItem('adminRole'); if (typeof originalAdminLogout === 'function') originalAdminLogout(); };
+  ensureUiContainers();
+  if (localStorage.getItem('adminSessionToken')) { applyRoleUi(); setTimeout(loadAdminMiniLiveCard, 600); }
+})();
+</script>
+
 </body>
 </html>

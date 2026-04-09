@@ -3799,5 +3799,36 @@ window.addEventListener('load', () => {
   ®️Since 1969 Zone Designed by - MrKinG
 </div>
 
+
+<style id="phase2UserPolishCss">
+.header-mini-strip.phase2-accordion{display:grid;grid-template-columns:1fr;gap:10px;}
+.header-mini-strip.phase2-accordion .header-mini-card{cursor:pointer;text-align:center;position:relative;overflow:hidden;}
+.header-mini-strip.phase2-accordion .header-mini-card::after{content:'+';position:absolute;right:14px;top:12px;color:#ffd700;font-weight:900;font-size:20px;}
+.header-mini-strip.phase2-accordion .header-mini-card.open::after{content:'−';}
+.header-mini-strip.phase2-accordion .header-mini-card span{display:none;margin-top:8px;}
+.header-mini-strip.phase2-accordion .header-mini-card.open span{display:block;}
+.quick-guide,.quick-guide .section-title,.quick-guide .section-subtitle,.guide-item,.guide-item strong,.guide-item span{text-align:center !important;}
+.history-table th,.history-table td{text-align:center !important;}
+#historyPager{justify-content:center !important;}
+#historyPageInfo{min-width:70px;text-align:center;}
+.card .mini-label{text-align:center;}
+</style>
+<script id="phase2UserPolishScript">
+(function(){
+  const strip = document.querySelector('.header-mini-strip');
+  if (strip) {
+    strip.classList.add('phase2-accordion');
+    strip.querySelectorAll('.header-mini-card').forEach((card, index) => {
+      card.classList.toggle('open', index === 0);
+      card.addEventListener('click', () => {
+        const wasOpen = card.classList.contains('open');
+        strip.querySelectorAll('.header-mini-card').forEach(c => c.classList.remove('open'));
+        if (!wasOpen) card.classList.add('open');
+      });
+    });
+  }
+})();
+</script>
+
 </body>
 </html>

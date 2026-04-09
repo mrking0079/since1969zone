@@ -472,6 +472,34 @@ async function adminOnly(req, res, next) {
   }
 }
 
+
+function normalizeAdminRole(role, isAdmin = false) {
+  const allowed = new Set(['super_admin', 'finance_admin', 'game_admin', 'support_admin', 'read_only']);
+  const safeRole = String(role || '').trim().toLowerCase();
+  if (allowed.has(safeRole)) return safeRole;
+  return isAdmin ? 'super_admin' : 'read_only';
+}
+
+function requireAdminRoles(...roles) {
+  const allowed = new Set(roles.flat().map(role => normalizeAdminRole(role)));
+  return (req, res, next) => {
+    const role = normalizeAdminRole(req.user?.admin_role, req.user?.is_admin === true);
+    req.user.admin_role = role;
+    if (!allowed.has(role)) {
+      return res.status(403).json({ error: 'Access denied for your role' });
+    }
+    next();
+  };
+}
+
+function sanitizeAdminUsername(value) {
+  return String(value || '').trim();
+}
+
+function sanitizeAdminPassword(value) {
+  return String(value || '').trim();
+}
+
 function toJson(value, fallback = {}) {
   if (value === null || value === undefined) return fallback;
   if (typeof value === 'object') return value;
@@ -1125,7 +1153,8 @@ app.post('/api/admin-login', adminLoginLimiter, async (req, res) => {
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
         lastBonusTime: Number(user.last_bonus_time || 0),
-        isAdmin: true
+        isAdmin: true,
+        role: normalizeAdminRole(user.admin_role, true)
       }
     });
   } catch (error) {
@@ -1392,7 +1421,7 @@ app.get('/api/live-updates', async (req, res) => {
   return res.json({ success: true, liveUpdates });
 });
 
-app.get('/api/admin/live-updates', adminOnly, async (req, res) => {
+app.get('/api/admin/live-updates', adminOnly, requireAdminRoles('super_admin', 'game_admin', 'read_only', 'finance_admin', 'support_admin'), async (req, res) => {
   const row = await getLiveUpdatesRow();
   const liveUpdates = row
     ? {
@@ -1404,7 +1433,7 @@ app.get('/api/admin/live-updates', adminOnly, async (req, res) => {
   return res.json({ success: true, liveUpdates });
 });
 
-app.post('/api/admin/live-updates', adminOnly, async (req, res) => {
+app.post('/api/admin/live-updates', adminOnly, requireAdminRoles('super_admin', 'game_admin'), async (req, res) => {
   try {
     const section = String(req.body?.section || '').trim();
     const type = String(req.body?.type || '').trim();
@@ -1440,7 +1469,7 @@ app.post('/api/admin/live-updates', adminOnly, async (req, res) => {
 });
 
 
-app.get('/api/admin/dashboard-stats', adminOnly, async (req, res) => {
+app.get('/api/admin/dashboard-stats', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'game_admin', 'support_admin', 'read_only'), async (req, res) => {
   try {
     const now = Date.now();
     const startToday = new Date();
@@ -1490,7 +1519,7 @@ app.get('/api/admin/dashboard-stats', adminOnly, async (req, res) => {
   }
 });
 
-app.get('/api/admin/load-users', adminOnly, async (req, res) => {
+app.get('/api/admin/load-users', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'support_admin', 'read_only', 'game_admin'), async (req, res) => {
   const result = await pool.query(
     `SELECT id, username, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins, bonus_claimed, blocked, created_at
      FROM users
@@ -1517,7 +1546,7 @@ app.get('/api/admin/load-users', adminOnly, async (req, res) => {
   return res.json({ users });
 });
 
-app.post('/api/admin/add-coin', adminOnly, async (req, res) => {
+app.post('/api/admin/add-coin', adminOnly, requireAdminRoles('super_admin', 'finance_admin'), async (req, res) => {
   try {
     const userId = Number(req.body?.userId);
     const amount = Number(req.body?.amount);
@@ -1559,7 +1588,7 @@ app.post('/api/admin/add-coin', adminOnly, async (req, res) => {
   }
 });
 
-app.post('/api/admin/withdraw-coin', adminOnly, async (req, res) => {
+app.post('/api/admin/withdraw-coin', adminOnly, requireAdminRoles('super_admin', 'finance_admin'), async (req, res) => {
   try {
     const userId = Number(req.body?.userId);
     const amount = Number(req.body?.amount);
@@ -1612,7 +1641,7 @@ app.post('/api/admin/withdraw-coin', adminOnly, async (req, res) => {
   }
 });
 
-app.post('/api/admin/block-user', adminOnly, async (req, res) => {
+app.post('/api/admin/block-user', adminOnly, requireAdminRoles('super_admin', 'support_admin'), async (req, res) => {
   try {
     const userId = Number(req.body?.userId);
     if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
@@ -1634,7 +1663,7 @@ app.post('/api/admin/block-user', adminOnly, async (req, res) => {
   }
 });
 
-app.post('/api/admin/delete-user', adminOnly, async (req, res) => {
+app.post('/api/admin/delete-user', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
   try {
     const userId = Number(req.body?.userId);
     if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
@@ -1665,7 +1694,7 @@ app.post('/api/admin/delete-user', adminOnly, async (req, res) => {
   }
 });
 
-app.get('/api/admin/transaction-history', adminOnly, async (req, res) => {
+app.get('/api/admin/transaction-history', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'support_admin', 'read_only', 'game_admin'), async (req, res) => {
   const result = await pool.query(
     `SELECT * FROM transactions
      WHERE type IN ('admin_add_coin', 'admin_withdraw_coin')
@@ -1690,7 +1719,7 @@ app.get('/api/admin/transaction-history', adminOnly, async (req, res) => {
   return res.json({ history });
 });
 
-app.get('/api/admin/deposit-requests', adminOnly, async (req, res) => {
+app.get('/api/admin/deposit-requests', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'read_only'), async (req, res) => {
   const depositResult = await pool.query(`SELECT * FROM deposit_requests`);
   const withdrawResult = await pool.query(`SELECT * FROM withdraw_requests`);
 
@@ -1728,7 +1757,7 @@ app.get('/api/admin/deposit-requests', adminOnly, async (req, res) => {
   return res.json({ requests });
 });
 
-app.post('/api/admin/deposit-requests/action', adminOnly, async (req, res) => {
+app.post('/api/admin/deposit-requests/action', adminOnly, requireAdminRoles('super_admin', 'finance_admin'), async (req, res) => {
   try {
     const requestId = Number(req.body?.requestId);
     const action = String(req.body?.action || '').trim().toLowerCase();
@@ -1845,7 +1874,7 @@ app.post('/api/admin/deposit-requests/action', adminOnly, async (req, res) => {
   }
 });
 
-app.get('/api/admin/dashboard-stats', adminOnly, async (req, res) => {
+app.get('/api/admin/dashboard-stats', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'game_admin', 'support_admin', 'read_only'), async (req, res) => {
   try {
     const dep = await pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'deposit_approved'`);
     const wit = await pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'withdrawal_approved'`);
@@ -1866,7 +1895,7 @@ app.get('/api/admin/dashboard-stats', adminOnly, async (req, res) => {
   }
 });
 
-app.get('/api/admin/current-round', adminOnly, async (req, res) => {
+app.get('/api/admin/current-round', adminOnly, requireAdminRoles('super_admin', 'game_admin', 'read_only', 'finance_admin', 'support_admin'), async (req, res) => {
   try {
     const round = await syncRoundState();
     if (!round) return res.status(404).json({ error: 'No active round found' });
@@ -1895,7 +1924,7 @@ app.get('/api/admin/current-round', adminOnly, async (req, res) => {
   }
 });
 
-app.post('/api/admin/force-settle-round', adminOnly, async (req, res) => {
+app.post('/api/admin/force-settle-round', adminOnly, requireAdminRoles('super_admin', 'game_admin'), async (req, res) => {
   try {
     const round = await getCurrentRound();
     if (!round) return res.status(404).json({ error: 'No active round found' });
@@ -1911,7 +1940,7 @@ app.post('/api/admin/force-settle-round', adminOnly, async (req, res) => {
   }
 });
 
-app.get('/api/admin/user-history/:username', adminOnly, async (req, res) => {
+app.get('/api/admin/user-history/:username', adminOnly, requireAdminRoles('super_admin', 'support_admin', 'read_only', 'finance_admin'), async (req, res) => {
   try {
     const username = String(req.params.username || '').trim();
     if (!username) return res.status(400).json({ error: 'Username required' });
@@ -2116,6 +2145,169 @@ app.get('/api/wallet-history', async (req, res) => {
   } catch (error) {
     console.error('WALLET HISTORY ERROR:', error);
     return res.status(500).json({ error: 'Failed to load wallet history' });
+  }
+});
+
+
+
+app.get('/api/admin/admins', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, username, blocked, is_admin, admin_role, last_active_at, created_at
+       FROM users
+       WHERE is_admin = true
+       ORDER BY id ASC`
+    );
+
+    return res.json({
+      success: true,
+      admins: result.rows.map(row => ({
+        id: Number(row.id),
+        username: String(row.username || ''),
+        blocked: Boolean(row.blocked),
+        isAdmin: Boolean(row.is_admin),
+        role: normalizeAdminRole(row.admin_role, true),
+        lastActiveAt: Number(row.last_active_at || 0),
+        createdAt: Number(row.created_at || 0)
+      }))
+    });
+  } catch (error) {
+    console.error('ADMIN LIST ERROR:', error);
+    return res.status(500).json({ error: 'Unable to load admins' });
+  }
+});
+
+app.post('/api/admin/create-admin', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
+  try {
+    const username = sanitizeAdminUsername(req.body?.username);
+    const password = sanitizeAdminPassword(req.body?.password);
+    const role = normalizeAdminRole(req.body?.role, true);
+
+    if (!username) return res.status(400).json({ error: 'Admin username required' });
+    if (!password || password.length < 4) return res.status(400).json({ error: 'Admin password minimum 4 characters' });
+
+    const existing = await getUserByUsername(username);
+    if (existing) return res.status(409).json({ error: 'Username already exists' });
+
+    const adminUser = await createUserRecord({
+      username,
+      password: `sha256$${hashPassword(password)}`,
+      walletBalance: 0,
+      bonusBalance: 0,
+      depositBalance: 0,
+      winningBalance: 0,
+      isAdmin: true
+    });
+
+    await updateUserFields(adminUser.id, { admin_role: role, blocked: false, wallet_balance: 0, bonus_balance: 0, deposit_balance: 0, winning_balance: 0 });
+    await logAdminActivity(req.user, 'create_admin', adminUser, { role });
+
+    return res.json({ success: true, message: 'Admin created successfully' });
+  } catch (error) {
+    console.error('CREATE ADMIN ERROR:', error);
+    return res.status(500).json({ error: 'Unable to create admin' });
+  }
+});
+
+app.post('/api/admin/update-admin-role', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
+  try {
+    const adminId = Number(req.body?.adminId);
+    const role = normalizeAdminRole(req.body?.role, true);
+    if (!Number.isInteger(adminId) || adminId <= 0) return res.status(400).json({ error: 'Valid adminId required' });
+
+    const adminUser = await getUser(adminId);
+    if (!adminUser || adminUser.is_admin !== true) return res.status(404).json({ error: 'Admin not found' });
+
+    await updateUserFields(adminUser.id, { admin_role: role });
+    await logAdminActivity(req.user, 'update_admin_role', adminUser, { role });
+    return res.json({ success: true, message: 'Admin role updated' });
+  } catch (error) {
+    console.error('UPDATE ADMIN ROLE ERROR:', error);
+    return res.status(500).json({ error: 'Unable to update admin role' });
+  }
+});
+
+app.post('/api/admin/toggle-admin-block', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
+  try {
+    const adminId = Number(req.body?.adminId);
+    if (!Number.isInteger(adminId) || adminId <= 0) return res.status(400).json({ error: 'Valid adminId required' });
+    if (Number(req.user?.id) === adminId) return res.status(400).json({ error: 'You cannot block yourself' });
+
+    const adminUser = await getUser(adminId);
+    if (!adminUser || adminUser.is_admin !== true) return res.status(404).json({ error: 'Admin not found' });
+
+    const nextBlocked = !Boolean(adminUser.blocked);
+    await updateUserFields(adminUser.id, { blocked: nextBlocked });
+    await logAdminActivity(req.user, nextBlocked ? 'block_admin' : 'unblock_admin', adminUser, {});
+    return res.json({ success: true, message: nextBlocked ? 'Admin blocked' : 'Admin unblocked' });
+  } catch (error) {
+    console.error('TOGGLE ADMIN BLOCK ERROR:', error);
+    return res.status(500).json({ error: 'Unable to update admin status' });
+  }
+});
+
+app.post('/api/admin/reset-admin-password', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
+  try {
+    const adminId = Number(req.body?.adminId);
+    const password = sanitizeAdminPassword(req.body?.password);
+    if (!Number.isInteger(adminId) || adminId <= 0) return res.status(400).json({ error: 'Valid adminId required' });
+    if (!password || password.length < 4) return res.status(400).json({ error: 'New password minimum 4 characters' });
+
+    const adminUser = await getUser(adminId);
+    if (!adminUser || adminUser.is_admin !== true) return res.status(404).json({ error: 'Admin not found' });
+
+    await updateUserFields(adminUser.id, { password: `sha256$${hashPassword(password)}`, session_token: '' });
+    await logAdminActivity(req.user, 'reset_admin_password', adminUser, {});
+    return res.json({ success: true, message: 'Admin password reset successfully' });
+  } catch (error) {
+    console.error('RESET ADMIN PASSWORD ERROR:', error);
+    return res.status(500).json({ error: 'Unable to reset admin password' });
+  }
+});
+
+app.post('/api/admin/delete-admin', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
+  try {
+    const adminId = Number(req.body?.adminId);
+    if (!Number.isInteger(adminId) || adminId <= 0) return res.status(400).json({ error: 'Valid adminId required' });
+    if (Number(req.user?.id) === adminId) return res.status(400).json({ error: 'You cannot delete yourself' });
+
+    const adminUser = await getUser(adminId);
+    if (!adminUser || adminUser.is_admin !== true) return res.status(404).json({ error: 'Admin not found' });
+    if (normalizeAdminRole(adminUser.admin_role, true) === 'super_admin') {
+      const superCount = await pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE is_admin = true AND COALESCE(admin_role, 'super_admin') = 'super_admin'`);
+      if (Number(superCount.rows[0]?.count || 0) <= 1) return res.status(400).json({ error: 'Last super admin cannot be deleted' });
+    }
+
+    await logAdminActivity(req.user, 'delete_admin', adminUser, {});
+    await deleteUserById(adminUser.id);
+    return res.json({ success: true, message: 'Admin deleted successfully' });
+  } catch (error) {
+    console.error('DELETE ADMIN ERROR:', error);
+    return res.status(500).json({ error: 'Unable to delete admin' });
+  }
+});
+
+app.get('/api/admin/activity-logs', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM admin_activity_logs ORDER BY created_at DESC LIMIT 50`
+    );
+    return res.json({
+      success: true,
+      logs: result.rows.map(row => ({
+        id: Number(row.id),
+        adminUserId: Number(row.admin_user_id || 0),
+        adminUsername: String(row.admin_username || ''),
+        action: String(row.action || ''),
+        targetUserId: row.target_user_id === null ? null : Number(row.target_user_id),
+        targetUsername: String(row.target_username || ''),
+        meta: toJson(row.meta, {}),
+        createdAt: Number(row.created_at || 0)
+      }))
+    });
+  } catch (error) {
+    console.error('ADMIN ACTIVITY LOGS ERROR:', error);
+    return res.status(500).json({ error: 'Unable to load admin activity logs' });
   }
 });
 
