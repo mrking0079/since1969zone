@@ -485,6 +485,9 @@ let selectedUsername = '';
 let dashboardRefreshInterval = null;
 let depositRefreshInterval = null;
 let currentRequestTab = 'deposit';
+let adminMiniTimerInterval = null;
+let adminMiniRoundTargetTime = 0;
+let adminMiniRoundStatus = 'Waiting';
 async function refreshRequestCounts() {
   const token = localStorage.getItem('adminSessionToken') || '';
   if (!token) return;
@@ -879,8 +882,13 @@ async function loadLiveUpdatesData() {
     localStorage.setItem('adminRouteKey', adminKey);
   }
 
-  document.getElementById('loginSection').classList.toggle('hidden', !!token);
-  document.getElementById('panelSection').classList.toggle('hidden', !token);
+  const hasValidAdminSession =
+    !!token &&
+    ['super_admin', 'finance_admin', 'game_admin', 'support_admin']
+      .includes(localStorage.getItem('adminRole') || '');
+
+  document.getElementById('loginSection').classList.toggle('hidden', hasValidAdminSession);
+  document.getElementById('panelSection').classList.toggle('hidden', !hasValidAdminSession);
 }
 
     async function adminLogin() {
@@ -1938,14 +1946,34 @@ checkAdminLogin();
 loadDashboardStats();
 refreshRequestCounts();
 
-if (localStorage.getItem('adminSessionToken')) {
+if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole')) {
   if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
   if (depositRefreshInterval) clearInterval(depositRefreshInterval);
+  if (adminMiniTimerInterval) clearInterval(adminMiniTimerInterval);
 
-  dashboardRefreshInterval = setInterval(loadDashboardStats, 10000);
+  dashboardRefreshInterval = setInterval(() => {
+    loadDashboardStats();
+    loadAdminMiniLiveCard();
+  }, 10000);
+
   depositRefreshInterval = setInterval(() => {
     refreshRequestCounts();
   }, 10000);
+
+  adminMiniTimerInterval = setInterval(() => {
+    if (!document.getElementById('adminMiniTimer')) return;
+
+    const now = Date.now();
+    const diff = Math.max(0, adminMiniRoundTargetTime - now);
+    const totalSec = Math.floor(diff / 1000);
+    const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+    const s = String(totalSec % 60).padStart(2, '0');
+
+    document.getElementById('adminMiniTimer').textContent = `${m}:${s}`;
+    document.getElementById('adminMiniStatus').textContent = adminMiniRoundStatus || 'Waiting';
+  }, 1000);
+
+  setTimeout(loadAdminMiniLiveCard, 400);
 }
   </script>
 <div class="footer-note">
@@ -2034,26 +2062,52 @@ if (localStorage.getItem('adminSessionToken')) {
   window.loadAdminMiniLiveCard = async function(){
     const token = localStorage.getItem('adminSessionToken') || '';
     if (!token || !document.getElementById('adminMiniTimer')) return;
+
     try {
-      const res = await fetch('/api/admin/current-round', { headers: getAdminHeaders() });
-      const data = await res.json();
-      if (!res.ok || !data.round) return;
-      const round = data.round;
+      const [roundRes, stateRes] = await Promise.all([
+        fetch('/api/admin/current-round', { headers: getAdminHeaders() }),
+        fetch('/api/state', { headers: getAdminHeaders() })
+      ]);
+
+      const roundData = await roundRes.json();
+      const stateData = await stateRes.json();
+
+      if (!roundRes.ok || !roundData.round) return;
+
+      const round = roundData.round;
       const now = Date.now();
-      const target = Number(round.bettingClosesAt || round.endsAt || now);
-      const diff = Math.max(0, target - now);
+
+      const isOpen = String(round.status || '').toLowerCase() === 'open';
+      adminMiniRoundTargetTime = Number(
+        isOpen
+          ? (round.bettingClosesAt || round.endsAt || now)
+          : (round.endsAt || round.bettingClosesAt || now)
+      );
+
+      adminMiniRoundStatus = round.status || 'Waiting';
+
+      const diff = Math.max(0, adminMiniRoundTargetTime - now);
       const totalSec = Math.floor(diff / 1000);
       const m = String(Math.floor(totalSec / 60)).padStart(2,'0');
       const s = String(totalSec % 60).padStart(2,'0');
+
       document.getElementById('adminMiniTimer').textContent = `${m}:${s}`;
-      document.getElementById('adminMiniStatus').textContent = round.status || 'Waiting';
-      const lucky = document.getElementById('latestLuckyNumber')?.textContent || '--';
-      const luckyRound = document.getElementById('latestLuckyRound')?.textContent || 'Waiting';
-      document.getElementById('adminMiniLucky').textContent = lucky;
-      document.getElementById('adminMiniLuckyRound').textContent = luckyRound;
+      document.getElementById('adminMiniStatus').textContent = adminMiniRoundStatus;
+
+      const lastSettled = stateData?.lastSettledRound || null;
+
+      document.getElementById('adminMiniLucky').textContent =
+        lastSettled && lastSettled.luckyNumber !== null && lastSettled.luckyNumber !== undefined
+          ? String(lastSettled.luckyNumber)
+          : '--';
+
+      document.getElementById('adminMiniLuckyRound').textContent =
+        lastSettled && lastSettled.roundNumber
+          ? `Round ${lastSettled.roundNumber}`
+          : 'Waiting';
+
     } catch (e) {}
   };
-
   window.loadAdminManagementData = async function(){
     const list = document.getElementById('adminList');
     if (!list || currentRole() !== 'super_admin') return;
@@ -2126,26 +2180,93 @@ if (localStorage.getItem('adminSessionToken')) {
     const username = document.getElementById('adminUsername').value.trim();
     const password = document.getElementById('adminPassword').value.trim();
     const loginMsg = document.getElementById('loginMsg');
+
     if (!username) { loginMsg.textContent = 'Username required'; return; }
     if (!password) { loginMsg.textContent = 'Password required'; return; }
+
     try {
-      const res = await fetch('/api/admin-login', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-admin-key': currentAdminKey }, body: JSON.stringify({ username, password }) });
+      const res = await fetch('/api/admin-login', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-admin-key': currentAdminKey
+        },
+        body: JSON.stringify({ username, password })
+      });
+
       const data = await res.json();
-      if (!res.ok) { loginMsg.textContent = data.error || 'Login failed'; return; }
+
+      if (!res.ok) {
+        loginMsg.textContent = data.error || 'Login failed';
+        return;
+      }
+
+      const role = String(data.user?.role || 'read_only').toLowerCase();
+
+      if (role === 'read_only') {
+        localStorage.removeItem('adminSessionToken');
+        localStorage.removeItem('adminRole');
+        loginMsg.textContent = 'Read-only admin cannot login from panel';
+        checkAdminLogin();
+        return;
+      }
+
       localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
-      localStorage.setItem('adminRole', data.user.role || 'super_admin');
+      localStorage.setItem('adminRole', role);
+
       loginMsg.textContent = 'Admin login successful';
       checkAdminLogin();
       loadDashboardStats();
       refreshRequestCounts();
+      loadAdminMiniLiveCard();
+
       if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
       if (depositRefreshInterval) clearInterval(depositRefreshInterval);
-      dashboardRefreshInterval = setInterval(() => { loadDashboardStats(); loadAdminMiniLiveCard(); }, 10000);
-      depositRefreshInterval = setInterval(() => { refreshRequestCounts(); if (currentRole()==='super_admin') { loadAdminActivityLogs(); } }, 10000);
+      if (adminMiniTimerInterval) clearInterval(adminMiniTimerInterval);
+
+      dashboardRefreshInterval = setInterval(() => {
+        loadDashboardStats();
+        loadAdminMiniLiveCard();
+      }, 10000);
+
+      depositRefreshInterval = setInterval(() => {
+        refreshRequestCounts();
+        if (currentRole() === 'super_admin') {
+          loadAdminActivityLogs();
+        }
+      }, 10000);
+
+      adminMiniTimerInterval = setInterval(() => {
+        if (!document.getElementById('adminMiniTimer')) return;
+
+        const now = Date.now();
+        const diff = Math.max(0, adminMiniRoundTargetTime - now);
+        const totalSec = Math.floor(diff / 1000);
+        const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+        const s = String(totalSec % 60).padStart(2, '0');
+
+        document.getElementById('adminMiniTimer').textContent = `${m}:${s}`;
+        document.getElementById('adminMiniStatus').textContent = adminMiniRoundStatus || 'Waiting';
+      }, 1000);
+
     } catch (err) { loginMsg.textContent = 'Server error'; }
   };
   const originalAdminLogout = window.adminLogout;
-  window.adminLogout = function(){ localStorage.removeItem('adminRole'); if (typeof originalAdminLogout === 'function') originalAdminLogout(); };
+  window.adminLogout = function(){
+  localStorage.removeItem('adminRole');
+
+  if (adminMiniTimerInterval) {
+    clearInterval(adminMiniTimerInterval);
+    adminMiniTimerInterval = null;
+  }
+
+  adminMiniRoundTargetTime = 0;
+  adminMiniRoundStatus = 'Waiting';
+
+  if (typeof originalAdminLogout === 'function') {
+    originalAdminLogout();
+  }
+};
   ensureUiContainers();
   if (localStorage.getItem('adminSessionToken')) { applyRoleUi(); setTimeout(loadAdminMiniLiveCard, 600); }
 })();

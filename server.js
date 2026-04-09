@@ -1131,6 +1131,10 @@ app.post('/api/admin-login', adminLoginLimiter, async (req, res) => {
 
     const user = await getUserByUsername(username);
     if (!user || user.is_admin !== true) return res.status(401).json({ error: 'Admin account not found' });
+
+    const role = normalizeAdminRole(user.admin_role, true);
+    if (role === 'read_only') return res.status(403).json({ error: 'Read-only admin cannot login from panel' });
+
     if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
     if (!isPasswordMatch(user, password)) return res.status(401).json({ error: 'Invalid admin password' });
 
