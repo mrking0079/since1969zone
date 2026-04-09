@@ -1028,6 +1028,10 @@ body.auth-open {
     flex-direction: column;
   }
 
+  .wallet-mini-grid {
+    grid-template-columns: 1fr;
+  }
+
   #logoutBtn,
   #addCoinBtn,
   #withdrawCoinBtn {
@@ -1448,6 +1452,57 @@ body.auth-open {
   font-size: 14px;
   line-height: 1.55;
 }
+.wallet-breakdown {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.wallet-main-box {
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04));
+  border: 1px solid rgba(255,215,0,0.22);
+  text-align: center;
+}
+.wallet-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.wallet-mini-item {
+  padding: 12px;
+  border-radius: 14px;
+  background: #101010;
+  border: 1px solid #2e2e2e;
+  text-align: center;
+}
+.wallet-mini-item strong {
+  display: block;
+  color: #ffd700;
+  font-size: 12px;
+  margin-bottom: 6px;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+.wallet-mini-item span {
+  display: block;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+.wallet-note {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid #2d2d2d;
+  color: #d8d8d8;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .wallet-actions {
   display: flex;
   gap: 10px;
@@ -1768,8 +1823,32 @@ body.auth-open {
     <div class="topbar">
       <div class="card">
         <div class="mini-label">Wallet Balance</div>
-        <div class="big" id="walletTop">0 Coins</div>
-        <div class="muted" id="walletSummary"></div>
+        <div class="wallet-breakdown">
+          <div class="wallet-main-box">
+            <div class="mini-label" style="margin-bottom:6px;">Main Balance</div>
+            <div class="big" id="walletTop">0 Coins</div>
+            <div class="muted" id="walletSummary"></div>
+          </div>
+
+          <div class="wallet-mini-grid">
+            <div class="wallet-mini-item">
+              <strong>Bonus Balance</strong>
+              <span id="bonusWalletBalance">0 Coins</span>
+            </div>
+            <div class="wallet-mini-item">
+              <strong>Deposit Balance</strong>
+              <span id="depositWalletBalance">0 Coins</span>
+            </div>
+            <div class="wallet-mini-item">
+              <strong>Winning Balance</strong>
+              <span id="winningWalletBalance">0 Coins</span>
+            </div>
+          </div>
+
+          <div class="wallet-note" id="walletEligibilityNote">
+            Play 300 coins first. Eligible request balance: 0 Coins.
+          </div>
+        </div>
 <div class="wallet-actions">
   <button id="logoutBtn" class="secondary" style="flex:1;">Logout</button>
   <button id="addCoinBtn" class="secondary" style="flex:1;">Deposit Request</button>
@@ -2076,6 +2155,10 @@ flashSubMessage: document.getElementById('flashSubMessage'),
   message: document.getElementById('message'),
   walletTop: document.getElementById('walletTop'),
   walletSummary: document.getElementById('walletSummary'),
+  bonusWalletBalance: document.getElementById('bonusWalletBalance'),
+  depositWalletBalance: document.getElementById('depositWalletBalance'),
+  winningWalletBalance: document.getElementById('winningWalletBalance'),
+  walletEligibilityNote: document.getElementById('walletEligibilityNote'),
   logoutBtn: document.getElementById('logoutBtn'),
   soundToggleBtn: document.getElementById('soundToggleBtn'),
   timer: document.getElementById('timer'),
@@ -2891,8 +2974,24 @@ function renderServerState() {
   const data = state.server;
   if (!data) return;
 
-  els.walletTop.textContent = formatCoins(data.user.walletBalance);
+  const mainBalance = Number(data.user.mainBalance ?? data.user.walletBalance ?? 0);
+  const bonusBalance = Number(data.user.bonusBalance || 0);
+  const depositBalance = Number(data.user.depositBalance || 0);
+  const winningBalance = Number(data.user.winningBalance || 0);
+  const eligibleRequestBalance = Number(data.user.eligibleRequestBalance || 0);
+  const playRequirementRemaining = Number(data.user.playRequirementRemaining || 0);
+  const playRequirementTarget = Number(data.user.playRequirementTarget || 300);
+
+  els.walletTop.textContent = formatCoins(mainBalance);
   els.walletSummary.textContent = `Logged in as: ${data.user.username}`;
+  if (els.bonusWalletBalance) els.bonusWalletBalance.textContent = formatCoins(bonusBalance);
+  if (els.depositWalletBalance) els.depositWalletBalance.textContent = formatCoins(depositBalance);
+  if (els.winningWalletBalance) els.winningWalletBalance.textContent = formatCoins(winningBalance);
+  if (els.walletEligibilityNote) {
+    els.walletEligibilityNote.textContent = playRequirementRemaining > 0
+      ? `Play ${playRequirementTarget} coins first. Remaining: ${playRequirementRemaining} Coins. Eligible request balance: ${formatCoins(eligibleRequestBalance)}.`
+      : `Eligible request balance: ${formatCoins(eligibleRequestBalance)}. Minimum request: 250 Coins.`;
+  }
   els.totalPlayed.textContent = data.user.totalPlayed;
   els.totalWins.textContent = data.user.totalWins;
   els.bonusClaimed.textContent = data.user.bonusClaimed;
@@ -3456,7 +3555,8 @@ els.submitAddCoin.addEventListener('click', async () => {
 // withdraw submit
 els.submitWithdrawCoin.addEventListener('click', () => {
   const amount = Number(els.withdrawCoinInput.value);
-  const walletBalance = Number(state.server?.user?.walletBalance || 0);
+  const eligibleRequestBalance = Number(state.server?.user?.eligibleRequestBalance || 0);
+  const totalPlayedCoins = Number(state.server?.user?.totalPlayedCoins || state.server?.user?.totalPlayed || 0);
   const method = String(els.withdrawMethodInput?.value || '').trim();
 
   if (!amount || amount <= 0) {
@@ -3464,8 +3564,18 @@ els.submitWithdrawCoin.addEventListener('click', () => {
     return;
   }
 
-  if (amount > walletBalance) {
-    alert('Insufficient balance');
+  if (totalPlayedCoins < 300) {
+    alert('Minimum 300 coin bet play first after withdrawal your winning amount and deposit amount balance');
+    return;
+  }
+
+  if (eligibleRequestBalance < 250 || amount < 250) {
+    alert('Minimum withdrawal 250 coin');
+    return;
+  }
+
+  if (amount > eligibleRequestBalance) {
+    alert('Insufficient eligible request balance');
     return;
   }
 

@@ -33,8 +33,12 @@ const ADMIN_KEY = process.env.ADMIN_KEY;
 const ADMIN_ROUTE = process.env.ADMIN_ROUTE || '/secure-admin-1969';
 const ROUND_SECONDS = 60;
 const BETTING_CLOSE_SECONDS = 10;
-const BONUS_AMOUNT = 50;
+const JOINING_BONUS_AMOUNT = 100;
 const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const DAILY_BONUS_MIN = 10;
+const DAILY_BONUS_MAX = 50;
+const MIN_PLAY_BEFORE_REQUEST = 300;
+const MIN_REQUEST_AMOUNT = 250;
 const PAYOUT_MULTIPLIER = 8;
 const DEMO_USER_ID = 1;
 const DELETED_USERS_FILE = path.join(__dirname, 'deleted-users.json');
@@ -254,6 +258,8 @@ async function initDatabase() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at BIGINT DEFAULT 0;
   `);
 
+  await ensureWalletColumnsReady();
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_users_session_token ON users(session_token);
     CREATE INDEX IF NOT EXISTS idx_rounds_round_number ON rounds(round_number DESC);
@@ -277,6 +283,9 @@ async function ensureUsersSeeded() {
       password: `sha256$${hashPassword('admin123')}`,
       session_token: '',
       wallet_balance: 0,
+      bonus_balance: 0,
+      deposit_balance: 0,
+      winning_balance: 0,
       total_played: 0,
       total_wins: 0,
       bonus_claimed: 0,
@@ -291,6 +300,9 @@ async function ensureUsersSeeded() {
       password: '',
       session_token: '',
       wallet_balance: 1000,
+      bonus_balance: 0,
+      deposit_balance: 1000,
+      winning_balance: 0,
       total_played: 0,
       total_wins: 0,
       bonus_claimed: 0,
@@ -304,10 +316,10 @@ async function ensureUsersSeeded() {
   for (const user of seedUsers) {
     await pool.query(
       `INSERT INTO users (
-        id, username, password, session_token, wallet_balance, total_played, total_wins,
+        id, username, password, session_token, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins,
         bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       ON CONFLICT (username) DO NOTHING`,
       [
         user.id,
@@ -315,6 +327,9 @@ async function ensureUsersSeeded() {
         user.password,
         user.session_token,
         Number(user.wallet_balance || 0),
+        Number(user.bonus_balance || 0),
+        Number(user.deposit_balance || 0),
+        Number(user.winning_balance || 0),
         Number(user.total_played || 0),
         Number(user.total_wins || 0),
         Number(user.bonus_claimed || 0),
@@ -356,7 +371,7 @@ async function getLiveUpdatesRow() {
 
 async function getUser(userId) {
   const result = await pool.query(`SELECT * FROM users WHERE id = $1 LIMIT 1`, [userId]);
-  return result.rows[0] || null;
+  return normalizeWalletUser(result.rows[0] || null);
 }
 
 async function getUserByUsername(username) {
@@ -364,30 +379,39 @@ async function getUserByUsername(username) {
     `SELECT * FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
     [String(username || '').trim()]
   );
-  return result.rows[0] || null;
+  return normalizeWalletUser(result.rows[0] || null);
 }
 
 async function getUserBySessionToken(token) {
   const result = await pool.query(`SELECT * FROM users WHERE session_token = $1 LIMIT 1`, [String(token || '').trim()]);
-  return result.rows[0] || null;
+  return normalizeWalletUser(result.rows[0] || null);
 }
 
 async function updateUserSessionToken(userId, sessionToken) {
   await pool.query(`UPDATE users SET session_token = $1 WHERE id = $2`, [sessionToken, userId]);
 }
 
-async function createUserRecord({ username, password, walletBalance = 1000, isAdmin = false }) {
+async function createUserRecord({ username, password, walletBalance = JOINING_BONUS_AMOUNT, isAdmin = false, bonusBalance = null, depositBalance = null, winningBalance = null }) {
   const createdAt = nowMs();
+  const resolvedBonusBalance = Number(bonusBalance !== null ? bonusBalance : (isAdmin ? 0 : JOINING_BONUS_AMOUNT));
+  const resolvedDepositBalance = Number(depositBalance !== null ? depositBalance : 0);
+  const resolvedWinningBalance = Number(winningBalance !== null ? winningBalance : 0);
+  const resolvedWalletBalance = Number(
+    walletBalance !== undefined && walletBalance !== null
+      ? walletBalance
+      : (resolvedBonusBalance + resolvedDepositBalance + resolvedWinningBalance)
+  );
+
   const result = await pool.query(
     `INSERT INTO users (
-      username, password, session_token, wallet_balance, total_played, total_wins,
+      username, password, session_token, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins,
       bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at
     )
-    VALUES ($1,$2,$3,$4,0,0,0,0,false,$5,$6,0,$7)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,0,0,0,0,false,$8,$9,0,$10)
     RETURNING *`,
-    [username, password, crypto.randomUUID(), walletBalance, isAdmin, isAdmin ? 'super_admin' : 'read_only', createdAt]
+    [username, password, crypto.randomUUID(), resolvedWalletBalance, resolvedBonusBalance, resolvedDepositBalance, resolvedWinningBalance, isAdmin, isAdmin ? 'super_admin' : 'read_only', createdAt]
   );
-  return result.rows[0];
+  return normalizeWalletUser(result.rows[0]);
 }
 
 async function updateUserFields(userId, fields = {}) {
@@ -452,6 +476,167 @@ function toJson(value, fallback = {}) {
   if (value === null || value === undefined) return fallback;
   if (typeof value === 'object') return value;
   return jsonParseSafe(value, fallback);
+}
+
+
+function getRandomDailyBonusAmount() {
+  return Math.floor(Math.random() * (DAILY_BONUS_MAX - DAILY_BONUS_MIN + 1)) + DAILY_BONUS_MIN;
+}
+
+function normalizeWalletUser(user) {
+  if (!user) return null;
+  const normalized = { ...user };
+  normalized.bonus_balance = Number(normalized.bonus_balance || 0);
+  normalized.deposit_balance = Number(normalized.deposit_balance || 0);
+  normalized.winning_balance = Number(normalized.winning_balance || 0);
+  normalized.wallet_balance = Number(normalized.wallet_balance || 0);
+  normalized.total_played = Number(normalized.total_played || 0);
+
+  const derivedMainBalance = normalized.bonus_balance + normalized.deposit_balance + normalized.winning_balance;
+
+  if (Math.abs(derivedMainBalance - normalized.wallet_balance) > 0.0001) {
+    normalized.wallet_balance = derivedMainBalance;
+  }
+
+  return normalized;
+}
+
+function calculateMainBalance(user) {
+  const normalized = normalizeWalletUser(user);
+  return Number(
+    (normalized?.bonus_balance || 0) +
+    (normalized?.deposit_balance || 0) +
+    (normalized?.winning_balance || 0)
+  );
+}
+
+function calculateEligibleRequestBalance(user) {
+  const normalized = normalizeWalletUser(user);
+  return Number((normalized?.deposit_balance || 0) + (normalized?.winning_balance || 0));
+}
+
+async function refreshMainBalance(userId) {
+  const user = normalizeWalletUser(await getUser(userId));
+  if (!user) return null;
+  const walletBalance = calculateMainBalance(user);
+  if (Math.abs(Number(user.wallet_balance || 0) - walletBalance) > 0.0001) {
+    await updateUserFields(userId, { wallet_balance: walletBalance });
+    user.wallet_balance = walletBalance;
+  }
+  return user;
+}
+
+async function ensureWalletColumnsReady() {
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS bonus_balance NUMERIC DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS deposit_balance NUMERIC DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS winning_balance NUMERIC DEFAULT 0;
+  `);
+
+  await pool.query(`
+    UPDATE users
+    SET
+      bonus_balance = COALESCE(bonus_balance, 0),
+      deposit_balance = CASE
+        WHEN COALESCE(deposit_balance, 0) = 0 AND COALESCE(winning_balance, 0) = 0 AND COALESCE(wallet_balance, 0) > 0
+          THEN COALESCE(wallet_balance, 0)
+        ELSE COALESCE(deposit_balance, 0)
+      END,
+      winning_balance = COALESCE(winning_balance, 0)
+  `);
+
+  await pool.query(`
+    UPDATE users
+    SET wallet_balance = COALESCE(bonus_balance, 0) + COALESCE(deposit_balance, 0) + COALESCE(winning_balance, 0)
+  `);
+}
+
+function getWalletBreakdown(user) {
+  const normalized = normalizeWalletUser(user);
+  const mainBalance = calculateMainBalance(normalized);
+  const eligibleRequestBalance = calculateEligibleRequestBalance(normalized);
+  const totalPlayedCoins = Number(normalized?.total_played || 0);
+
+  return {
+    mainBalance,
+    bonusBalance: Number(normalized?.bonus_balance || 0),
+    depositBalance: Number(normalized?.deposit_balance || 0),
+    winningBalance: Number(normalized?.winning_balance || 0),
+    eligibleRequestBalance,
+    totalPlayedCoins,
+    playRequirementTarget: MIN_PLAY_BEFORE_REQUEST,
+    playRequirementRemaining: Math.max(0, MIN_PLAY_BEFORE_REQUEST - totalPlayedCoins),
+    canRequest: totalPlayedCoins >= MIN_PLAY_BEFORE_REQUEST && eligibleRequestBalance >= MIN_REQUEST_AMOUNT
+  };
+}
+
+function splitRequestDeduction(user, amount) {
+  const normalized = normalizeWalletUser(user);
+  const totalEligible = calculateEligibleRequestBalance(normalized);
+
+  if (amount > totalEligible) {
+    return { success: false, message: 'Eligible request balance is too low' };
+  }
+
+  const depositUsed = Math.min(Number(normalized.deposit_balance || 0), amount);
+  const winningUsed = Math.max(0, amount - depositUsed);
+
+  return {
+    success: true,
+    depositUsed,
+    winningUsed
+  };
+}
+
+function computeBetWalletUsage(user, betAmount) {
+  const normalized = normalizeWalletUser(user);
+  const totalAvailable = calculateMainBalance(normalized);
+
+  if (betAmount > totalAvailable) {
+    return { success: false, message: 'Insufficient coins' };
+  }
+
+  let remaining = Number(betAmount || 0);
+  let bonusUsed = 0;
+  let depositUsed = 0;
+  let winningUsed = 0;
+
+  const halfForBonus = Math.floor(betAmount / 2);
+  const halfForDeposit = betAmount - halfForBonus;
+
+  bonusUsed = Math.min(normalized.bonus_balance, halfForBonus);
+  depositUsed = Math.min(normalized.deposit_balance, halfForDeposit);
+  remaining -= bonusUsed + depositUsed;
+
+  const bonusLeft = normalized.bonus_balance - bonusUsed;
+  if (remaining > 0 && bonusLeft > 0) {
+    const extraBonus = Math.min(bonusLeft, remaining);
+    bonusUsed += extraBonus;
+    remaining -= extraBonus;
+  }
+
+  const depositLeft = normalized.deposit_balance - depositUsed;
+  if (remaining > 0 && depositLeft > 0) {
+    const extraDeposit = Math.min(depositLeft, remaining);
+    depositUsed += extraDeposit;
+    remaining -= extraDeposit;
+  }
+
+  if (remaining > 0) {
+    winningUsed = Math.min(normalized.winning_balance, remaining);
+    remaining -= winningUsed;
+  }
+
+  if (remaining > 0) {
+    return { success: false, message: 'Insufficient coins' };
+  }
+
+  return {
+    success: true,
+    bonusUsed,
+    depositUsed,
+    winningUsed
+  };
 }
 
 function buildRoundCode(roundNumber, startsAt) {
@@ -627,12 +812,14 @@ async function settleRoundTx(roundId) {
     if (payout > 0) {
       await incrementUserFields(Number(bet.user_id), {
         wallet_balance: payout,
+        winning_balance: payout,
         total_wins: 1
       });
 
       await addTransaction(Number(bet.user_id), 'win_credit', payout, {
         roundId: Number(round.id),
-        luckyNumber
+        luckyNumber,
+        walletType: 'winning'
       });
     }
   }
@@ -674,7 +861,7 @@ async function syncRoundState() {
 
 async function buildGameState(userId = DEMO_USER_ID) {
   const round = await syncRoundState();
-  const user = userId ? await getUser(userId) : null;
+  const user = userId ? await refreshMainBalance(userId) : null;
 
   if (!user) {
     return {
@@ -682,7 +869,15 @@ async function buildGameState(userId = DEMO_USER_ID) {
         id: null,
         username: 'Guest',
         walletBalance: 0,
+        mainBalance: 0,
+        bonusBalance: 0,
+        depositBalance: 0,
+        winningBalance: 0,
+        eligibleRequestBalance: 0,
         totalPlayed: 0,
+        totalPlayedCoins: 0,
+        playRequirementTarget: MIN_PLAY_BEFORE_REQUEST,
+        playRequirementRemaining: MIN_PLAY_BEFORE_REQUEST,
         totalWins: 0,
         bonusClaimed: 0,
         lastBonusTime: null
@@ -717,7 +912,9 @@ async function buildGameState(userId = DEMO_USER_ID) {
       id: Number(user.id),
       username: user.username,
       walletBalance: Number(user.wallet_balance || 0),
+      ...getWalletBreakdown(user),
       totalPlayed: Number(user.total_played || 0),
+      totalPlayedCoins: Number(user.total_played || 0),
       totalWins: Number(user.total_wins || 0),
       bonusClaimed: Number(user.bonus_claimed || 0),
       lastBonusTime: Number(user.last_bonus_time || 0)
@@ -778,9 +975,11 @@ function validateBetMap(betMap) {
 }
 
 async function placeBetTx(userId, roundId, betMap, totalCoins) {
-  const user = await getUser(userId);
+  const user = await refreshMainBalance(userId);
   if (!user) throw new Error('User not found');
-  if (Number(user.wallet_balance || 0) < totalCoins) throw new Error('Insufficient wallet balance');
+
+  const usage = computeBetWalletUsage(user, totalCoins);
+  if (!usage.success) throw new Error(usage.message || 'Insufficient coins');
 
   const existingBet = await getBetForRound(userId, roundId);
   if (existingBet) throw new Error('Bet already placed for this round');
@@ -793,10 +992,18 @@ async function placeBetTx(userId, roundId, betMap, totalCoins) {
 
   await incrementUserFields(userId, {
     wallet_balance: -totalCoins,
+    bonus_balance: -Number(usage.bonusUsed || 0),
+    deposit_balance: -Number(usage.depositUsed || 0),
+    winning_balance: -Number(usage.winningUsed || 0),
     total_played: totalCoins
   });
 
-  await addTransaction(userId, 'bet_debit', -totalCoins, { roundId });
+  await addTransaction(userId, 'bet_debit', -totalCoins, {
+    roundId,
+    bonusUsed: Number(usage.bonusUsed || 0),
+    depositUsed: Number(usage.depositUsed || 0),
+    winningUsed: Number(usage.winningUsed || 0)
+  });
 }
 
 async function claimBonusTx(userId) {
@@ -807,13 +1014,18 @@ async function claimBonusTx(userId) {
     throw new Error('Bonus is not available yet');
   }
 
+  const bonusAmount = getRandomDailyBonusAmount();
+
   await incrementUserFields(userId, {
-    wallet_balance: BONUS_AMOUNT,
+    wallet_balance: bonusAmount,
+    bonus_balance: bonusAmount,
     bonus_claimed: 1
   });
 
   await updateUserFields(userId, { last_bonus_time: current });
-  await addTransaction(userId, 'bonus_credit', BONUS_AMOUNT, {});
+  await addTransaction(userId, 'bonus_credit', bonusAmount, { walletType: 'bonus' });
+
+  return bonusAmount;
 }
 
 
@@ -861,6 +1073,11 @@ app.post('/api/login', async (req, res) => {
         username: user.username,
         sessionToken: newSessionToken,
         walletBalance: Number(user.wallet_balance || 0),
+        mainBalance: Number(user.wallet_balance || 0),
+        bonusBalance: Number(user.bonus_balance || 0),
+        depositBalance: Number(user.deposit_balance || 0),
+        winningBalance: Number(user.winning_balance || 0),
+        eligibleRequestBalance: calculateEligibleRequestBalance(user),
         totalPlayed: Number(user.total_played || 0),
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
@@ -899,6 +1116,11 @@ app.post('/api/admin-login', adminLoginLimiter, async (req, res) => {
         username: user.username,
         sessionToken: newSessionToken,
         walletBalance: Number(user.wallet_balance || 0),
+        mainBalance: Number(user.wallet_balance || 0),
+        bonusBalance: Number(user.bonus_balance || 0),
+        depositBalance: Number(user.deposit_balance || 0),
+        winningBalance: Number(user.winning_balance || 0),
+        eligibleRequestBalance: calculateEligibleRequestBalance(user),
         totalPlayed: Number(user.total_played || 0),
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
@@ -926,7 +1148,10 @@ app.post('/api/signup', async (req, res) => {
     const user = await createUserRecord({
       username,
       password: `sha256$${hashPassword(password)}`,
-      walletBalance: 1000,
+      walletBalance: JOINING_BONUS_AMOUNT,
+      bonusBalance: JOINING_BONUS_AMOUNT,
+      depositBalance: 0,
+      winningBalance: 0,
       isAdmin: false
     });
 
@@ -938,6 +1163,11 @@ app.post('/api/signup', async (req, res) => {
         username: user.username,
         sessionToken: user.session_token,
         walletBalance: Number(user.wallet_balance || 0),
+        mainBalance: Number(user.wallet_balance || 0),
+        bonusBalance: Number(user.bonus_balance || 0),
+        depositBalance: Number(user.deposit_balance || 0),
+        winningBalance: Number(user.winning_balance || 0),
+        eligibleRequestBalance: calculateEligibleRequestBalance(user),
         totalPlayed: Number(user.total_played || 0),
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
@@ -1001,10 +1231,10 @@ app.post('/api/claim-bonus', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
 
-    await claimBonusTx(userId);
+    const bonusAmount = await claimBonusTx(userId);
     return res.json({
       success: true,
-      message: `Bonus claimed: +${BONUS_AMOUNT}`,
+      message: `Daily bonus claimed: +${bonusAmount}`,
       state: await buildGameState(userId)
     });
   } catch (error) {
@@ -1097,7 +1327,22 @@ app.post('/api/withdrawal-request', async (req, res) => {
       if (!String(details?.accountNumber || '').trim()) return res.status(400).json({ error: 'Account number required' });
     }
 
-    if (Number(user.wallet_balance || 0) < amount) return res.status(400).json({ error: 'Insufficient wallet balance' });
+    const playedCoins = Number(user.total_played || 0);
+    const eligibleRequestBalance = calculateEligibleRequestBalance(user);
+
+    if (amount < MIN_REQUEST_AMOUNT) {
+      return res.status(400).json({ error: `Minimum withdrawal request is ${MIN_REQUEST_AMOUNT} coins` });
+    }
+
+    if (playedCoins < MIN_PLAY_BEFORE_REQUEST) {
+      return res.status(400).json({ error: `Minimum ${MIN_PLAY_BEFORE_REQUEST} coin bet play first after withdrawal your winning amount and deposit amount balance` });
+    }
+
+    if (eligibleRequestBalance < MIN_REQUEST_AMOUNT) {
+      return res.status(400).json({ error: `Minimum withdrawal ${MIN_REQUEST_AMOUNT} coin` });
+    }
+
+    if (amount > eligibleRequestBalance) return res.status(400).json({ error: 'Insufficient eligible request balance' });
 
     const pendingResult = await pool.query(
       `SELECT id FROM withdraw_requests WHERE user_id = $1 AND status = 'pending' LIMIT 1`,
@@ -1247,7 +1492,7 @@ app.get('/api/admin/dashboard-stats', adminOnly, async (req, res) => {
 
 app.get('/api/admin/load-users', adminOnly, async (req, res) => {
   const result = await pool.query(
-    `SELECT id, username, wallet_balance, total_played, total_wins, bonus_claimed, blocked, created_at
+    `SELECT id, username, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins, bonus_claimed, blocked, created_at
      FROM users
      WHERE is_admin = false
      ORDER BY id DESC`
@@ -1257,6 +1502,11 @@ app.get('/api/admin/load-users', adminOnly, async (req, res) => {
     id: Number(user.id),
     username: user.username,
     walletBalance: Number(user.wallet_balance || 0),
+    mainBalance: Number(user.wallet_balance || 0),
+    bonusBalance: Number(user.bonus_balance || 0),
+    depositBalance: Number(user.deposit_balance || 0),
+    winningBalance: Number(user.winning_balance || 0),
+    eligibleRequestBalance: Number(user.deposit_balance || 0) + Number(user.winning_balance || 0),
     totalPlayed: Number(user.total_played || 0),
     totalWins: Number(user.total_wins || 0),
     bonusClaimed: Number(user.bonus_claimed || 0),
@@ -1271,26 +1521,36 @@ app.post('/api/admin/add-coin', adminOnly, async (req, res) => {
   try {
     const userId = Number(req.body?.userId);
     const amount = Number(req.body?.amount);
+    const walletType = String(req.body?.walletType || 'deposit').trim().toLowerCase();
 
     if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
     if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Valid amount required' });
+    if (!['bonus', 'deposit'].includes(walletType)) return res.status(400).json({ error: 'Valid wallet type required' });
 
     const user = await getUser(userId);
     if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
 
-    await incrementUserFields(user.id, { wallet_balance: amount });
-    await addTransaction(user.id, 'admin_add_coin', amount, { adminId: req.user.id });
+    const increments = {
+      wallet_balance: amount,
+      [walletType === 'bonus' ? 'bonus_balance' : 'deposit_balance']: amount
+    };
 
-    const refreshed = await getUser(user.id);
-    await logAdminActivity(req.user, 'admin_add_coin', user, { amount });
+    await incrementUserFields(user.id, increments);
+    await addTransaction(user.id, 'admin_add_coin', amount, { adminId: req.user.id, walletType });
+
+    const refreshed = await refreshMainBalance(user.id);
+    await logAdminActivity(req.user, 'admin_add_coin', user, { amount, walletType });
 
     return res.json({
       success: true,
-      message: `${amount} coins added to ${user.username}`,
+      message: `${amount} ${walletType} coins added to ${user.username}`,
       user: {
         id: Number(refreshed.id),
         username: refreshed.username,
-        walletBalance: Number(refreshed.wallet_balance || 0)
+        walletBalance: Number(refreshed.wallet_balance || 0),
+        bonusBalance: Number(refreshed.bonus_balance || 0),
+        depositBalance: Number(refreshed.deposit_balance || 0),
+        winningBalance: Number(refreshed.winning_balance || 0)
       }
     });
   } catch (error) {
@@ -1307,14 +1567,27 @@ app.post('/api/admin/withdraw-coin', adminOnly, async (req, res) => {
     if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
     if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Valid amount required' });
 
-    const user = await getUser(userId);
+    const user = await refreshMainBalance(userId);
     if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
     if (Number(user.wallet_balance || 0) < amount) return res.status(400).json({ error: 'User has insufficient balance' });
 
-    await incrementUserFields(user.id, { wallet_balance: -amount });
-    await addTransaction(user.id, 'admin_withdraw_coin', -amount, { adminId: req.user.id });
+    const usage = computeBetWalletUsage(user, amount);
+    if (!usage.success) return res.status(400).json({ error: usage.message || 'User has insufficient balance' });
 
-    const refreshed = await getUser(user.id);
+    await incrementUserFields(user.id, {
+      wallet_balance: -amount,
+      bonus_balance: -Number(usage.bonusUsed || 0),
+      deposit_balance: -Number(usage.depositUsed || 0),
+      winning_balance: -Number(usage.winningUsed || 0)
+    });
+    await addTransaction(user.id, 'admin_withdraw_coin', -amount, {
+      adminId: req.user.id,
+      bonusUsed: Number(usage.bonusUsed || 0),
+      depositUsed: Number(usage.depositUsed || 0),
+      winningUsed: Number(usage.winningUsed || 0)
+    });
+
+    const refreshed = await refreshMainBalance(user.id);
     await logAdminActivity(req.user, 'admin_withdraw_coin', user, { amount });
 
     return res.json({
@@ -1323,7 +1596,11 @@ app.post('/api/admin/withdraw-coin', adminOnly, async (req, res) => {
       user: {
         id: Number(refreshed.id),
         username: refreshed.username,
-        walletBalance: Number(refreshed.wallet_balance || 0)
+        walletBalance: Number(refreshed.wallet_balance || 0),
+        bonusBalance: Number(refreshed.bonus_balance || 0),
+        depositBalance: Number(refreshed.deposit_balance || 0),
+        winningBalance: Number(refreshed.winning_balance || 0),
+        blocked: Boolean(refreshed.blocked)
       }
     });
   } catch (error) {
@@ -1469,10 +1746,11 @@ app.post('/api/admin/deposit-requests/action', adminOnly, async (req, res) => {
       );
 
       if (action === 'approve') {
-        await incrementUserFields(user.id, { wallet_balance: Number(request.amount || 0) });
+        await incrementUserFields(user.id, { wallet_balance: Number(request.amount || 0), deposit_balance: Number(request.amount || 0) });
         await addTransaction(user.id, 'deposit_approved', Number(request.amount || 0), {
           requestId: Number(request.id),
-          adminId: Number(req.user.id)
+          adminId: Number(req.user.id),
+          walletType: 'deposit'
         });
       }
 
@@ -1501,8 +1779,8 @@ app.post('/api/admin/deposit-requests/action', adminOnly, async (req, res) => {
       const user = await getUser(request.user_id);
       if (!user) return res.status(404).json({ error: 'User not found' });
 
-      if (action === 'approve' && Number(user.wallet_balance || 0) < Number(request.amount || 0)) {
-        return res.status(400).json({ error: 'User has insufficient wallet balance for approval' });
+      if (action === 'approve' && calculateEligibleRequestBalance(user) < Number(request.amount || 0)) {
+        return res.status(400).json({ error: 'User has insufficient eligible request balance for approval' });
       }
 
       const nextStatus = action === 'approve' ? 'approved' : 'rejected';
@@ -1512,13 +1790,24 @@ app.post('/api/admin/deposit-requests/action', adminOnly, async (req, res) => {
       );
 
       if (action === 'approve') {
-        await incrementUserFields(user.id, { wallet_balance: -Number(request.amount || 0) });
+        const usage = splitRequestDeduction(user, Number(request.amount || 0));
+        if (!usage.success) {
+          return res.status(400).json({ error: usage.message || 'Unable to approve withdrawal' });
+        }
+
+        await incrementUserFields(user.id, {
+          wallet_balance: -Number(request.amount || 0),
+          deposit_balance: -Number(usage.depositUsed || 0),
+          winning_balance: -Number(usage.winningUsed || 0)
+        });
         await addTransaction(user.id, 'withdrawal_approved', -Number(request.amount || 0), {
           requestId: Number(request.id),
           adminId: Number(req.user.id),
           method: request.method || '',
           upiId: request.upi_id || '',
-          details: toJson(request.details, {})
+          details: toJson(request.details, {}),
+          depositUsed: Number(usage.depositUsed || 0),
+          winningUsed: Number(usage.winningUsed || 0)
         });
       }
 
@@ -1774,22 +2063,22 @@ app.get('/api/wallet-history', async (req, res) => {
 
         if (tx.type === 'deposit_approved') {
           title = 'Deposit Approved';
-          details = 'Coins added by admin approval';
+          details = 'Coins added to deposit balance by admin approval';
         } else if (tx.type === 'bet_debit') {
           title = 'Bet Placed / Loss';
-          details = meta.roundId ? `Round ID: ${meta.roundId}` : 'Bet amount deducted';
+          details = meta.roundId ? `Round ID: ${meta.roundId} | Bonus ${Number(meta.bonusUsed || 0)} | Deposit ${Number(meta.depositUsed || 0)} | Winning ${Number(meta.winningUsed || 0)}` : 'Bet amount deducted';
         } else if (tx.type === 'win_credit') {
           title = 'Winning Credit';
           details = meta.luckyNumber !== undefined ? `Lucky Number: ${meta.luckyNumber}` : 'Winning amount added';
         } else if (tx.type === 'bonus_credit') {
           title = 'Daily Bonus';
-          details = 'Bonus credited';
+          details = 'Bonus credited to bonus balance';
         } else if (tx.type === 'admin_add_coin') {
           title = 'Admin Added Coins';
-          details = 'Coins added by admin';
+          details = `Coins added by admin to ${String(meta.walletType || 'deposit')} balance`;
         } else if (tx.type === 'admin_withdraw_coin') {
           title = 'Admin Removed Coins';
-          details = 'Coins removed by admin';
+          details = `Coins removed by admin | Bonus ${Number(meta.bonusUsed || 0)} | Deposit ${Number(meta.depositUsed || 0)} | Winning ${Number(meta.winningUsed || 0)}`;
         }
 
         return {
@@ -1830,9 +2119,10 @@ app.get('/api/admin/users', (req, res) => app._router.handle({ ...req, url: '/ap
 app.post('/api/admin/add-coins', async (req, res) => {
   const username = String(req.body?.username || '').trim();
   const amount = req.body?.amount;
+  const walletType = String(req.body?.walletType || 'deposit').trim().toLowerCase();
   const user = await getUserByUsername(username);
   if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
-  req.body = { userId: Number(user.id), amount };
+  req.body = { userId: Number(user.id), amount, walletType };
   return app._router.handle({ ...req, url: '/api/admin/add-coin', method: 'POST' }, res, () => {});
 });
 
