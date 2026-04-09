@@ -306,6 +306,16 @@
     .modal-body .section-card{
       margin:0;border:none;box-shadow:none;background:transparent;padding:0;
     }
+    .admin-filter-bar{display:grid;gap:10px;margin:0 0 14px;}
+    .admin-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .admin-chip{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #2a3550;border-radius:12px;background:#0a1020;color:#fff;font-size:13px;font-weight:700;}
+    .admin-inline-input{width:auto;min-width:140px;margin:0;}
+    .admin-inline-select{width:auto;min-width:140px;box-sizing:border-box;padding:13px 14px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;outline:none;margin:0;}
+    .admin-scroll-box{max-height:320px;overflow-y:auto;padding-right:4px;}
+    .accordion-toggle-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+    .accordion-section{display:none;margin-top:10px;}
+    .accordion-section.open{display:block;}
+    .vertical-admin-form{display:grid;gap:10px;max-width:420px;}
     .footer-note{
       width:100%;
       text-align:center;
@@ -371,6 +381,18 @@
       <div class="dashboard-shell">
         <div class="section-card">
           <div class="section-title">Dashboard Overview</div>
+<div class="admin-filter-bar" id="dashboardFilterBar">
+  <div class="admin-filter-row">
+    <label class="admin-chip"><input type="checkbox" id="dashPresetToday" onchange="toggleDashboardPreset('today')" /> Today</label>
+    <label class="admin-chip"><input type="checkbox" id="dashPresetYesterday" onchange="toggleDashboardPreset('yesterday')" /> Yesterday</label>
+    <label class="admin-chip"><input type="checkbox" id="dashPresetLast45" onchange="toggleDashboardPreset('last45days')" /> Last 45 Days</label>
+    <input id="dashFromDate" class="admin-inline-input" type="date" />
+    <input id="dashToDate" class="admin-inline-input" type="date" />
+    <button type="button" onclick="applyDashboardFilters()">Apply Filter</button>
+    <button type="button" onclick="exportDashboardCsv()" style="background:#2563eb;color:#fff;">Export CSV</button>
+  </div>
+  <div id="dashboardFilterMeta" style="color:#9ca3af;font-size:12px;line-height:1.5;">Current filter: Today</div>
+</div>
 <div id="dashboardStats" class="dashboard-compact-grid">
   <div class="stat-box"><div class="stat-label">Total Deposits</div><div id="totalDepositsStat" class="stat-value" style="color:#22c55e;">0</div></div>
 
@@ -531,15 +553,10 @@
 async function loadDashboardStats() {
   const token = localStorage.getItem('adminSessionToken') || '';
   if (!token) return;
-
   try {
-    const res = await fetch('/api/admin/dashboard-stats', {
-      headers: getAdminHeaders()
-    });
-
+    const res = await fetch('/api/admin/dashboard-stats' + buildAdminQuery(adminDashboardFilter), { headers: getAdminHeaders() });
     const data = await res.json();
     if (!res.ok) return;
-
     document.getElementById('totalDepositsStat').textContent = data.stats?.totalDeposits || 0;
     document.getElementById('totalWithdrawalsStat').textContent = data.stats?.totalWithdrawals || 0;
     document.getElementById('profitLossStat').textContent = data.stats?.profitLoss || 0;
@@ -551,19 +568,13 @@ async function loadDashboardStats() {
     document.getElementById('topDepositorStat').textContent = data.stats?.topDepositor ? `${data.stats.topDepositor.username} (${data.stats.topDepositor.amount})` : '-';
     document.getElementById('topWinnerStat').textContent = data.stats?.topWinner ? `${data.stats.topWinner.username} (${data.stats.topWinner.amount})` : '-';
     document.getElementById('todayVsYesterdayStat').textContent = data.stats?.todayVsYesterday ? `${data.stats.todayVsYesterday.today} / ${data.stats.todayVsYesterday.yesterday}` : '-';
-const profit = Number(data.stats?.profitLoss || 0);
-const el = document.getElementById('profitLossStat');
-
-if (profit > 0) {
-  el.style.color = '#22c55e'; // green
-} else if (profit < 0) {
-  el.style.color = '#ff4d4f'; // red
-} else {
-  el.style.color = '#ffd54a'; // neutral
-}
-  } catch (err) {
-    console.log('Dashboard stats load failed');
-  }
+    const profit = Number(data.stats?.profitLoss || 0);
+    const el = document.getElementById('profitLossStat');
+    if (profit > 0) el.style.color = '#22c55e'; else if (profit < 0) el.style.color = '#ff4d4f'; else el.style.color = '#ffd54a';
+    const fromText = data.filter?.from ? new Date(Number(data.filter.from)).toLocaleDateString() : '-';
+    const toText = data.filter?.to ? new Date(Number(data.filter.to)).toLocaleDateString() : '-';
+    setDashboardMetaText(`Current filter: ${adminDashboardFilter.preset || 'custom'} | ${fromText} → ${toText}`);
+  } catch (err) { console.log('Dashboard stats load failed'); }
 }
 
 let selectedUsername = '';
@@ -573,10 +584,18 @@ let currentRequestTab = 'deposit';
 let adminMiniTimerInterval = null;
 let adminMiniRoundTargetTime = 0;
 let adminMiniRoundStatus = 'Waiting';
-let adminServerTimeOffset = 0;
 let currentModalSectionId = '';
 
-async function loadAdminMiniLiveCard() {}
+const adminDashboardFilter = { preset: 'today', from: '', to: '' };
+
+function buildAdminQuery(params = {}) { const usp = new URLSearchParams(); Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== null && String(value) !== "") usp.set(key, value); }); const q = usp.toString(); return q ? `?${q}` : ""; }
+function setDashboardMetaText(text) { const el = getEl('dashboardFilterMeta'); if (el) el.textContent = text; }
+function clearDashboardPresetChecks() { ['dashPresetToday','dashPresetYesterday','dashPresetLast45'].forEach(id => { const el = getEl(id); if (el) el.checked = false; }); }
+function toggleDashboardPreset(preset) { clearDashboardPresetChecks(); if (preset === "today") getEl('dashPresetToday').checked = true; if (preset === "yesterday") getEl('dashPresetYesterday').checked = true; if (preset === "last45days") getEl('dashPresetLast45').checked = true; adminDashboardFilter.preset = preset; adminDashboardFilter.from = ""; adminDashboardFilter.to = ""; if (getEl('dashFromDate')) getEl('dashFromDate').value = ""; if (getEl('dashToDate')) getEl('dashToDate').value = ""; }
+function applyDashboardFilters() { const from = getEl('dashFromDate')?.value || ""; const to = getEl('dashToDate')?.value || ""; if (from && to) { clearDashboardPresetChecks(); adminDashboardFilter.preset = ""; adminDashboardFilter.from = from; adminDashboardFilter.to = to; } loadDashboardStats(); }
+function exportDashboardCsv() { window.open('/api/admin/export/dashboard.csv' + buildAdminQuery(adminDashboardFilter), "_blank"); }
+function exportTransactionsCsv() { const params = { preset: getEl('txFilterPreset')?.value || "today", from: getEl('txFilterFrom')?.value || "", to: getEl('txFilterTo')?.value || "", walletType: getEl('txFilterWalletType')?.value || "" }; window.open('/api/admin/export/transactions.csv' + buildAdminQuery(params), "_blank"); }
+function exportRequestsCsv() { const params = { preset: getEl('reqFilterPreset')?.value || "today", from: getEl('reqFilterFrom')?.value || "", to: getEl('reqFilterTo')?.value || "", status: getEl('reqFilterStatus')?.value || "" }; window.open('/api/admin/export/requests.csv' + buildAdminQuery(params), "_blank"); }
 
 function getEl(id) {
   return document.getElementById(id);
@@ -655,7 +674,7 @@ async function refreshRequestCounts() {
   if (!token) return;
 
   try {
-    const res = await fetch('/api/admin/deposit-requests', {
+    const res = await fetch('/api/admin/deposit-requests' + buildAdminQuery({ preset: reqPreset, from: reqFrom, to: reqTo, status: reqStatus }), {
       headers: getAdminHeaders()
     });
 
@@ -1095,7 +1114,8 @@ async function loadLiveUpdatesData() {
         localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
         localStorage.setItem('adminRole', data.user.role || 'super_admin');
         loginMsg.textContent = 'Admin login successful';
-        checkAdminLogin();
+        toggleDashboardPreset('today');
+checkAdminLogin();
 loadDashboardStats();
 refreshRequestCounts();
 
@@ -1595,9 +1615,13 @@ withdrawalBtn.style.background = requestType === 'withdrawal' ? '#ffd54a' : '';
 withdrawalBtn.style.color = requestType === 'withdrawal' ? '#111' : '';
 
 list.innerHTML = `<div style="padding:12px;background:#111827;border-radius:10px;">Loading ${requestType} requests...</div>`;
+  const reqPreset = getEl('reqFilterPreset')?.value || 'today';
+  const reqFrom = getEl('reqFilterFrom')?.value || '';
+  const reqTo = getEl('reqFilterTo')?.value || '';
+  const reqStatus = getEl('reqFilterStatus')?.value || '';
 
   try {
-    const res = await fetch('/api/admin/deposit-requests', {
+    const res = await fetch('/api/admin/deposit-requests' + buildAdminQuery({ preset: reqPreset, from: reqFrom, to: reqTo, status: reqStatus }), {
       headers: getAdminHeaders()
     });
 
@@ -2010,7 +2034,7 @@ async function loadTransactions() {
   list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading transactions.</div>';
 
   try {
-    const res = await fetch('/api/admin/transaction-history', {
+    const res = await fetch('/api/admin/transaction-history' + buildAdminQuery({ preset: txPreset, from: txFrom, to: txTo, walletType: txWalletType }), {
       headers: getAdminHeaders()
     });
 
@@ -2135,7 +2159,7 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
   adminMiniTimerInterval = setInterval(() => {
     if (!document.getElementById('adminMiniTimer')) return;
 
-    const now = Date.now();
+    const now = Date.now() + adminServerTimeOffset;
     const diff = Math.max(0, adminMiniRoundTargetTime - now);
     const totalSec = Math.floor(diff / 1000);
     const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
@@ -2170,13 +2194,6 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
 .admin-role-pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,213,74,.12);color:#ffd54a;font-size:12px;font-weight:800;}
 .admin-blocked-pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,77,79,.12);color:#ff8e8f;font-size:12px;font-weight:800;}
 .activity-log-item{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;line-height:1.6;color:#dbe2ea;}
-.admin-toggle-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-.admin-toggle-btn{background:#1f2937;color:#fff;box-shadow:none;}
-.admin-toggle-btn.active{background:linear-gradient(180deg,var(--gold),var(--gold2));color:#111;box-shadow:0 10px 24px rgba(255,213,74,.14);}
-.admin-collapsible-section{display:none;gap:12px;margin-top:12px;}
-.admin-collapsible-section.show{display:grid;}
-.admin-inline-form{display:grid;gap:10px;}
-.admin-activity-scroll{max-height:420px;overflow-y:auto;padding-right:4px;}
 [data-role-guard-hidden="true"]{display:none !important;}
 @media (max-width:900px){.admin-mini-live-grid,.admin-form-grid{grid-template-columns:1fr;}}
 </style>
@@ -2212,7 +2229,7 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
     }
     const rightStack = document.querySelector('.right-stack');
     if (rightStack && !document.getElementById('adminManagementPanel')) {
-      rightStack.insertAdjacentHTML('beforeend', `<div id="adminManagementPanel" class="section-card" style="display:none;"><h3 style="margin:0 0 10px 0;color:#ffd54a;">Admin Management Panel</h3><div class="admin-toggle-row"><button type="button" id="createAdminToggleBtn" class="admin-toggle-btn active" onclick="toggleAdminManagementSection('create')">Create New Admin</button><button type="button" id="allAdminsToggleBtn" class="admin-toggle-btn" onclick="toggleAdminManagementSection('list')">All Admins</button></div><div class="admin-management-grid"><div id="createAdminSection" class="admin-management-card admin-collapsible-section show"><div class="section-title" style="font-size:16px;">Create New Admin</div><div class="admin-inline-form"><input id="newAdminUsername" type="text" placeholder="New admin username" /><input id="newAdminPassword" type="text" placeholder="New admin password" /><select id="newAdminRole" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"><option value="finance_admin">finance_admin</option><option value="game_admin">game_admin</option><option value="support_admin">support_admin</option><option value="read_only">read_only</option><option value="super_admin">super_admin</option></select><button type="button" onclick="createAdminAccount()">Create Admin</button></div></div><div id="allAdminsSection" class="admin-management-card admin-collapsible-section"><div class="section-title" style="font-size:16px;">All Admins</div><div id="adminList" class="admin-list-grid"></div></div><div class="admin-activity-card"><div class="section-title" style="font-size:16px;">Admin Activity Logs</div><div id="adminActivityLogs" class="activity-log-grid admin-activity-scroll"></div></div></div></div>`);
+      rightStack.insertAdjacentHTML('beforeend', `<div id="adminManagementPanel" class="section-card" style="display:none;"><h3 style="margin:0 0 10px 0;color:#ffd54a;">Admin Management Panel</h3><div class="accordion-toggle-row"><button type="button" onclick="toggleAdminManagementSection('createAdminSection')">Create New Admin</button><button type="button" onclick="toggleAdminManagementSection('allAdminsSection')" style="background:#2563eb;color:#fff;">All Admins</button></div><div class="admin-management-grid"><div id="createAdminSection" class="admin-management-card accordion-section"><div class="section-title" style="font-size:16px;">Create New Admin</div><div class="vertical-admin-form"><input id="newAdminUsername" type="text" placeholder="New admin username" /><input id="newAdminPassword" type="text" placeholder="New admin password" /><select id="newAdminRole" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"><option value="finance_admin">finance_admin</option><option value="game_admin">game_admin</option><option value="support_admin">support_admin</option><option value="read_only">read_only</option><option value="super_admin">super_admin</option></select><button type="button" onclick="createAdminAccount()">Create Admin</button></div></div><div id="allAdminsSection" class="admin-management-card accordion-section"><div class="section-title" style="font-size:16px;">All Admins</div><div id="adminList" class="admin-list-grid"></div></div><div class="admin-activity-card"><div class="section-title" style="font-size:16px;">Admin Activity Logs</div><div id="adminActivityLogs" class="activity-log-grid admin-scroll-box"></div></div></div></div>`);
     }
   }
 
@@ -2242,7 +2259,7 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
     const coinWalletType = document.getElementById('coinWalletType');
     if (coinWalletType) coinWalletType.parentElement.style.display = hasAccess('money') ? '' : 'none';
     loadAdminMiniLiveCard();
-    if (role === 'super_admin') { toggleAdminManagementSection('create'); loadAdminActivityLogs(); }
+    if (role === 'super_admin') { loadAdminManagementData(); loadAdminActivityLogs(); }
   };
 
   window.loadAdminMiniLiveCard = async function(){
@@ -2250,19 +2267,31 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
     if (!token || !document.getElementById('adminMiniTimer')) return;
 
     try {
-      const stateRes = await fetch('/api/state', { headers: getAdminHeaders() });
+      const [roundRes, stateRes] = await Promise.all([
+        fetch('/api/admin/current-round', { headers: getAdminHeaders() }),
+        fetch('/api/state', { headers: getAdminHeaders() })
+      ]);
+
+      const roundData = await roundRes.json();
       const stateData = await stateRes.json();
-      if (!stateRes.ok || !stateData.round) return;
 
-      const round = stateData.round;
-      const localNow = Date.now();
-      const serverNow = Number(stateData.serverNow || localNow);
-      adminServerTimeOffset = serverNow - localNow;
-      adminMiniRoundTargetTime = Number(round.endsAt || serverNow);
-      adminMiniRoundStatus = String(round.status || 'Waiting');
+      if (!roundRes.ok || !roundData.round) return;
 
-      const syncedNow = Date.now() + adminServerTimeOffset;
-      const diff = Math.max(0, adminMiniRoundTargetTime - syncedNow);
+      const round = roundData.round;
+      const serverNow = Number(stateData?.serverNow || Date.now());
+      adminServerTimeOffset = serverNow - Date.now();
+      const now = Date.now() + adminServerTimeOffset;
+
+      const isOpen = String(round.status || '').toLowerCase() === 'open';
+      adminMiniRoundTargetTime = Number(
+        isOpen
+          ? (round.bettingClosesAt || round.endsAt || now)
+          : (round.endsAt || round.bettingClosesAt || now)
+      );
+
+      adminMiniRoundStatus = round.status || 'Waiting';
+
+      const diff = Math.max(0, adminMiniRoundTargetTime - now);
       const totalSec = Math.floor(diff / 1000);
       const m = String(Math.floor(totalSec / 60)).padStart(2,'0');
       const s = String(totalSec % 60).padStart(2,'0');
@@ -2281,28 +2310,10 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
         lastSettled && lastSettled.roundNumber
           ? `Round ${lastSettled.roundNumber}`
           : 'Waiting';
+
     } catch (e) {}
   };
-
-  window.toggleAdminManagementSection = function(section){
-    const createBtn = document.getElementById('createAdminToggleBtn');
-    const listBtn = document.getElementById('allAdminsToggleBtn');
-    const createSection = document.getElementById('createAdminSection');
-    const allAdminsSection = document.getElementById('allAdminsSection');
-
-    if (!createBtn || !listBtn || !createSection || !allAdminsSection) return;
-
-    const showCreate = section !== 'list';
-
-    createBtn.classList.toggle('active', showCreate);
-    listBtn.classList.toggle('active', !showCreate);
-    createSection.classList.toggle('show', showCreate);
-    allAdminsSection.classList.toggle('show', !showCreate);
-
-    if (!showCreate) {
-      loadAdminManagementData();
-    }
-  };
+  window.toggleAdminManagementSection = function(sectionId){ ['createAdminSection','allAdminsSection'].forEach(id => { const el = document.getElementById(id); if (!el) return; if (id === sectionId) el.classList.toggle('open'); else el.classList.remove('open'); }); };
 
   window.loadAdminManagementData = async function(){
     const list = document.getElementById('adminList');
@@ -2333,7 +2344,7 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
       const res = await fetch('/api/admin/create-admin', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ username, password, role }) });
       const data = await res.json();
       output.textContent = data.message || data.error || 'Request completed';
-      if (res.ok) { document.getElementById('newAdminUsername').value=''; document.getElementById('newAdminPassword').value=''; toggleAdminManagementSection('list'); loadAdminManagementData(); loadAdminActivityLogs(); }
+      if (res.ok) { document.getElementById('newAdminUsername').value=''; document.getElementById('newAdminPassword').value=''; loadAdminManagementData(); loadAdminActivityLogs(); }
     } catch (err) { output.textContent = 'Failed to create admin: ' + err.message; }
   };
   window.updateAdminRoleAction = async function(adminId){

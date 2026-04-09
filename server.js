@@ -522,6 +522,62 @@ function toJson(value, fallback = {}) {
   return jsonParseSafe(value, fallback);
 }
 
+function parseDateOnlyToStartMs(value) {
+  const safe = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(safe)) return null;
+  const dt = new Date(`${safe}T00:00:00.000Z`);
+  const ms = dt.getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function parseDateOnlyToEndMs(value) {
+  const start = parseDateOnlyToStartMs(value);
+  if (start === null) return null;
+  return start + (24 * 60 * 60 * 1000) - 1;
+}
+
+function getAdminRangeFromQuery(query = {}) {
+  const preset = String(query.preset || '').trim().toLowerCase();
+  const now = nowMs();
+  const startTodayDate = new Date(now);
+  startTodayDate.setHours(0, 0, 0, 0);
+  const startToday = startTodayDate.getTime();
+  const startYesterday = startToday - 24 * 60 * 60 * 1000;
+  let from = null;
+  let to = null;
+  if (preset === 'today') { from = startToday; to = now; }
+  else if (preset === 'yesterday') { from = startYesterday; to = startToday - 1; }
+  else if (preset === 'last45days') { from = startToday - (44 * 24 * 60 * 60 * 1000); to = now; }
+  const fromInput = parseDateOnlyToStartMs(query.from);
+  const toInput = parseDateOnlyToEndMs(query.to);
+  if (fromInput !== null && toInput !== null) { from = fromInput; to = toInput; }
+  if (from === null || to === null) { from = startToday; to = now; }
+  if (to < from) { const temp = from; from = to; to = temp; }
+  const maxWindowMs = 45 * 24 * 60 * 60 * 1000;
+  if ((to - from) > maxWindowMs) from = to - maxWindowMs;
+  const previousWindow = Math.max(24 * 60 * 60 * 1000, (to - from) + 1);
+  return { preset: preset || 'today', from, to, previousFrom: from - previousWindow, previousTo: from - 1 };
+}
+
+function csvEscape(value) {
+  const safe = String(value ?? '');
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
+function toCsv(rows = []) {
+  if (!Array.isArray(rows) || !rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const lines = [headers.map(csvEscape).join(',')];
+  for (const row of rows) lines.push(headers.map(key => csvEscape(row[key])).join(','));
+  return lines.join('\n');
+}
+
+function sendCsv(res, filename, rows) {
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  return res.status(200).send(toCsv(rows));
+}
+
 
 function getRandomDailyBonusAmount() {
   return Math.floor(Math.random() * (DAILY_BONUS_MAX - DAILY_BONUS_MIN + 1)) + DAILY_BONUS_MIN;
@@ -827,14 +883,7 @@ async function settleRoundTx(roundId) {
   const roundResult = await pool.query(`SELECT * FROM rounds WHERE id = $1 LIMIT 1`, [roundId]);
   const round = roundResult.rows[0] || null;
   if (!round) throw new Error('Round not found');
-  if (round.status === 'settled') {
-    return {
-      success: true,
-      alreadySettled: true,
-      roundId: Number(round.id),
-      roundNumber: Number(round.round_number)
-    };
-  }
+  if (round.status === 'settled') throw new Error('Round already settled');
   if (nowMs() < Number(round.ends_at)) throw new Error('Round timer not finished yet');
 
   const luckyNumber = computeLuckyNumber(round.server_seed, round.client_seed, Number(round.round_number));
@@ -893,19 +942,6 @@ async function ensureActiveRound() {
 
     if (now >= Number(latest.ends_at)) {
       await settleRoundTx(latest.id);
-
-      const existingOpenResult = await pool.query(
-        `SELECT * FROM rounds
-         WHERE status IN ('open','closed')
-         ORDER BY round_number DESC
-         LIMIT 1`
-      );
-      const existingOpen = existingOpenResult.rows[0] || null;
-
-      if (existingOpen) {
-        return existingOpen;
-      }
-
       return await createRound(Number(latest.round_number) + 1, nowMs());
     }
 
@@ -1254,8 +1290,7 @@ app.get('/api/state', async (req, res) => {
   try {
     await createNextRoundIfNeeded();
     const userId = await getUserIdFromReq(req);
-    const state = await buildGameState(userId);
-    return res.json({ ...state, serverNow: nowMs() });
+    return res.json(await buildGameState(userId));
   } catch (err) {
     console.error('STATE ERROR:', err);
     return res.status(500).json({ error: err.message });
@@ -1512,48 +1547,23 @@ app.post('/api/admin/live-updates', adminOnly, requireAdminRoles('super_admin', 
 
 app.get('/api/admin/dashboard-stats', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'game_admin', 'support_admin', 'read_only'), async (req, res) => {
   try {
-    const now = Date.now();
-    const startToday = new Date();
-    startToday.setHours(0,0,0,0);
-    const todayMs = startToday.getTime();
-    const yesterdayMs = todayMs - 24 * 60 * 60 * 1000;
-
-    const [usersCount, activeUsers, pendingDep, pendingWit, totalDep, totalWit, betsToday, winsToday, betsYesterday, topDepositor, topWinner] = await Promise.all([
+    const range = getAdminRangeFromQuery(req.query || {});
+    const [usersCount, pendingDep, pendingWit, activeUsers, totalDep, totalWit, betsCurrent, winsCurrent, betsPrevious, topDepositor, topWinner] = await Promise.all([
       pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE is_admin = false`),
-      pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE is_admin = false AND COALESCE(last_active_at,0) >= $1`, [now - 24*60*60*1000]),
       pool.query(`SELECT COUNT(*)::int AS count FROM deposit_requests WHERE status = 'pending'`),
       pool.query(`SELECT COUNT(*)::int AS count FROM withdraw_requests WHERE status = 'pending'`),
-      pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'deposit_approved'`),
-      pool.query(`SELECT COALESCE(SUM(ABS(amount)),0) AS total FROM transactions WHERE type = 'withdrawal_approved'`),
-      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at >= $1`, [todayMs]),
-      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at >= $1 AND result = 'win'`, [todayMs]),
-      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at >= $1 AND created_at < $2`, [yesterdayMs, todayMs]),
-      pool.query(`SELECT username, COALESCE(SUM(amount),0) AS total FROM transactions t JOIN users u ON u.id=t.user_id WHERE t.type='deposit_approved' AND u.is_admin=false GROUP BY username ORDER BY total DESC LIMIT 1`),
-      pool.query(`SELECT username, COALESCE(SUM(amount),0) AS total FROM transactions t JOIN users u ON u.id=t.user_id WHERE t.type='win_credit' AND u.is_admin=false GROUP BY username ORDER BY total DESC LIMIT 1`)
+      pool.query(`SELECT COUNT(DISTINCT id)::int AS count FROM users WHERE is_admin = false AND COALESCE(last_active_at,0) BETWEEN $1 AND $2`, [range.from, range.to]),
+      pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'deposit_approved' AND created_at BETWEEN $1 AND $2`, [range.from, range.to]),
+      pool.query(`SELECT COALESCE(SUM(ABS(amount)),0) AS total FROM transactions WHERE type = 'withdrawal_approved' AND created_at BETWEEN $1 AND $2`, [range.from, range.to]),
+      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at BETWEEN $1 AND $2`, [range.from, range.to]),
+      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at BETWEEN $1 AND $2 AND result = 'win'`, [range.from, range.to]),
+      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at BETWEEN $1 AND $2`, [range.previousFrom, range.previousTo]),
+      pool.query(`SELECT u.username, COALESCE(SUM(t.amount),0) AS total FROM transactions t JOIN users u ON u.id=t.user_id WHERE t.type='deposit_approved' AND u.is_admin=false AND t.created_at BETWEEN $1 AND $2 GROUP BY u.username ORDER BY total DESC, u.username ASC LIMIT 1`, [range.from, range.to]),
+      pool.query(`SELECT u.username, COALESCE(SUM(t.amount),0) AS total FROM transactions t JOIN users u ON u.id=t.user_id WHERE t.type='win_credit' AND u.is_admin=false AND t.created_at BETWEEN $1 AND $2 GROUP BY u.username ORDER BY total DESC, u.username ASC LIMIT 1`, [range.from, range.to])
     ]);
-
     const totalDeposits = Number(totalDep.rows[0]?.total || 0);
     const totalWithdrawals = Number(totalWit.rows[0]?.total || 0);
-
-    return res.json({
-      success: true,
-      stats: {
-        totalDeposits,
-        totalWithdrawals,
-        profitLoss: totalDeposits - totalWithdrawals,
-        totalUsers: Number(usersCount.rows[0]?.count || 0),
-        activeUsers24h: Number(activeUsers.rows[0]?.count || 0),
-        totalBetsToday: Number(betsToday.rows[0]?.count || 0),
-        totalWinsToday: Number(winsToday.rows[0]?.count || 0),
-        pendingRequests: Number(pendingDep.rows[0]?.count || 0) + Number(pendingWit.rows[0]?.count || 0),
-        topDepositor: topDepositor.rows[0] ? { username: topDepositor.rows[0].username, amount: Number(topDepositor.rows[0].total || 0) } : null,
-        topWinner: topWinner.rows[0] ? { username: topWinner.rows[0].username, amount: Number(topWinner.rows[0].total || 0) } : null,
-        todayVsYesterday: {
-          today: Number(betsToday.rows[0]?.count || 0),
-          yesterday: Number(betsYesterday.rows[0]?.count || 0)
-        }
-      }
-    });
+    return res.json({ success: true, filter: { preset: range.preset, from: Number(range.from), to: Number(range.to), serverNow: nowMs() }, stats: { totalDeposits, totalWithdrawals, profitLoss: totalDeposits - totalWithdrawals, totalUsers: Number(usersCount.rows[0]?.count || 0), activeUsers24h: Number(activeUsers.rows[0]?.count || 0), totalBetsToday: Number(betsCurrent.rows[0]?.count || 0), totalWinsToday: Number(winsCurrent.rows[0]?.count || 0), pendingRequests: Number(pendingDep.rows[0]?.count || 0) + Number(pendingWit.rows[0]?.count || 0), topDepositor: topDepositor.rows[0] ? { username: topDepositor.rows[0].username, amount: Number(topDepositor.rows[0].total || 0) } : null, topWinner: topWinner.rows[0] ? { username: topWinner.rows[0].username, amount: Number(topWinner.rows[0].total || 0) } : null, todayVsYesterday: { today: Number(betsCurrent.rows[0]?.count || 0), yesterday: Number(betsPrevious.rows[0]?.count || 0) } } });
   } catch (error) {
     console.error('DASHBOARD STATS ERROR:', error);
     return res.status(500).json({ error: 'Unable to load dashboard stats' });
@@ -1736,13 +1746,11 @@ app.post('/api/admin/delete-user', adminOnly, requireAdminRoles('super_admin'), 
 });
 
 app.get('/api/admin/transaction-history', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'support_admin', 'read_only', 'game_admin'), async (req, res) => {
+  const range = getAdminRangeFromQuery(req.query || {});
+  const walletType = String(req.query?.walletType || '').trim().toLowerCase();
   const result = await pool.query(
-    `SELECT * FROM transactions
-     WHERE type IN ('admin_add_coin', 'admin_withdraw_coin')
-       AND COALESCE(meta->>'adminId', '') = $1
-     ORDER BY created_at DESC
-     LIMIT 1000`,
-    [String(req.user.id)]
+    `SELECT * FROM transactions WHERE type IN ('admin_add_coin', 'admin_withdraw_coin') AND COALESCE(meta->>'adminId', '') = $1 AND created_at BETWEEN $2 AND $3 AND ($4 = '' OR LOWER(COALESCE(meta->>'walletType','')) = $4) ORDER BY created_at DESC LIMIT 1000`,
+    [String(req.user.id), range.from, range.to, walletType]
   );
   const history = [];
   for (const item of result.rows) {
@@ -1761,8 +1769,10 @@ app.get('/api/admin/transaction-history', adminOnly, requireAdminRoles('super_ad
 });
 
 app.get('/api/admin/deposit-requests', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'read_only'), async (req, res) => {
-  const depositResult = await pool.query(`SELECT * FROM deposit_requests`);
-  const withdrawResult = await pool.query(`SELECT * FROM withdraw_requests`);
+  const range = getAdminRangeFromQuery(req.query || {});
+  const statusFilter = String(req.query?.status || '').trim().toLowerCase();
+  const depositResult = await pool.query(`SELECT * FROM deposit_requests WHERE created_at BETWEEN $1 AND $2 AND ($3 = '' OR LOWER(status) = $3)`, [range.from, range.to, statusFilter]);
+  const withdrawResult = await pool.query(`SELECT * FROM withdraw_requests WHERE created_at BETWEEN $1 AND $2 AND ($3 = '' OR LOWER(status) = $3)`, [range.from, range.to, statusFilter]);
 
   const depositRequests = depositResult.rows.map(item => ({
     id: Number(item.id),
@@ -1915,27 +1925,6 @@ app.post('/api/admin/deposit-requests/action', adminOnly, requireAdminRoles('sup
   }
 });
 
-app.get('/api/admin/dashboard-stats', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'game_admin', 'support_admin', 'read_only'), async (req, res) => {
-  try {
-    const dep = await pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'deposit_approved'`);
-    const wit = await pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'withdrawal_approved'`);
-
-    const approvedDeposits = Number(dep.rows[0]?.total || 0);
-    const approvedWithdrawals = Math.abs(Number(wit.rows[0]?.total || 0));
-
-    return res.json({
-      stats: {
-        totalDeposits: approvedDeposits,
-        totalWithdrawals: approvedWithdrawals,
-        profitLoss: approvedDeposits - approvedWithdrawals
-      }
-    });
-  } catch (error) {
-    console.error('DASHBOARD STATS ERROR:', error);
-    return res.status(500).json({ error: 'Unable to load dashboard stats' });
-  }
-});
-
 app.get('/api/admin/current-round', adminOnly, requireAdminRoles('super_admin', 'game_admin', 'read_only', 'finance_admin', 'support_admin'), async (req, res) => {
   try {
     const round = await syncRoundState();
@@ -1945,7 +1934,6 @@ app.get('/api/admin/current-round', adminOnly, requireAdminRoles('super_admin', 
     const relatedBets = relatedBetsResult.rows;
 
     return res.json({
-      serverNow: nowMs(),
       round: {
         id: Number(round.id),
         roundNumber: Number(round.round_number),
@@ -1972,13 +1960,10 @@ app.post('/api/admin/force-settle-round', adminOnly, requireAdminRoles('super_ad
     if (!round) return res.status(404).json({ error: 'No active round found' });
 
     await pool.query(`UPDATE rounds SET ends_at = LEAST(ends_at, $1) WHERE id = $2`, [nowMs(), round.id]);
-    const settleResult = await settleRoundTx(round.id);
+    await settleRoundTx(round.id);
     await createNextRoundIfNeeded();
 
-    return res.json({
-      success: true,
-      message: settleResult?.alreadySettled ? 'Round was already settled' : 'Round settled successfully'
-    });
+    return res.json({ success: true, message: 'Round settled successfully' });
   } catch (error) {
     console.error('FORCE SETTLE ERROR:', error);
     return res.status(400).json({ error: error.message || 'Unable to settle round' });
@@ -2391,6 +2376,63 @@ app.post('/api/admin/toggle-block-user', async (req, res) => {
 
 app.get('/api/admin/transactions', (req, res) => app._router.handle({ ...req, url: '/api/admin/transaction-history', method: 'GET' }, res, () => {}));
 app.post('/api/admin/settle', (req, res) => app._router.handle({ ...req, url: '/api/admin/force-settle-round', method: 'POST' }, res, () => {}));
+
+app.get('/api/admin/export/dashboard.csv', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'game_admin', 'support_admin', 'read_only'), async (req, res) => {
+  try {
+    const range = getAdminRangeFromQuery(req.query || {});
+    const [usersCount, pendingDep, pendingWit, activeUsers, totalDep, totalWit, betsCurrent, winsCurrent, betsPrevious, topDepositor, topWinner] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE is_admin = false`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM deposit_requests WHERE status = 'pending'`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM withdraw_requests WHERE status = 'pending'`),
+      pool.query(`SELECT COUNT(DISTINCT id)::int AS count FROM users WHERE is_admin = false AND COALESCE(last_active_at,0) BETWEEN $1 AND $2`, [range.from, range.to]),
+      pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE type = 'deposit_approved' AND created_at BETWEEN $1 AND $2`, [range.from, range.to]),
+      pool.query(`SELECT COALESCE(SUM(ABS(amount)),0) AS total FROM transactions WHERE type = 'withdrawal_approved' AND created_at BETWEEN $1 AND $2`, [range.from, range.to]),
+      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at BETWEEN $1 AND $2`, [range.from, range.to]),
+      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at BETWEEN $1 AND $2 AND result = 'win'`, [range.from, range.to]),
+      pool.query(`SELECT COUNT(*)::int AS count FROM bets WHERE created_at BETWEEN $1 AND $2`, [range.previousFrom, range.previousTo]),
+      pool.query(`SELECT u.username, COALESCE(SUM(t.amount),0) AS total FROM transactions t JOIN users u ON u.id=t.user_id WHERE t.type='deposit_approved' AND u.is_admin=false AND t.created_at BETWEEN $1 AND $2 GROUP BY u.username ORDER BY total DESC, u.username ASC LIMIT 1`, [range.from, range.to]),
+      pool.query(`SELECT u.username, COALESCE(SUM(t.amount),0) AS total FROM transactions t JOIN users u ON u.id=t.user_id WHERE t.type='win_credit' AND u.is_admin=false AND t.created_at BETWEEN $1 AND $2 GROUP BY u.username ORDER BY total DESC, u.username ASC LIMIT 1`, [range.from, range.to])
+    ]);
+    const totalDeposits = Number(totalDep.rows[0]?.total || 0);
+    const totalWithdrawals = Number(totalWit.rows[0]?.total || 0);
+    return sendCsv(res, 'dashboard_export.csv', [{ preset: range.preset, from: new Date(range.from).toISOString(), to: new Date(range.to).toISOString(), topDepositor: topDepositor.rows[0]?.username || '-', totalDeposits, totalWithdrawals, profitLoss: totalDeposits - totalWithdrawals, topWinner: topWinner.rows[0]?.username || '-', todayVsYesterdayCurrent: Number(betsCurrent.rows[0]?.count || 0), todayVsYesterdayPrevious: Number(betsPrevious.rows[0]?.count || 0), activeUsers24h: Number(activeUsers.rows[0]?.count || 0), totalBetsToday: Number(betsCurrent.rows[0]?.count || 0), totalWinsToday: Number(winsCurrent.rows[0]?.count || 0), totalUsers: Number(usersCount.rows[0]?.count || 0), pendingRequests: Number(pendingDep.rows[0]?.count || 0) + Number(pendingWit.rows[0]?.count || 0) }]);
+  } catch (error) {
+    console.error('DASHBOARD EXPORT ERROR:', error);
+    return res.status(500).json({ error: 'Unable to export dashboard CSV' });
+  }
+});
+
+app.get('/api/admin/export/transactions.csv', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'support_admin', 'read_only', 'game_admin'), async (req, res) => {
+  try {
+    const range = getAdminRangeFromQuery(req.query || {});
+    const walletType = String(req.query?.walletType || '').trim().toLowerCase();
+    const result = await pool.query(`SELECT * FROM transactions WHERE type IN ('admin_add_coin', 'admin_withdraw_coin') AND COALESCE(meta->>'adminId', '') = $1 AND created_at BETWEEN $2 AND $3 AND ($4 = '' OR LOWER(COALESCE(meta->>'walletType','')) = $4) ORDER BY created_at DESC LIMIT 1000`, [String(req.user.id), range.from, range.to, walletType]);
+    const rows = [];
+    for (const item of result.rows) {
+      const targetUser = await getUser(item.user_id);
+      const meta = toJson(item.meta, {});
+      rows.push({ id: Number(item.id), username: targetUser?.username || 'Deleted User', type: item.type, amount: Number(item.amount || 0), walletType: meta.walletType || '', createdAt: new Date(Number(item.created_at || 0)).toISOString() });
+    }
+    return sendCsv(res, 'transactions_export.csv', rows.length ? rows : [{ message: 'No rows' }]);
+  } catch (error) {
+    console.error('TRANSACTION EXPORT ERROR:', error);
+    return res.status(500).json({ error: 'Unable to export transactions CSV' });
+  }
+});
+
+app.get('/api/admin/export/requests.csv', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'read_only'), async (req, res) => {
+  try {
+    const range = getAdminRangeFromQuery(req.query || {});
+    const statusFilter = String(req.query?.status || '').trim().toLowerCase();
+    const depositResult = await pool.query(`SELECT * FROM deposit_requests WHERE created_at BETWEEN $1 AND $2 AND ($3 = '' OR LOWER(status) = $3)`, [range.from, range.to, statusFilter]);
+    const withdrawResult = await pool.query(`SELECT * FROM withdraw_requests WHERE created_at BETWEEN $1 AND $2 AND ($3 = '' OR LOWER(status) = $3)`, [range.from, range.to, statusFilter]);
+    const rows = [...depositResult.rows.map(item => ({ type: 'deposit', id: Number(item.id), username: item.username, amount: Number(item.amount || 0), method: item.method || '', status: item.status || '', createdAt: new Date(Number(item.created_at || 0)).toISOString() })), ...withdrawResult.rows.map(item => ({ type: 'withdrawal', id: Number(item.id), username: item.username, amount: Number(item.amount || 0), method: item.method || '', status: item.status || '', createdAt: new Date(Number(item.created_at || 0)).toISOString() }))].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    return sendCsv(res, 'requests_export.csv', rows.length ? rows : [{ message: 'No rows' }]);
+  } catch (error) {
+    console.error('REQUEST EXPORT ERROR:', error);
+    return res.status(500).json({ error: 'Unable to export requests CSV' });
+  }
+});
 
 app.get('*', (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', 'index.html'));
