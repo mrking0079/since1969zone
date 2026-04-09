@@ -350,11 +350,17 @@
 
           <div class="toolbar-card">
             <h3>Selected User Actions</h3>
-            <input id="coinUsername" type="text" placeholder="Username to add coins" />
-            <input id="coinAmount" type="number" placeholder="Coins amount" />
+            <input id="coinUsername" type="text" placeholder="Selected username" />
+            <div id="selectedWalletLiveCard" style="margin:0 0 12px;padding:14px;border-radius:14px;border:1px solid #2a3550;background:linear-gradient(180deg,#111827,#0a1020);line-height:1.7;color:#fff;">
+              <div style="font-weight:900;color:#ffd54a;margin-bottom:6px;">Selected User Live Wallet</div>
+              <div>ID: -</div>
+              <div>M: 0 | B: 0 | D: 0 | W: 0</div>
+            </div>
+            <input id="coinAmount" type="number" placeholder="Coin amount" />
             <select id="coinWalletType" style="width:100%;box-sizing:border-box;padding:13px 14px;margin:0 0 12px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;outline:none;">
               <option value="deposit">Deposit Coin</option>
               <option value="bonus">Bonus Coin</option>
+              <option value="winning">Winning Coin</option>
             </select>
             <div class="action-grid">
               <button onclick="addCoins()">Add Coins</button>
@@ -529,7 +535,7 @@ function clearAllSelections() {
   document.getElementById('historyUsername').value = '';
   document.getElementById('userSearch').value = '';
 
-  document.getElementById('selectedUserInfo').textContent = 'No user selected';
+  renderSelectedUserCard(null);
   document.getElementById('output').textContent = 'All selections cleared';
 
   document.querySelector('button[onclick="toggleBlockUser()"]').textContent = 'Block / Unblock User';
@@ -1014,6 +1020,45 @@ if (selectedUsername) {
     </div>
   `).join('');
 }
+function renderSelectedUserCard(user) {
+  const selectedInfo = document.getElementById('selectedUserInfo');
+  const liveCard = document.getElementById('selectedWalletLiveCard');
+
+  if (!user) {
+    selectedInfo.textContent = 'No user selected';
+    if (liveCard) {
+      liveCard.innerHTML = `
+        <div style="font-weight:900;color:#ffd54a;margin-bottom:6px;">Selected User Live Wallet</div>
+        <div>ID: -</div>
+        <div>M: 0 | B: 0 | D: 0 | W: 0</div>
+      `;
+    }
+    return;
+  }
+
+  const blockedText = user.blocked ? 'Blocked' : 'Active';
+  const mainWallet = Number(user.mainBalance ?? user.walletBalance ?? 0);
+  const bonusWallet = Number(user.bonusBalance || 0);
+  const depositWallet = Number(user.depositBalance || 0);
+  const winningWallet = Number(user.winningBalance || 0);
+  const eligibleWallet = Number(user.eligibleRequestBalance || 0);
+
+  selectedInfo.innerHTML = `
+    <div><strong>Selected user:</strong> ${user.username}</div>
+    <div><strong>Status:</strong> ${blockedText}</div>
+    <div><strong>Eligible Request:</strong> ${eligibleWallet}</div>
+  `;
+
+  if (liveCard) {
+    liveCard.innerHTML = `
+      <div style="font-weight:900;color:#ffd54a;margin-bottom:6px;">Selected User Live Wallet</div>
+      <div><strong>User ID:</strong> ${user.id ?? '-'}</div>
+      <div><strong>M:</strong> ${mainWallet} &nbsp; <strong>B:</strong> ${bonusWallet} &nbsp; <strong>D:</strong> ${depositWallet} &nbsp; <strong>W:</strong> ${winningWallet}</div>
+      <div style="margin-top:6px;color:#cbd5e1;">(M) Main Wallet, (B) Bonus, (D) Deposit, (W) Winning</div>
+    `;
+  }
+}
+
 function selectUser(username) {
 selectedUsername = username;
   document.getElementById('coinUsername').value = username;
@@ -1023,18 +1068,10 @@ document.getElementById('historyUsername').value = username;
     user => String(user.username) === String(username)
   );
 
-  const blockedText = selectedUser && selectedUser.blocked ? 'Blocked' : 'Active';
-  const mainWallet = Number(selectedUser?.mainBalance ?? selectedUser?.walletBalance ?? 0);
-  const bonusWallet = Number(selectedUser?.bonusBalance || 0);
-  const depositWallet = Number(selectedUser?.depositBalance || 0);
-  const winningWallet = Number(selectedUser?.winningBalance || 0);
-  const eligibleWallet = Number(selectedUser?.eligibleRequestBalance || 0);
-
-  document.getElementById('selectedUserInfo').textContent =
-      `Selected user: ${username} | Main: ${mainWallet} | Bonus: ${bonusWallet} | Deposit: ${depositWallet} | Winning: ${winningWallet} | Eligible: ${eligibleWallet} | Account Status: ${blockedText}`;
+  renderSelectedUserCard(selectedUser || null);
 
   document.getElementById('output').textContent = 'Selected user: ' + username;
-document.querySelector('button[onclick="toggleBlockUser()"]').textContent = blockedText === 'Blocked' ? 'Unblock User' : 'Block User';
+document.querySelector('button[onclick="toggleBlockUser()"]').textContent = selectedUser && selectedUser.blocked ? 'Unblock User' : 'Block User';
 filterUsers();
 }
 async function addCoins() {
@@ -1059,6 +1096,11 @@ async function addCoins() {
     return;
   }
 
+  if (walletType === 'winning') {
+    output.textContent = 'Add Coins me sirf Deposit Coin ya Bonus Coin use karo';
+    return;
+  }
+
 if (!confirm(`Add ${amount} ${walletType} coins to ${username}?`)) {
   return;
 }
@@ -1080,8 +1122,17 @@ if (!confirm(`Add ${amount} ${walletType} coins to ${username}?`)) {
 
     output.textContent = data.message + ' | New Main Wallet: ' + data.user.walletBalance;
 
-document.getElementById('selectedUserInfo').textContent =
-  `Selected user: ${data.user.username} | Main: ${data.user.walletBalance} | Bonus: ${data.user.bonusBalance || 0} | Deposit: ${data.user.depositBalance || 0} | Winning: ${data.user.winningBalance || 0}`;
+renderSelectedUserCard({
+  id: data.user.id,
+  username: data.user.username,
+  mainBalance: data.user.walletBalance,
+  walletBalance: data.user.walletBalance,
+  bonusBalance: data.user.bonusBalance || 0,
+  depositBalance: data.user.depositBalance || 0,
+  winningBalance: data.user.winningBalance || 0,
+  blocked: false,
+  eligibleRequestBalance: Number(data.user.depositBalance || 0) + Number(data.user.winningBalance || 0)
+});
 document.getElementById('coinAmount').value = '';
 document.getElementById('coinWalletType').value = 'deposit';
 document.getElementById('userSearch').value = '';
@@ -1112,7 +1163,7 @@ async function withdrawCoins() {
     return;
   }
 
-if (!confirm(`Withdraw ${amount} coins to ${username}?`)) {
+if (!confirm(`Withdraw ${amount} ${walletType} coins from ${username}?`)) {
   return;
 }
   try {
@@ -1133,8 +1184,17 @@ if (!confirm(`Withdraw ${amount} coins to ${username}?`)) {
 
     output.textContent = data.message + ' | New Main Wallet: ' + data.user.walletBalance;
 
-document.getElementById('selectedUserInfo').textContent =
-  `Selected user: ${data.user.username} | Main: ${data.user.walletBalance} | Bonus: ${data.user.bonusBalance || 0} | Deposit: ${data.user.depositBalance || 0} | Winning: ${data.user.winningBalance || 0} | Account Status: ${data.user.blocked ? 'Blocked' : 'Active'}`;
+renderSelectedUserCard({
+  id: data.user.id,
+  username: data.user.username,
+  mainBalance: data.user.walletBalance,
+  walletBalance: data.user.walletBalance,
+  bonusBalance: data.user.bonusBalance || 0,
+  depositBalance: data.user.depositBalance || 0,
+  winningBalance: data.user.winningBalance || 0,
+  blocked: Boolean(data.user.blocked),
+  eligibleRequestBalance: Number(data.user.depositBalance || 0) + Number(data.user.winningBalance || 0)
+});
 document.getElementById('coinAmount').value = '';
 document.getElementById('coinWalletType').value = 'deposit';
 document.getElementById('userSearch').value = '';
@@ -1791,7 +1851,7 @@ async function loadTransactions() {
 
     if (!transactions.length) {
       list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No transactions found</div>';
-      output.textContent = 'Transaction history loaded';
+      output.textContent = 'Admin wallet transaction history loaded';
       return;
     }
 
@@ -1804,28 +1864,20 @@ async function loadTransactions() {
 
       if (tx.type === 'admin_add_coin') typeText = 'Admin Added Coins';
       else if (tx.type === 'admin_withdraw_coin') typeText = 'Admin Withdraw Coins';
-      else if (tx.type === 'admin_block_user') typeText = 'User Blocked';
-      else if (tx.type === 'admin_unblock_user') typeText = 'User Unblocked';
-      else if (tx.type === 'deposit_approved') typeText = 'Deposit Approved';
-      else if (tx.type === 'withdrawal_approved') typeText = 'Withdrawal Approved';
-      else if (tx.type === 'bet_debit') typeText = 'Bet Debit';
-      else if (tx.type === 'win_credit') typeText = 'Win Credit';
-      else if (tx.type === 'bonus_credit') typeText = 'Bonus Credit';
-      else if (tx.type === 'deposit_request') typeText = 'Deposit Request';
-      else if (tx.type === 'withdraw_request') typeText = 'Withdraw Request';
 
       return `
         <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;">
           <div><strong>ID:</strong> ${tx.id ?? '-'}</div>
-          <div><strong>Username:</strong> ${tx.username || 'Deleted User'}</div>
+          <div><strong>Selected User:</strong> ${tx.username || 'Deleted User'}</div>
           <div><strong>Type:</strong> ${typeText}</div>
           <div><strong>Amount:</strong> ${Number(tx.amount || 0)}</div>
+          <div><strong>Wallet:</strong> ${(tx.meta && tx.meta.walletType) ? String(tx.meta.walletType).toUpperCase() : '-'}</div>
           <div><strong>Time:</strong> ${dateText}</div>
         </div>
       `;
     }).join('');
 
-    output.textContent = 'Transaction history loaded';
+    output.textContent = 'Admin wallet transaction history loaded';
   } catch (err) {
     list.innerHTML = '';
     output.textContent = 'Failed to load transactions: ' + err.message;
@@ -1844,7 +1896,7 @@ localStorage.removeItem('adminRouteKey');
       checkAdminLogin();
       document.getElementById('output').textContent = 'Admin action results will appear here....';
 document.getElementById('usersList').innerHTML = '';
-document.getElementById('selectedUserInfo').textContent = 'No user selected';
+renderSelectedUserCard(null);
 document.getElementById('userSearch').value = '';
 selectedUsername = '';
 document.getElementById('coinUsername').value = '';

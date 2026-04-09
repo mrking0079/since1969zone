@@ -1563,36 +1563,39 @@ app.post('/api/admin/withdraw-coin', adminOnly, async (req, res) => {
   try {
     const userId = Number(req.body?.userId);
     const amount = Number(req.body?.amount);
+    const walletType = String(req.body?.walletType || 'deposit').trim().toLowerCase();
 
     if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
     if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Valid amount required' });
+    if (!['bonus', 'deposit', 'winning'].includes(walletType)) return res.status(400).json({ error: 'Valid wallet type required' });
 
     const user = await refreshMainBalance(userId);
     if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
-    if (Number(user.wallet_balance || 0) < amount) return res.status(400).json({ error: 'User has insufficient balance' });
 
-    const usage = computeBetWalletUsage(user, amount);
-    if (!usage.success) return res.status(400).json({ error: usage.message || 'User has insufficient balance' });
+    const selectedWalletKey = `${walletType}_balance`;
+    const selectedWalletAmount = Number(user[selectedWalletKey] || 0);
+    if (selectedWalletAmount < amount) {
+      return res.status(400).json({ error: `${walletType} wallet has insufficient balance` });
+    }
 
     await incrementUserFields(user.id, {
       wallet_balance: -amount,
-      bonus_balance: -Number(usage.bonusUsed || 0),
-      deposit_balance: -Number(usage.depositUsed || 0),
-      winning_balance: -Number(usage.winningUsed || 0)
+      [selectedWalletKey]: -amount
     });
     await addTransaction(user.id, 'admin_withdraw_coin', -amount, {
       adminId: req.user.id,
-      bonusUsed: Number(usage.bonusUsed || 0),
-      depositUsed: Number(usage.depositUsed || 0),
-      winningUsed: Number(usage.winningUsed || 0)
+      walletType,
+      bonusUsed: walletType === 'bonus' ? amount : 0,
+      depositUsed: walletType === 'deposit' ? amount : 0,
+      winningUsed: walletType === 'winning' ? amount : 0
     });
 
     const refreshed = await refreshMainBalance(user.id);
-    await logAdminActivity(req.user, 'admin_withdraw_coin', user, { amount });
+    await logAdminActivity(req.user, 'admin_withdraw_coin', user, { amount, walletType });
 
     return res.json({
       success: true,
-      message: `${amount} coins removed from ${user.username}`,
+      message: `${amount} ${walletType} coins removed from ${user.username}`,
       user: {
         id: Number(refreshed.id),
         username: refreshed.username,
@@ -1664,15 +1667,20 @@ app.post('/api/admin/delete-user', adminOnly, async (req, res) => {
 
 app.get('/api/admin/transaction-history', adminOnly, async (req, res) => {
   const result = await pool.query(
-    `SELECT * FROM transactions ORDER BY created_at DESC LIMIT 1000`
+    `SELECT * FROM transactions
+     WHERE type IN ('admin_add_coin', 'admin_withdraw_coin')
+       AND COALESCE(meta->>'adminId', '') = $1
+     ORDER BY created_at DESC
+     LIMIT 1000`,
+    [String(req.user.id)]
   );
   const history = [];
   for (const item of result.rows) {
-    const user = await getUser(item.user_id);
+    const targetUser = await getUser(item.user_id);
     history.push({
       id: Number(item.id),
       userId: Number(item.user_id),
-      username: user?.username || 'Deleted User',
+      username: targetUser?.username || 'Deleted User',
       type: item.type,
       amount: Number(item.amount || 0),
       meta: toJson(item.meta, {}),
@@ -2129,9 +2137,10 @@ app.post('/api/admin/add-coins', async (req, res) => {
 app.post('/api/admin/withdraw-coins', async (req, res) => {
   const username = String(req.body?.username || '').trim();
   const amount = req.body?.amount;
+  const walletType = String(req.body?.walletType || 'deposit').trim().toLowerCase();
   const user = await getUserByUsername(username);
   if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
-  req.body = { userId: Number(user.id), amount };
+  req.body = { userId: Number(user.id), amount, walletType };
   return app._router.handle({ ...req, url: '/api/admin/withdraw-coin', method: 'POST' }, res, () => {});
 });
 
