@@ -315,32 +315,48 @@ async function ensureUsersSeeded() {
 
   for (const user of seedUsers) {
     await pool.query(
-      `INSERT INTO users (
-        id, username, password, session_token, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins,
-        bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-      ON CONFLICT (username) DO NOTHING`,
-      [
-        user.id,
-        user.username,
-        user.password,
-        user.session_token,
-        Number(user.wallet_balance || 0),
-        Number(user.bonus_balance || 0),
-        Number(user.deposit_balance || 0),
-        Number(user.winning_balance || 0),
-        Number(user.total_played || 0),
-        Number(user.total_wins || 0),
-        Number(user.bonus_claimed || 0),
-        Number(user.last_bonus_time || 0),
-        Boolean(user.blocked),
-        Boolean(user.is_admin),
-        Boolean(user.is_admin) ? 'super_admin' : 'read_only',
-        0,
-        Number(user.created_at || nowMs())
-      ]
-    );
+  `INSERT INTO users (
+    id, username, password, session_token, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins,
+    bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at
+  )
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+  ON CONFLICT (username) DO UPDATE SET
+    password = CASE
+      WHEN EXCLUDED.username = 'admin' THEN EXCLUDED.password
+      ELSE users.password
+    END,
+    is_admin = CASE
+      WHEN EXCLUDED.username = 'admin' THEN TRUE
+      ELSE users.is_admin
+    END,
+    admin_role = CASE
+      WHEN EXCLUDED.username = 'admin' THEN 'super_admin'
+      ELSE users.admin_role
+    END,
+    blocked = CASE
+      WHEN EXCLUDED.username = 'admin' THEN FALSE
+      ELSE users.blocked
+    END`,
+  [
+    user.id,
+    user.username,
+    user.password,
+    user.session_token,
+    Number(user.wallet_balance || 0),
+    Number(user.bonus_balance || 0),
+    Number(user.deposit_balance || 0),
+    Number(user.winning_balance || 0),
+    Number(user.total_played || 0),
+    Number(user.total_wins || 0),
+    Number(user.bonus_claimed || 0),
+    Number(user.last_bonus_time || 0),
+    Boolean(user.blocked),
+    Boolean(user.is_admin),
+    Boolean(user.is_admin) ? 'super_admin' : 'read_only',
+    0,
+    Number(user.created_at || nowMs())
+  ]
+);
   }
 }
 
