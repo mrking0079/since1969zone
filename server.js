@@ -827,7 +827,14 @@ async function settleRoundTx(roundId) {
   const roundResult = await pool.query(`SELECT * FROM rounds WHERE id = $1 LIMIT 1`, [roundId]);
   const round = roundResult.rows[0] || null;
   if (!round) throw new Error('Round not found');
-  if (round.status === 'settled') throw new Error('Round already settled');
+  if (round.status === 'settled') {
+    return {
+      success: true,
+      alreadySettled: true,
+      roundId: Number(round.id),
+      roundNumber: Number(round.round_number)
+    };
+  }
   if (nowMs() < Number(round.ends_at)) throw new Error('Round timer not finished yet');
 
   const luckyNumber = computeLuckyNumber(round.server_seed, round.client_seed, Number(round.round_number));
@@ -886,6 +893,19 @@ async function ensureActiveRound() {
 
     if (now >= Number(latest.ends_at)) {
       await settleRoundTx(latest.id);
+
+      const existingOpenResult = await pool.query(
+        `SELECT * FROM rounds
+         WHERE status IN ('open','closed')
+         ORDER BY round_number DESC
+         LIMIT 1`
+      );
+      const existingOpen = existingOpenResult.rows[0] || null;
+
+      if (existingOpen) {
+        return existingOpen;
+      }
+
       return await createRound(Number(latest.round_number) + 1, nowMs());
     }
 
@@ -1234,7 +1254,8 @@ app.get('/api/state', async (req, res) => {
   try {
     await createNextRoundIfNeeded();
     const userId = await getUserIdFromReq(req);
-    return res.json(await buildGameState(userId));
+    const state = await buildGameState(userId);
+    return res.json({ ...state, serverNow: nowMs() });
   } catch (err) {
     console.error('STATE ERROR:', err);
     return res.status(500).json({ error: err.message });
@@ -1924,6 +1945,7 @@ app.get('/api/admin/current-round', adminOnly, requireAdminRoles('super_admin', 
     const relatedBets = relatedBetsResult.rows;
 
     return res.json({
+      serverNow: nowMs(),
       round: {
         id: Number(round.id),
         roundNumber: Number(round.round_number),
@@ -1950,10 +1972,13 @@ app.post('/api/admin/force-settle-round', adminOnly, requireAdminRoles('super_ad
     if (!round) return res.status(404).json({ error: 'No active round found' });
 
     await pool.query(`UPDATE rounds SET ends_at = LEAST(ends_at, $1) WHERE id = $2`, [nowMs(), round.id]);
-    await settleRoundTx(round.id);
+    const settleResult = await settleRoundTx(round.id);
     await createNextRoundIfNeeded();
 
-    return res.json({ success: true, message: 'Round settled successfully' });
+    return res.json({
+      success: true,
+      message: settleResult?.alreadySettled ? 'Round was already settled' : 'Round settled successfully'
+    });
   } catch (error) {
     console.error('FORCE SETTLE ERROR:', error);
     return res.status(400).json({ error: error.message || 'Unable to settle round' });
@@ -2310,7 +2335,7 @@ app.post('/api/admin/delete-admin', adminOnly, requireAdminRoles('super_admin'),
 app.get('/api/admin/activity-logs', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM admin_activity_logs ORDER BY created_at DESC LIMIT 50`
+      `SELECT * FROM admin_activity_logs ORDER BY created_at DESC LIMIT 10`
     );
     return res.json({
       success: true,
