@@ -306,90 +306,27 @@
     .modal-body .section-card{
       margin:0;border:none;box-shadow:none;background:transparent;padding:0;
     }
-    .admin-filter-bar{
-      display:grid;
-      gap:12px;
-      margin:0 0 16px;
-      padding:16px;
-      border:1px solid rgba(255,213,74,0.14);
-      border-radius:18px;
-      background:linear-gradient(180deg,#131c2f,#0c1322);
-      box-shadow:0 10px 28px rgba(0,0,0,.16);
-    }
+    .admin-filter-bar{display:grid;gap:10px;margin:0 0 14px;}
     .admin-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-    .admin-filter-title{
-      color:#ffd54a;
-      font-size:15px;
-      font-weight:900;
-      letter-spacing:.3px;
-      margin-bottom:2px;
-    }
-    .admin-chip{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:10px 14px;
-      border:1px solid #2a3550;
-      border-radius:14px;
-      background:linear-gradient(180deg,#101829,#09111f);
-      color:#fff;
-      font-size:13px;
-      font-weight:800;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
-      cursor:pointer;
-      transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
-    }
-    .admin-chip:hover{transform:translateY(-1px);border-color:rgba(255,213,74,.45);box-shadow:0 0 0 1px rgba(255,213,74,.08);}
-    .admin-chip.active{
-      border-color:rgba(255,213,74,.68);
-      background:linear-gradient(180deg,rgba(255,213,74,.16),rgba(255,184,0,.12));
-      color:#ffe698;
-      box-shadow:0 0 16px rgba(255,213,74,.14);
-    }
-    .admin-chip input{accent-color:#ffd54a;}
-    .admin-inline-input{
-      width:auto;
-      min-width:150px;
-      margin:0;
-      background:#09111f;
-      border:1px solid #2a3550;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.02);
-    }
+    .admin-chip{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #2a3550;border-radius:12px;background:#0a1020;color:#fff;font-size:13px;font-weight:700;}
+    .admin-inline-input{width:auto;min-width:140px;margin:0;}
     .admin-inline-select{width:auto;min-width:140px;box-sizing:border-box;padding:13px 14px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;outline:none;margin:0;}
-    .admin-filter-actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      padding-top:2px;
-    }
-    .admin-filter-meta{
-      color:#9ca3af;
-      font-size:12px;
-      line-height:1.6;
-      padding:10px 12px;
-      border-radius:12px;
-      background:rgba(255,255,255,.02);
-      border:1px solid rgba(255,255,255,.04);
-    }
-    .admin-mini-live-value{
-      transition:transform .18s ease, text-shadow .18s ease, opacity .18s ease;
-    }
-    .admin-mini-live-value.timer-sync-pulse{
-      transform:scale(1.06);
-      text-shadow:0 0 16px rgba(255,213,74,.28);
-    }
-    .admin-mini-live-value.timer-blink{
-      animation:adminTimerBlink .95s ease-in-out infinite alternate;
-    }
-    @keyframes adminTimerBlink{
-      0%{opacity:.82;transform:scale(1);}
-      100%{opacity:1;transform:scale(1.04);}
-    }
     .admin-scroll-box{max-height:320px;overflow-y:auto;padding-right:4px;}
     .accordion-toggle-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
     .accordion-section{display:none;margin-top:10px;}
     .accordion-section.open{display:block;}
     .vertical-admin-form{display:grid;gap:10px;max-width:420px;}
+    .dashboard-filter-trigger-row{display:flex;justify-content:flex-end;align-items:center;margin:0 0 12px;}
+    .dashboard-filter-trigger-btn{background:linear-gradient(180deg,#1b2d52,#10203f);color:#fff;border:1px solid #2f4f86;box-shadow:0 10px 24px rgba(37,99,235,.18);}
+    .dashboard-filter-panel{display:none;margin:0 0 14px;padding:14px;border:1px solid #243041;border-radius:18px;background:linear-gradient(180deg,#111a2d,#0b1322);}
+    .dashboard-filter-panel.open{display:block;}
+    .dashboard-filter-grid{display:grid;gap:12px;}
+    .dashboard-filter-presets{display:flex;gap:10px;flex-wrap:wrap;}
+    .dashboard-filter-option{background:#0a1020;color:#fff;border:1px solid #2a3550;}
+    .dashboard-filter-option.active{background:linear-gradient(180deg,var(--gold),var(--gold2));color:#111;border-color:rgba(255,213,74,.7);}
+    .dashboard-filter-actions{display:flex;gap:10px;flex-wrap:wrap;}
+    .timer-blink{animation:adminTimerBlink .85s ease-in-out infinite;}
+    @keyframes adminTimerBlink{0%,100%{transform:scale(1);opacity:1;text-shadow:0 0 0 rgba(255,213,74,0);}50%{transform:scale(1.06);opacity:.78;text-shadow:0 0 18px rgba(255,213,74,.45);}}
     .footer-note{
       width:100%;
       text-align:center;
@@ -455,22 +392,27 @@
       <div class="dashboard-shell">
         <div class="section-card">
           <div class="section-title">Dashboard Overview</div>
-<div class="admin-filter-bar" id="dashboardFilterBar">
-  <div class="admin-filter-title">History Filters & Export</div>
-  <div class="admin-filter-row">
-    <label class="admin-chip" id="dashChipToday"><input type="checkbox" id="dashPresetToday" onchange="toggleDashboardPreset('today')" /> Today</label>
-    <label class="admin-chip" id="dashChipYesterday"><input type="checkbox" id="dashPresetYesterday" onchange="toggleDashboardPreset('yesterday')" /> Yesterday</label>
-    <label class="admin-chip" id="dashChipLast45"><input type="checkbox" id="dashPresetLast45" onchange="toggleDashboardPreset('last45days')" /> Last 45 Days</label>
+<div class="dashboard-filter-trigger-row">
+  <button type="button" class="dashboard-filter-trigger-btn" onclick="toggleDashboardFilterPanel()">Filter</button>
+</div>
+<div id="dashboardFilterPanel" class="dashboard-filter-panel">
+  <div style="font-weight:900;color:#ffd54a;margin-bottom:10px;">History Filters &amp; Export</div>
+  <div class="dashboard-filter-grid">
+    <div class="dashboard-filter-presets">
+      <button type="button" id="dashPresetTodayBtn" class="dashboard-filter-option" onclick="setDashboardPreset('today')">Today</button>
+      <button type="button" id="dashPresetYesterdayBtn" class="dashboard-filter-option" onclick="setDashboardPreset('yesterday')">Yesterday</button>
+      <button type="button" id="dashPresetLast45Btn" class="dashboard-filter-option" onclick="setDashboardPreset('last45days')">Last 45 Days</button>
+    </div>
+    <div class="admin-filter-row">
+      <input id="dashFromDate" class="admin-inline-input" type="date" />
+      <input id="dashToDate" class="admin-inline-input" type="date" />
+    </div>
+    <div class="dashboard-filter-actions">
+      <button type="button" onclick="applyDashboardFilters()">Apply Filter</button>
+      <button type="button" onclick="exportDashboardCsv()" style="background:#2563eb;color:#fff;">Export CSV</button>
+    </div>
+    <div id="dashboardFilterMeta" style="color:#9ca3af;font-size:12px;line-height:1.5;">Current filter: Today</div>
   </div>
-  <div class="admin-filter-row">
-    <input id="dashFromDate" class="admin-inline-input" type="date" />
-    <input id="dashToDate" class="admin-inline-input" type="date" />
-  </div>
-  <div class="admin-filter-actions">
-    <button type="button" onclick="applyDashboardFilters()">Apply Filter</button>
-    <button type="button" onclick="exportDashboardCsv()" style="background:#2563eb;color:#fff;">Export CSV</button>
-  </div>
-  <div id="dashboardFilterMeta" class="admin-filter-meta">Current filter: Today</div>
 </div>
 <div id="dashboardStats" class="dashboard-compact-grid">
   <div class="stat-box"><div class="stat-label">Total Deposits</div><div id="totalDepositsStat" class="stat-value" style="color:#22c55e;">0</div></div>
@@ -663,53 +605,17 @@ let currentRequestTab = 'deposit';
 let adminMiniTimerInterval = null;
 let adminMiniRoundTargetTime = 0;
 let adminMiniRoundStatus = 'Waiting';
-let adminMiniSyncInterval = null;
-let adminMiniLastShownSeconds = null;
 let currentModalSectionId = '';
 
 const adminDashboardFilter = { preset: 'today', from: '', to: '' };
 
 function buildAdminQuery(params = {}) { const usp = new URLSearchParams(); Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== null && String(value) !== "") usp.set(key, value); }); const q = usp.toString(); return q ? `?${q}` : ""; }
 function setDashboardMetaText(text) { const el = getEl('dashboardFilterMeta'); if (el) el.textContent = text; }
-function updateDashboardPresetChipState() {
-  [['dashChipToday','dashPresetToday'],['dashChipYesterday','dashPresetYesterday'],['dashChipLast45','dashPresetLast45']].forEach(([chipId,inputId]) => {
-    const chip = getEl(chipId);
-    const input = getEl(inputId);
-    if (chip) chip.classList.toggle('active', !!input?.checked);
-  });
-}
-function clearDashboardPresetChecks() { ['dashPresetToday','dashPresetYesterday','dashPresetLast45'].forEach(id => { const el = getEl(id); if (el) el.checked = false; }); updateDashboardPresetChipState(); }
-function toggleDashboardPreset(preset) { clearDashboardPresetChecks(); if (preset === "today") getEl('dashPresetToday').checked = true; if (preset === "yesterday") getEl('dashPresetYesterday').checked = true; if (preset === "last45days") getEl('dashPresetLast45').checked = true; adminDashboardFilter.preset = preset; adminDashboardFilter.from = ""; adminDashboardFilter.to = ""; if (getEl('dashFromDate')) getEl('dashFromDate').value = ""; if (getEl('dashToDate')) getEl('dashToDate').value = ""; updateDashboardPresetChipState(); }
-function applyDashboardFilters() { const from = getEl('dashFromDate')?.value || ""; const to = getEl('dashToDate')?.value || ""; if (from && to) { clearDashboardPresetChecks(); adminDashboardFilter.preset = ""; adminDashboardFilter.from = from; adminDashboardFilter.to = to; } loadDashboardStats(); }
+function toggleDashboardFilterPanel(forceOpen = null) { const panel = getEl('dashboardFilterPanel'); if (!panel) return; const shouldOpen = forceOpen === null ? !panel.classList.contains('open') : !!forceOpen; panel.classList.toggle('open', shouldOpen); }
+function refreshDashboardPresetButtons() { const map = { today: 'dashPresetTodayBtn', yesterday: 'dashPresetYesterdayBtn', last45days: 'dashPresetLast45Btn' }; Object.values(map).forEach(id => getEl(id)?.classList.remove('active')); if (map[adminDashboardFilter.preset]) getEl(map[adminDashboardFilter.preset])?.classList.add('active'); }
+function setDashboardPreset(preset) { adminDashboardFilter.preset = preset; adminDashboardFilter.from = ""; adminDashboardFilter.to = ""; if (getEl('dashFromDate')) getEl('dashFromDate').value = ""; if (getEl('dashToDate')) getEl('dashToDate').value = ""; refreshDashboardPresetButtons(); }
+function applyDashboardFilters() { const from = getEl('dashFromDate')?.value || ""; const to = getEl('dashToDate')?.value || ""; if (from && to) { adminDashboardFilter.preset = ""; adminDashboardFilter.from = from; adminDashboardFilter.to = to; } refreshDashboardPresetButtons(); loadDashboardStats(); toggleDashboardFilterPanel(false); }
 function exportDashboardCsv() { window.open('/api/admin/export/dashboard.csv' + buildAdminQuery(adminDashboardFilter), "_blank"); }
-function pulseAdminTimerSync() {
-  const timerEl = getEl('adminMiniTimer');
-  if (!timerEl) return;
-  timerEl.classList.remove('timer-sync-pulse');
-  void timerEl.offsetWidth;
-  timerEl.classList.add('timer-sync-pulse');
-  setTimeout(() => timerEl.classList.remove('timer-sync-pulse'), 220);
-}
-function renderAdminMiniTimer() {
-  const timerEl = getEl('adminMiniTimer');
-  const statusEl = getEl('adminMiniStatus');
-  if (!timerEl) return;
-  if (!adminMiniRoundTargetTime) {
-    timerEl.textContent = '--:--';
-    timerEl.classList.remove('timer-blink');
-    if (statusEl) statusEl.textContent = adminMiniRoundStatus || 'Waiting';
-    return;
-  }
-  const now = Date.now();
-  const left = Math.max(0, adminMiniRoundTargetTime - now);
-  const totalSeconds = Math.ceil(left / 1000);
-  const min = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
-  const sec = String(totalSeconds % 60).padStart(2, '0');
-  timerEl.textContent = `${min}:${sec}`;
-  timerEl.classList.toggle('timer-blink', totalSeconds <= 10 && totalSeconds > 0);
-  if (statusEl) statusEl.textContent = adminMiniRoundStatus || 'Waiting';
-  adminMiniLastShownSeconds = totalSeconds;
-}
 function exportTransactionsCsv() { const params = { preset: getEl('txFilterPreset')?.value || "today", from: getEl('txFilterFrom')?.value || "", to: getEl('txFilterTo')?.value || "", walletType: getEl('txFilterWalletType')?.value || "" }; window.open('/api/admin/export/transactions.csv' + buildAdminQuery(params), "_blank"); }
 function exportRequestsCsv() { const params = { preset: getEl('reqFilterPreset')?.value || "today", from: getEl('reqFilterFrom')?.value || "", to: getEl('reqFilterTo')?.value || "", status: getEl('reqFilterStatus')?.value || "" }; window.open('/api/admin/export/requests.csv' + buildAdminQuery(params), "_blank"); }
 
@@ -720,6 +626,27 @@ function getEl(id) {
 function withEl(id, fn) {
   const el = document.getElementById(id);
   if (el) fn(el);
+}
+function updateAdminTimerUi() {
+  const timerEl = getEl('adminMiniTimer');
+  const statusEl = getEl('adminMiniStatus');
+  if (!timerEl) return;
+  const now = Date.now() + adminServerTimeOffset;
+  const diff = Math.max(0, adminMiniRoundTargetTime - now);
+  const totalSec = Math.max(0, Math.ceil(diff / 1000));
+  const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+  const s = String(totalSec % 60).padStart(2, '0');
+  timerEl.textContent = `${m}:${s}`;
+  timerEl.classList.toggle('timer-blink', totalSec > 0 && totalSec <= 5);
+  if (statusEl) statusEl.textContent = adminMiniRoundStatus || 'Waiting';
+}
+
+async function maybeSyncAdminTimer() {
+  if (adminMiniSyncBusy) return;
+  if ((Date.now() - adminMiniLastSyncAt) < 3000) return;
+  adminMiniSyncBusy = true;
+  try { await loadAdminMiniLiveCard(); } catch (e) {}
+  adminMiniSyncBusy = false;
 }
 
 function ensureSectionPlaceholder(sectionId) {
@@ -1232,7 +1159,7 @@ async function loadLiveUpdatesData() {
         loginMsg.textContent = 'Admin login successful';
         toggleDashboardPreset('today');
 checkAdminLogin();
-updateDashboardPresetChipState();
+refreshDashboardPresetButtons();
 loadDashboardStats();
 refreshRequestCounts();
 
@@ -2256,7 +2183,7 @@ if (!currentAdminKey) {
 }
 
 checkAdminLogin();
-updateDashboardPresetChipState();
+refreshDashboardPresetButtons();
 loadDashboardStats();
 refreshRequestCounts();
 
@@ -2275,15 +2202,10 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
   }, 10000);
 
   adminMiniTimerInterval = setInterval(() => {
-    renderAdminMiniTimer();
+    updateAdminTimerUi();
+    maybeSyncAdminTimer();
   }, 1000);
 
-  if (adminMiniSyncInterval) clearInterval(adminMiniSyncInterval);
-  adminMiniSyncInterval = setInterval(() => {
-    loadAdminMiniLiveCard();
-  }, 3000);
-
-  updateDashboardPresetChipState();
   setTimeout(loadAdminMiniLiveCard, 400);
 }
   </script>
@@ -2393,13 +2315,21 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
       if (!roundRes.ok || !roundData.round) return;
 
       const round = roundData.round;
-      const nextTargetTime = Number(round.endsAt || round.bettingClosesAt || 0);
-      const targetChanged = Math.abs(nextTargetTime - adminMiniRoundTargetTime) > 1000;
+      const serverNow = Number(stateData?.serverNow || Date.now());
+      adminServerTimeOffset = serverNow - Date.now();
+      const now = Date.now() + adminServerTimeOffset;
 
-      adminMiniRoundTargetTime = nextTargetTime;
+      adminMiniRoundTargetTime = Number(round.endsAt || now);
       adminMiniRoundStatus = round.status || 'Waiting';
-      renderAdminMiniTimer();
-      if (targetChanged) pulseAdminTimerSync();
+      adminMiniLastSyncAt = Date.now();
+
+      const diff = Math.max(0, adminMiniRoundTargetTime - now);
+      const totalSec = Math.floor(diff / 1000);
+      const m = String(Math.floor(totalSec / 60)).padStart(2,'0');
+      const s = String(totalSec % 60).padStart(2,'0');
+
+      document.getElementById('adminMiniTimer').textContent = `${m}:${s}`;
+      document.getElementById('adminMiniStatus').textContent = adminMiniRoundStatus;
 
       const lastSettled = stateData?.lastSettledRound || null;
 
@@ -2412,6 +2342,7 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
         lastSettled && lastSettled.roundNumber
           ? `Round ${lastSettled.roundNumber}`
           : 'Waiting';
+      updateAdminTimerUi();
 
     } catch (e) {}
   };
@@ -2546,13 +2477,9 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
       }, 10000);
 
       adminMiniTimerInterval = setInterval(() => {
-        renderAdminMiniTimer();
+        updateAdminTimerUi();
+        maybeSyncAdminTimer();
       }, 1000);
-
-      if (adminMiniSyncInterval) clearInterval(adminMiniSyncInterval);
-      adminMiniSyncInterval = setInterval(() => {
-        loadAdminMiniLiveCard();
-      }, 3000);
 
     } catch (err) { loginMsg.textContent = 'Server error'; }
   };
@@ -2567,24 +2494,16 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
 
   adminMiniRoundTargetTime = 0;
   adminMiniRoundStatus = 'Waiting';
-  adminMiniLastShownSeconds = null;
-  if (adminMiniSyncInterval) {
-    clearInterval(adminMiniSyncInterval);
-    adminMiniSyncInterval = null;
-  }
+  adminMiniLastSyncAt = 0;
+  adminMiniSyncBusy = false;
+  getEl('adminMiniTimer')?.classList.remove('timer-blink');
 
   if (typeof originalAdminLogout === 'function') {
     originalAdminLogout();
   }
 };
   ensureUiContainers();
-  if (localStorage.getItem('adminSessionToken')) {
-    applyRoleUi();
-    updateDashboardPresetChipState();
-    setTimeout(loadAdminMiniLiveCard, 600);
-    if (adminMiniSyncInterval) clearInterval(adminMiniSyncInterval);
-    adminMiniSyncInterval = setInterval(() => { loadAdminMiniLiveCard(); }, 3000);
-  }
+  if (localStorage.getItem('adminSessionToken')) { applyRoleUi(); setTimeout(loadAdminMiniLiveCard, 600); }
 })();
 </script>
 
