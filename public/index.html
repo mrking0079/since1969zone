@@ -775,18 +775,6 @@ body.auth-open {
   font-weight: 700;
 }
 
-.info-toggle-bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:0 0 14px;}
-.info-toggle-btn{border:1px solid rgba(255,215,0,0.18);background:rgba(255,255,255,0.03);color:#fff;border-radius:999px;padding:10px 16px;cursor:pointer;font-weight:800;}
-.info-toggle-btn.active{background:linear-gradient(180deg,#ffd700,#dfb100);color:#111;border-color:#ffd700;}
-.info-toggle-panel{display:none;margin-top:12px;padding:16px;border-radius:16px;border:1px solid rgba(255,215,0,0.12);background:linear-gradient(180deg,#121212,#090909);color:#e7e7e7;line-height:1.7;}
-.info-toggle-panel.active{display:block;}
-.theme-switch-bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px;}
-.theme-chip{border:1px solid rgba(255,215,0,0.18);background:rgba(255,255,255,0.03);color:#fff;border-radius:999px;padding:10px 14px;cursor:pointer;font-weight:800;}
-.notification-panel,.health-panel{margin-top:18px;}
-.theme-gold{--bg:#0a0903;--panel:#18150a;--panel2:#231d0b;--text:#fff9e6;--muted:#c6b88a;--gold:#ffd700;--red:#ff6b6b;--green:#20d17d;--border:#5a4910;}
-.theme-neon{--bg:#040611;--panel:#0b1020;--panel2:#10172b;--text:#eaf7ff;--muted:#9cc7d8;--gold:#4df3ff;--red:#ff4da6;--green:#5bff98;--border:#1f3a4d;}
-.theme-premium{--bg:#020202;--panel:#0b0b0b;--panel2:#151515;--text:#fafafa;--muted:#b8b8b8;--gold:#d4af37;--red:#ff5a5a;--green:#3ddc84;--border:#2b2b2b;}
-
 .info-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1866,6 +1854,26 @@ body.auth-open {
   }
 }
 
+
+.chat-panel{margin-top:18px;display:grid;gap:12px;}
+.chat-card{background:linear-gradient(180deg,#141414,#0d0d0d);border:1px solid #2f2f2f;border-radius:20px;padding:18px;box-shadow:0 12px 30px rgba(0,0,0,0.28);}
+.chat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.chat-title{font-size:20px;font-weight:900;color:#ffd700;}
+.chat-sub{font-size:12px;color:#aaa;}
+.chat-list{display:grid;gap:10px;max-height:320px;overflow:auto;padding-right:4px;}
+.chat-item{background:#101010;border:1px solid #2f2f2f;border-radius:14px;padding:10px;}
+.chat-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:#aaa;margin-bottom:6px;}
+.chat-user{color:#ffd700;font-weight:800;}
+.chat-msg{color:#f5f5f5;line-height:1.55;word-break:break-word;}
+.chat-reactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.chat-react-btn,.chat-emoji-btn{border:1px solid #3a3a3a;background:#181818;color:#fff;border-radius:999px;padding:6px 10px;cursor:pointer;font-size:13px;font-weight:700;min-height:auto;box-shadow:none;}
+.chat-react-btn:hover,.chat-emoji-btn:hover{transform:none;border-color:#ffd700;}
+.chat-compose{display:grid;gap:10px;margin-top:10px;}
+.chat-compose-row{display:flex;gap:10px;flex-wrap:wrap;}
+.chat-input{width:100%;min-height:84px;border:1px solid #3a3a3a;background:#080808;color:#fff;border-radius:14px;padding:12px;resize:vertical;}
+.chat-empty{padding:12px;border-radius:12px;background:#101010;color:#aaa;text-align:center;border:1px solid #2f2f2f;}
+@media (max-width:900px){.chat-card{padding:14px;border-radius:16px}.chat-list{max-height:260px}.chat-compose-row{flex-direction:column}}
+
 </style>
 </head>
 <body>
@@ -2043,8 +2051,8 @@ body.auth-open {
       </div>
 
       <div class="support-actions">
-        <a id="telegramSupportBtn" class="support-btn primary" href="#" target="_blank" rel="noopener noreferrer">Open Telegram Support</a>
-        <a id="whatsappSupportBtn" class="support-btn secondary" href="#" target="_blank" rel="noopener noreferrer">Open WhatsApp Support</a>
+        <a class="support-btn primary" href="https://t.me/x_snny" target="_blank" rel="noopener noreferrer">Open Telegram Support</a>
+        <button type="button" class="support-btn secondary" onclick="setAuthMode('login'); window.scrollTo({ top: 0, behavior: 'smooth' });">Go To Login</button>
       </div>
     </section>
   </div>
@@ -2086,17 +2094,26 @@ body.auth-open {
   </div>
 </div>
 
-<div class="info-toggle-bar" id="topInfoToggleBar">
-  <button type="button" class="info-toggle-btn active" data-target="howStartPanel">How to Start</button>
-  <button type="button" class="info-toggle-btn" data-target="whatTrackPanel">What to Track</button>
-  <button type="button" class="info-toggle-btn" data-target="needHelpPanel">Need Help</button>
-  <button type="button" class="info-toggle-btn" data-target="appInstallPanel">App Install Status</button>
+<div class="header-mini-strip">
+  <div class="header-mini-card">
+    <strong>How to Start</strong>
+    <span>Login, choose numbers, enter coins, and place your bet before the round closes.</span>
+  </div>
+  <div class="header-mini-card">
+    <strong>What to Track</strong>
+    <span>Watch the live timer, latest lucky number, wallet movement, and recent game history.</span>
+  </div>
+  <div class="header-mini-card">
+    <strong>Need Help</strong>
+    <span>Use deposit request, withdrawal request, and Telegram support when you need assistance.</span>
+  </div>
 </div>
-<div id="howStartPanel" class="info-toggle-panel active">Create account or login, choose numbers from 0 to 9, enter coins for each selected number, and place the bet while the round is open.</div>
-<div id="whatTrackPanel" class="info-toggle-panel">Track wallet balance, round timer, latest lucky number, last 10 lucky numbers, and your own bet history for clean decision making.</div>
-<div id="needHelpPanel" class="info-toggle-panel">Use deposit request, withdrawal request, or the contact support section below whenever you need account, payment, or login help.</div>
-<div id="appInstallPanel" class="info-toggle-panel">Install Since1969Zone for a faster full-screen mobile experience. The install status will appear here when supported.</div>
-<div id="pwaStatusText" class="muted" style="line-height:1.7;">
+</div>
+
+    
+<div id="pwaStatusCard" class="card" style="display:none;margin-top:18px;">
+  <div class="mini-label">App Install Status</div>
+  <div id="pwaStatusText" class="muted" style="line-height:1.7;">
     Install Since1969Zone for a faster full-screen experience on mobile.
   </div>
 </div>
@@ -2186,15 +2203,53 @@ body.auth-open {
         </div>
 
         <div class="card quick-guide">
-  <button type="button" id="howToUseToggleBtn" class="info-toggle-btn active" style="width:100%;justify-content:center;">How To Use This Page</button>
-  <div id="howToUsePanel" class="info-toggle-panel active" style="margin-top:14px;">
-    <div class="guide-grid">
-      <div class="guide-item"><strong>1. Select Numbers</strong><span>Tap one or many numbers from 0 to 9 and enter a separate coin amount for each selected number.</span></div>
-      <div class="guide-item"><strong>2. Place Bet In Time</strong><span>Use the round timer and status badge to place bets only while betting is open.</span></div>
-      <div class="guide-item"><strong>3. Check Wallet + History</strong><span>Watch wallet, latest lucky numbers, and your game history to track results cleanly.</span></div>
-    </div>
+          <div class="section-title">How To Use This Page</div>
+          <div class="section-subtitle">Everything important is now grouped clearly so the player can act fast without confusion.</div>
+          <div class="guide-grid">
+            <div class="guide-item">
+              <strong>1. Select Numbers</strong>
+              <span>Tap one or many numbers from 0 to 9 and enter a separate coin amount for each selected number.</span>
+            </div>
+            <div class="guide-item">
+              <strong>2. Place Bet In Time</strong>
+              <span>Use the round timer and status badge to place bets only while betting is open.</span>
+            </div>
+            <div class="guide-item">
+              <strong>3. Check Result + Wallet</strong>
+              <span>After settlement, use recent game history, wallet history, and latest lucky number panels to verify the outcome.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="historyCard" style="margin-top:18px;">
+          <div class="mini-label">Recent Game History</div>
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Round</th>
+                <th>Bet</th>
+                <th>Lucky</th>
+                <th>Result</th>
+                <th>Payout</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+	<div id="historyPager" style="display:flex;justify-content:center;align-items:center;margin-top:12px;gap:14px;">
+  <button id="historyPrevBtn" type="button" style="padding:8px 12px;border:none;border-radius:8px;background:#222;color:#fff;cursor:pointer;">
+    ◀ Prev
+  </button>
+
+  <div id="historyPageInfo" style="font-weight:700;color:#ffd700;">
+    1/50
   </div>
+
+  <button id="historyNextBtn" type="button" style="padding:8px 12px;border:none;border-radius:8px;background:#222;color:#fff;cursor:pointer;">
+    Next ▶
+  </button>
 </div>
+        </div>
+      </div>
 
       <div class="side-stack">
         <div class="card">
@@ -2368,6 +2423,8 @@ body.auth-open {
 
 <script>
 let currentUser = null;
+let chatPollInterval = null;
+let chatReactionOptions = ['👍','❤️','😂','🔥'];
 let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
 let lastFlashedRoundId = null;
 let flashInitialized = false;
@@ -2399,6 +2456,7 @@ flashSubMessage: document.getElementById('flashSubMessage'),
   winningWalletBalance: document.getElementById('winningWalletBalance'),
   walletEligibilityNote: document.getElementById('walletEligibilityNote'),
   logoutBtn: document.getElementById('logoutBtn'),
+  globalChatMount: document.getElementById('globalChatMount'),
   soundToggleBtn: document.getElementById('soundToggleBtn'),
   timer: document.getElementById('timer'),
   statusBadge: document.getElementById('statusBadge'),
@@ -2444,10 +2502,6 @@ livePaymentQrBox: document.getElementById('livePaymentQrBox'),
 livePaymentQrImg: document.getElementById('livePaymentQrImg'),
 copyPaymentDetailsBtn: document.getElementById('copyPaymentDetailsBtn'),
 liveOfferText: document.getElementById('liveOfferText'),
-  notificationPanelText: document.getElementById('notificationPanelText'),
-  healthMonitorText: document.getElementById('healthMonitorText'),
-  telegramSupportBtn: document.getElementById('telegramSupportBtn'),
-  whatsappSupportBtn: document.getElementById('whatsappSupportBtn'),
 withdrawMethodOptions: document.getElementById('withdrawMethodOptions'),
 withdrawMethodInput: document.getElementById('withdrawMethodInput'),
 withdrawMethodFormBox: document.getElementById('withdrawMethodFormBox'),
@@ -2478,10 +2532,7 @@ const state = {
       qrCodeImage: '',
       bankAccount: ''
     },
-    offer: '',
-    supportLinks: { telegram: '', whatsapp: '' },
-    notificationText: '',
-    emergencyLock: false
+    offer: ''
   }
 };
 
@@ -2593,19 +2644,10 @@ async function loadLiveUpdates() {
         qrCodeImage: data.liveUpdates?.paymentMethod?.qrCodeImage || '',
         bankAccount: data.liveUpdates?.paymentMethod?.bankAccount || ''
       },
-      offer: data.liveUpdates?.offer || '',
-      supportLinks: {
-        telegram: data.liveUpdates?.supportLinks?.telegram || '',
-        whatsapp: data.liveUpdates?.supportLinks?.whatsapp || ''
-      },
-      notificationText: data.liveUpdates?.notificationText || '',
-      emergencyLock: !!data.liveUpdates?.emergencyLock
+      offer: data.liveUpdates?.offer || ''
     };
 
     renderLiveOffer();
-    renderNotificationPanel();
-    renderSupportLinks();
-    updateEmergencyLockUi();
   } catch (error) {
     state.liveUpdates = {
       paymentMethod: {
@@ -2613,16 +2655,10 @@ async function loadLiveUpdates() {
         qrCodeImage: '',
         bankAccount: ''
       },
-      offer: '',
-      supportLinks: { telegram: '', whatsapp: '' },
-      notificationText: '',
-      emergencyLock: false
+      offer: ''
     };
 
     renderLiveOffer();
-    renderNotificationPanel();
-    renderSupportLinks();
-    updateEmergencyLockUi();
   }
 }
 
@@ -2631,28 +2667,6 @@ function renderLiveOffer() {
 
   const offer = String(state.liveUpdates?.offer || '').trim();
   els.liveOfferText.textContent = offer || 'No live offer available right now';
-}
-
-function renderNotificationPanel() {
-  if (!els.notificationPanelText) return;
-  const text = String(state.liveUpdates?.notificationText || '').trim();
-  els.notificationPanelText.textContent = text || 'No notification right now.';
-}
-
-function renderSupportLinks() {
-  const tg = String(state.liveUpdates?.supportLinks?.telegram || '').trim();
-  const wa = String(state.liveUpdates?.supportLinks?.whatsapp || '').trim();
-  if (els.telegramSupportBtn) { els.telegramSupportBtn.href = tg || '#'; els.telegramSupportBtn.style.pointerEvents = tg ? 'auto' : 'none'; els.telegramSupportBtn.style.opacity = tg ? '1' : '0.6'; }
-  if (els.whatsappSupportBtn) { els.whatsappSupportBtn.href = wa || '#'; els.whatsappSupportBtn.style.pointerEvents = wa ? 'auto' : 'none'; els.whatsappSupportBtn.style.opacity = wa ? '1' : '0.6'; }
-}
-
-function updateEmergencyLockUi() {
-  const locked = !!state.liveUpdates?.emergencyLock;
-  if (els.placeBetBtn) els.placeBetBtn.disabled = locked;
-  if (els.bonusBtn) els.bonusBtn.disabled = locked;
-  const gridWrap = els.numbers?.parentElement;
-  if (gridWrap) gridWrap.classList.toggle('bet-closed', locked);
-  if (locked) showMessage('Betting is temporarily locked by admin');
 }
 
 function resetLivePaymentDisplay() {
@@ -2986,6 +3000,7 @@ function showGameView() {
   document.body.classList.remove('auth-open');
   document.getElementById('loginBox').style.display = 'none';
   document.querySelector('.wrap').style.display = 'block';
+  ensureGlobalChatUi();
 }
 
 function handleAuthAction() {
@@ -3023,6 +3038,8 @@ async function login() {
 
     await loadState();
     await loadLiveUpdates();
+    await loadGlobalChat();
+    startGlobalChatPolling();
     showMessage(`Welcome ${data.user.username}`);
   } catch (error) {
     alert(error.message);
@@ -3446,6 +3463,132 @@ function updateTimer() {
   }
 }
 
+
+function ensureGlobalChatUi() {
+  const wrap = document.querySelector('.wrap');
+  const sideStack = wrap ? wrap.querySelector('.side-stack') : null;
+  if (!sideStack || document.getElementById('globalChatPanel')) return;
+  const panel = document.createElement('div');
+  panel.id = 'globalChatPanel';
+  panel.className = 'chat-panel';
+  panel.innerHTML = `
+    <div class="chat-card">
+      <div class="chat-head">
+        <div>
+          <div class="chat-title">💬 Global Chat</div>
+          <div class="chat-sub">Safe chat • emoji • reactions • lightweight refresh</div>
+        </div>
+      </div>
+      <div id="globalChatList" class="chat-list"><div class="chat-empty">Loading chat...</div></div>
+      <div class="chat-compose">
+        <div id="globalChatEmojiRow" class="chat-compose-row"></div>
+        <textarea id="globalChatInput" class="chat-input" maxlength="220" placeholder="Type message for global chat..."></textarea>
+        <div class="chat-compose-row">
+          <button id="globalChatSendBtn" type="button" class="secondary" style="min-width:170px;">Send Message</button>
+        </div>
+      </div>
+    </div>`;
+  sideStack.prepend(panel);
+  const emojiRow = document.getElementById('globalChatEmojiRow');
+  if (emojiRow) {
+    ['😀','😂','😎','🔥','❤️','🎉'].forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chat-emoji-btn';
+      btn.textContent = emoji;
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('globalChatInput');
+        if (!input) return;
+        input.value = (input.value || '') + emoji;
+        input.focus();
+      });
+      emojiRow.appendChild(btn);
+    });
+  }
+  document.getElementById('globalChatSendBtn')?.addEventListener('click', sendGlobalChatMessage);
+}
+
+function renderGlobalChat(messages = []) {
+  const list = document.getElementById('globalChatList');
+  if (!list) return;
+  if (!Array.isArray(messages) || !messages.length) {
+    list.innerHTML = '<div class="chat-empty">No messages yet. Start the chat.</div>';
+    return;
+  }
+  list.innerHTML = messages.map(item => {
+    const reactionHtml = chatReactionOptions.map(reaction => {
+      const count = Number(item.reactions?.[reaction] || 0);
+      return `<button type="button" class="chat-react-btn" onclick="reactToGlobalChat(${Number(item.id)}, '${reaction.replace(/'/g, "\'")}')">${reaction}${count ? ' ' + count : ''}</button>`;
+    }).join('');
+    const timeText = item.createdAt ? new Date(Number(item.createdAt)).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : '-';
+    return `
+      <div class="chat-item">
+        <div class="chat-meta"><span class="chat-user">${item.username || 'User'}</span><span>${timeText}</span></div>
+        <div class="chat-msg">${String(item.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        <div class="chat-reactions">${reactionHtml}</div>
+      </div>`;
+  }).join('');
+  list.scrollTop = list.scrollHeight;
+}
+
+async function loadGlobalChat() {
+  if (!currentUser?.sessionToken) return;
+  ensureGlobalChatUi();
+  try {
+    const data = await api('/api/chat');
+    if (Array.isArray(data.reactions) && data.reactions.length) chatReactionOptions = data.reactions;
+    renderGlobalChat(Array.isArray(data.messages) ? data.messages : []);
+  } catch (error) {
+    const list = document.getElementById('globalChatList');
+    if (list) list.innerHTML = `<div class="chat-empty">${error.message}</div>`;
+  }
+}
+
+async function sendGlobalChatMessage() {
+  const input = document.getElementById('globalChatInput');
+  if (!input) return;
+  const message = String(input.value || '').trim();
+  if (!message) {
+    showMessage('Enter chat message');
+    return;
+  }
+  try {
+    const data = await api('/api/chat/send', {
+      method: 'POST',
+      body: JSON.stringify({ message })
+    });
+    input.value = '';
+    renderGlobalChat(Array.isArray(data.messages) ? data.messages : []);
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+
+async function reactToGlobalChat(messageId, reaction) {
+  try {
+    const data = await api('/api/chat/react', {
+      method: 'POST',
+      body: JSON.stringify({ messageId, reaction })
+    });
+    renderGlobalChat(Array.isArray(data.messages) ? data.messages : []);
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+window.reactToGlobalChat = reactToGlobalChat;
+
+function startGlobalChatPolling() {
+  if (chatPollInterval) clearInterval(chatPollInterval);
+  chatPollInterval = setInterval(() => {
+    loadGlobalChat().catch(() => {});
+  }, 5000);
+}
+
+function stopGlobalChatPolling() {
+  if (chatPollInterval) clearInterval(chatPollInterval);
+  chatPollInterval = null;
+}
+
 async function loadState() {
   try {
     const data = await api('/api/state');
@@ -3465,16 +3608,16 @@ els.soundToggleBtn.addEventListener('click', () => {
 });
 
 els.logoutBtn.addEventListener('click', () => {
-  const sessionSummary = currentUser ? `Session Summary: Main ${state.server?.user?.mainBalance || 0} Coins | Played ${state.server?.user?.totalPlayed || 0} | Wins ${state.server?.user?.totalWins || 0}` : '';
   currentUser = null;
   localStorage.removeItem('user');
+  stopGlobalChatPolling();
   showLandingView();
   window.scrollTo({ top: 0, behavior: 'instant' });
   document.getElementById('username').value = '';
   document.getElementById('password').value = '';
 resetLivePaymentDisplay();
 renderLiveOffer();
-  showMessage(sessionSummary || '');
+  showMessage('');
 });
 
 els.placeBetBtn.addEventListener('click', async () => {
@@ -3991,58 +4134,14 @@ document.getElementById('confirmPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleAuthAction();
 });
 
-
-function setupInfoToggles() {
-  document.querySelectorAll('#topInfoToggleBar .info-toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#topInfoToggleBar .info-toggle-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.info-toggle-panel').forEach(panel => { if (panel.id !== 'howToUsePanel') panel.classList.remove('active'); });
-      btn.classList.add('active');
-      const panel = document.getElementById(btn.dataset.target);
-      if (panel) panel.classList.add('active');
-    });
-  });
-  const howBtn = document.getElementById('howToUseToggleBtn');
-  const howPanel = document.getElementById('howToUsePanel');
-  if (howBtn && howPanel) {
-    howBtn.addEventListener('click', () => { howBtn.classList.toggle('active'); howPanel.classList.toggle('active'); });
-  }
-}
-
-function applyTheme(theme) {
-  document.body.classList.remove('theme-gold','theme-neon','theme-premium');
-  if (theme === 'gold') document.body.classList.add('theme-gold');
-  if (theme === 'neon') document.body.classList.add('theme-neon');
-  if (theme === 'premium') document.body.classList.add('theme-premium');
-  localStorage.setItem('siteTheme', theme || 'dark');
-}
-
-function setupThemeSystem() {
-  const saved = localStorage.getItem('siteTheme') || 'dark';
-  applyTheme(saved);
-  document.querySelectorAll('.theme-chip').forEach(btn => btn.addEventListener('click', () => applyTheme(btn.dataset.theme || 'dark')));
-}
-
-async function loadHealthMonitor() {
-  try {
-    const res = await fetch('/healthz');
-    const data = await res.json();
-    if (els.healthMonitorText) els.healthMonitorText.textContent = data.ok ? 'System healthy and server connected.' : 'System issue detected.';
-  } catch (err) {
-    if (els.healthMonitorText) els.healthMonitorText.textContent = 'Unable to check health right now.';
-  }
-}
-
 buildNumbers();
-setupInfoToggles();
-setupThemeSystem();
-loadHealthMonitor();
 
 setAuthMode('login');
 
 if (currentUser) {
   showGameView();
-  loadState().catch(() => {
+  ensureGlobalChatUi();
+  loadState().then(() => loadGlobalChat()).then(() => startGlobalChatPolling()).catch(() => {
     localStorage.removeItem('user');
     currentUser = null;
     showLandingView();
