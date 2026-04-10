@@ -44,9 +44,6 @@ const MIN_REQUEST_AMOUNT = 250;
 const PAYOUT_MULTIPLIER = 8;
 const DEMO_USER_ID = 1;
 const DELETED_USERS_FILE = path.join(__dirname, 'deleted-users.json');
-const CHAT_MESSAGE_MAX_LENGTH = 220;
-const CHAT_FETCH_LIMIT = 40;
-const CHAT_REACTIONS = ['👍','❤️','😂','🔥'];
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '20mb' }));
@@ -164,53 +161,6 @@ function jsonParseSafe(value, fallback) {
   } catch {
     return fallback;
   }
-}
-
-
-function sanitizeChatMessage(value) {
-  return String(value || '')
-    .replace(/[\r\n\t]+/g, ' ')
-    .replace(/[\x00-\x1F\x7F]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, CHAT_MESSAGE_MAX_LENGTH);
-}
-
-function sanitizeChatReaction(value) {
-  const safe = String(value || '').trim();
-  return CHAT_REACTIONS.includes(safe) ? safe : '';
-}
-
-async function getRecentChatMessages(limit = CHAT_FETCH_LIMIT, includeHidden = false) {
-  const safeLimit = Math.max(1, Math.min(Number(limit || CHAT_FETCH_LIMIT), CHAT_FETCH_LIMIT));
-  const result = await pool.query(
-    `SELECT id, user_id, username, message, reactions, is_hidden, created_at
-     FROM global_chat_messages
-     WHERE ($1::boolean = TRUE OR is_hidden = FALSE)
-     ORDER BY id DESC
-     LIMIT $2`,
-    [Boolean(includeHidden), safeLimit]
-  );
-
-  return result.rows.reverse().map(row => ({
-    id: Number(row.id),
-    userId: Number(row.user_id),
-    username: String(row.username || ''),
-    message: String(row.message || ''),
-    reactions: toJson(row.reactions, {}),
-    isHidden: Boolean(row.is_hidden),
-    createdAt: Number(row.created_at || 0)
-  }));
-}
-
-async function checkChatRateLimit(userId) {
-  const result = await pool.query(
-    `SELECT COUNT(*)::int AS count
-     FROM global_chat_messages
-     WHERE user_id = $1 AND created_at >= $2`,
-    [userId, nowMs() - 5000]
-  );
-  return Number(result.rows[0]?.count || 0) < 3;
 }
 
 function loadDeletedUsersData() {
@@ -339,17 +289,10 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS live_updates (
       id BIGSERIAL PRIMARY KEY,
       payment_method JSONB DEFAULT '{}'::jsonb,
-      offer TEXT DEFAULT ''
-    );
-
-    CREATE TABLE IF NOT EXISTS global_chat_messages (
-      id BIGSERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL,
-      username TEXT NOT NULL,
-      message TEXT NOT NULL,
-      reactions JSONB DEFAULT '{}'::jsonb,
-      is_hidden BOOLEAN DEFAULT FALSE,
-      created_at BIGINT NOT NULL
+      offer TEXT DEFAULT '',
+      support_links JSONB DEFAULT '{}'::jsonb,
+      notification_text TEXT DEFAULT '',
+      emergency_lock BOOLEAN DEFAULT FALSE
     );
   `);
 
@@ -358,6 +301,9 @@ async function initDatabase() {
     ALTER TABLE withdraw_requests ADD COLUMN IF NOT EXISTS upi_id TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_role TEXT DEFAULT 'read_only';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at BIGINT DEFAULT 0;
+    ALTER TABLE live_updates ADD COLUMN IF NOT EXISTS support_links JSONB DEFAULT '{}'::jsonb;
+    ALTER TABLE live_updates ADD COLUMN IF NOT EXISTS notification_text TEXT DEFAULT '';
+    ALTER TABLE live_updates ADD COLUMN IF NOT EXISTS emergency_lock BOOLEAN DEFAULT FALSE;
   `);
 
   await ensureWalletColumnsReady();
@@ -373,7 +319,6 @@ async function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
     CREATE INDEX IF NOT EXISTS idx_deposit_requests_user_created_at ON deposit_requests(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_withdraw_requests_user_created_at ON withdraw_requests(user_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_global_chat_messages_created_at ON global_chat_messages(created_at DESC);
   `);
 
   console.log('DB Tables Ready');
@@ -468,8 +413,8 @@ async function ensureLiveUpdatesSeeded() {
   const result = await pool.query(`SELECT id FROM live_updates LIMIT 1`);
   if (!result.rows.length) {
     await pool.query(
-      `INSERT INTO live_updates (payment_method, offer) VALUES ($1, $2)`,
-      [JSON.stringify({ upiId: '', qrCodeImage: '', bankAccount: '' }), '']
+      `INSERT INTO live_updates (payment_method, offer, support_links, notification_text, emergency_lock) VALUES ($1, $2, $3, $4, $5)`,
+      [JSON.stringify({ upiId: '', qrCodeImage: '', bankAccount: '' }), '', JSON.stringify({ telegram: '', whatsapp: '' }), '', false]
     );
   }
 }
@@ -479,10 +424,10 @@ async function getLiveUpdatesRow() {
   if (result.rows.length) return result.rows[0];
 
   const inserted = await pool.query(
-    `INSERT INTO live_updates (payment_method, offer)
-     VALUES ($1, $2)
+    `INSERT INTO live_updates (payment_method, offer, support_links, notification_text, emergency_lock)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [JSON.stringify({ upiId: '', qrCodeImage: '', bankAccount: '' }), '']
+    [JSON.stringify({ upiId: '', qrCodeImage: '', bankAccount: '' }), '', JSON.stringify({ telegram: '', whatsapp: '' }), '', false]
   );
 
   return inserted.rows[0];
@@ -987,7 +932,7 @@ async function settleRoundTx(roundId) {
   const roundResult = await pool.query(`SELECT * FROM rounds WHERE id = $1 LIMIT 1`, [roundId]);
   const round = roundResult.rows[0] || null;
   if (!round) throw new Error('Round not found');
-  if (round.status === 'settled') throw new Error('Round already settled');
+  if (round.status === 'settled') return round;
   if (nowMs() < Number(round.ends_at)) throw new Error('Round timer not finished yet');
 
   const luckyNumber = computeLuckyNumber(round.server_seed, round.client_seed, Number(round.round_number));
@@ -1046,7 +991,12 @@ async function ensureActiveRound() {
 
     if (now >= Number(latest.ends_at)) {
       await settleRoundTx(latest.id);
-      return await createRound(Number(latest.round_number) + 1, nowMs());
+      const refreshed = await pool.query(`SELECT * FROM rounds WHERE id = $1 LIMIT 1`, [latest.id]);
+      const finalLatest = refreshed.rows[0] || latest;
+      if (String(finalLatest.status) === 'settled') {
+        return await createRound(Number(finalLatest.round_number) + 1, nowMs());
+      }
+      return finalLatest;
     }
 
     return latest;
@@ -1405,106 +1355,6 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-
-app.get('/api/chat', async (req, res) => {
-  try {
-    const messages = await getRecentChatMessages(CHAT_FETCH_LIMIT, false);
-    return res.json({
-      success: true,
-      reactions: CHAT_REACTIONS,
-      messages
-    });
-  } catch (error) {
-    console.error('CHAT LOAD ERROR:', error);
-    return res.status(500).json({ error: 'Failed to load chat' });
-  }
-});
-
-app.post('/api/chat/send', async (req, res) => {
-  try {
-    const userId = await getUserIdFromReq(req);
-    if (!userId) return res.status(401).json({ error: 'Login required' });
-
-    const user = await getUser(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.blocked) return res.status(403).json({ error: 'Blocked users cannot chat' });
-
-    const message = sanitizeChatMessage(req.body?.message || '');
-    if (!message) return res.status(400).json({ error: 'Message required' });
-
-    const allowed = await checkChatRateLimit(userId);
-    if (!allowed) return res.status(429).json({ error: 'Too many messages. Slow down.' });
-
-    await pool.query(
-      `INSERT INTO global_chat_messages (user_id, username, message, reactions, is_hidden, created_at)
-       VALUES ($1,$2,$3,$4,FALSE,$5)`,
-      [userId, String(user.username || ''), message, JSON.stringify({}), nowMs()]
-    );
-
-    return res.json({ success: true, messages: await getRecentChatMessages(CHAT_FETCH_LIMIT, false) });
-  } catch (error) {
-    console.error('CHAT SEND ERROR:', error);
-    return res.status(500).json({ error: 'Failed to send chat message' });
-  }
-});
-
-app.post('/api/chat/react', async (req, res) => {
-  try {
-    const userId = await getUserIdFromReq(req);
-    if (!userId) return res.status(401).json({ error: 'Login required' });
-
-    const messageId = Number(req.body?.messageId || 0);
-    const reaction = sanitizeChatReaction(req.body?.reaction || '');
-
-    if (!Number.isInteger(messageId) || messageId <= 0) return res.status(400).json({ error: 'Valid message required' });
-    if (!reaction) return res.status(400).json({ error: 'Valid reaction required' });
-
-    const current = await pool.query(`SELECT reactions FROM global_chat_messages WHERE id = $1 LIMIT 1`, [messageId]);
-    if (!current.rows.length) return res.status(404).json({ error: 'Chat message not found' });
-
-    const reactions = toJson(current.rows[0].reactions, {});
-    reactions[reaction] = Number(reactions[reaction] || 0) + 1;
-
-    await pool.query(`UPDATE global_chat_messages SET reactions = $1 WHERE id = $2`, [JSON.stringify(reactions), messageId]);
-    return res.json({ success: true, messages: await getRecentChatMessages(CHAT_FETCH_LIMIT, false) });
-  } catch (error) {
-    console.error('CHAT REACTION ERROR:', error);
-    return res.status(500).json({ error: 'Failed to update reaction' });
-  }
-});
-
-app.get('/api/admin/chat', adminOnly, requireAdminRoles('super_admin', 'support_admin', 'read_only'), async (req, res) => {
-  try {
-    return res.json({ success: true, messages: await getRecentChatMessages(CHAT_FETCH_LIMIT, true), reactions: CHAT_REACTIONS });
-  } catch (error) {
-    console.error('ADMIN CHAT LOAD ERROR:', error);
-    return res.status(500).json({ error: 'Failed to load admin chat' });
-  }
-});
-
-app.post('/api/admin/chat/hide', adminOnly, requireAdminRoles('super_admin', 'support_admin'), async (req, res) => {
-  try {
-    const messageId = Number(req.body?.messageId || 0);
-    const hidden = Boolean(req.body?.hidden);
-    if (!Number.isInteger(messageId) || messageId <= 0) return res.status(400).json({ error: 'Valid message required' });
-    await pool.query(`UPDATE global_chat_messages SET is_hidden = $1 WHERE id = $2`, [hidden, messageId]);
-    return res.json({ success: true, message: hidden ? 'Chat message hidden' : 'Chat message restored', messages: await getRecentChatMessages(CHAT_FETCH_LIMIT, true) });
-  } catch (error) {
-    console.error('ADMIN CHAT HIDE ERROR:', error);
-    return res.status(500).json({ error: 'Failed to update chat message' });
-  }
-});
-
-app.post('/api/admin/chat/clear', adminOnly, requireAdminRoles('super_admin'), async (req, res) => {
-  try {
-    await pool.query(`DELETE FROM global_chat_messages`);
-    return res.json({ success: true, message: 'Global chat cleared', messages: [] });
-  } catch (error) {
-    console.error('ADMIN CHAT CLEAR ERROR:', error);
-    return res.status(500).json({ error: 'Failed to clear chat' });
-  }
-});
-
 app.get('/api/state', async (req, res) => {
   try {
     await createNextRoundIfNeeded();
@@ -1709,9 +1559,12 @@ app.get('/api/live-updates', async (req, res) => {
   const liveUpdates = row
     ? {
         paymentMethod: toJson(row.payment_method, { upiId: '', qrCodeImage: '', bankAccount: '' }),
-        offer: String(row.offer || '')
+        offer: String(row.offer || ''),
+        supportLinks: toJson(row.support_links, { telegram: '', whatsapp: '' }),
+        notificationText: String(row.notification_text || ''),
+        emergencyLock: Boolean(row.emergency_lock)
       }
-    : { paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' }, offer: '' };
+    : { paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' }, offer: '', supportLinks: { telegram: '', whatsapp: '' }, notificationText: '', emergencyLock: false };
 
   return res.json({ success: true, liveUpdates });
 });
@@ -1721,9 +1574,12 @@ app.get('/api/admin/live-updates', adminOnly, requireAdminRoles('super_admin', '
   const liveUpdates = row
     ? {
         paymentMethod: toJson(row.payment_method, { upiId: '', qrCodeImage: '', bankAccount: '' }),
-        offer: String(row.offer || '')
+        offer: String(row.offer || ''),
+        supportLinks: toJson(row.support_links, { telegram: '', whatsapp: '' }),
+        notificationText: String(row.notification_text || ''),
+        emergencyLock: Boolean(row.emergency_lock)
       }
-    : { paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' }, offer: '' };
+    : { paymentMethod: { upiId: '', qrCodeImage: '', bankAccount: '' }, offer: '', supportLinks: { telegram: '', whatsapp: '' }, notificationText: '', emergencyLock: false };
 
   return res.json({ success: true, liveUpdates });
 });
@@ -1736,6 +1592,9 @@ app.post('/api/admin/live-updates', adminOnly, requireAdminRoles('super_admin', 
     const row = await getLiveUpdatesRow();
     let paymentMethod = toJson(row?.payment_method, { upiId: '', qrCodeImage: '', bankAccount: '' });
     let offer = String(row?.offer || '');
+    let supportLinks = toJson(row?.support_links, { telegram: '', whatsapp: '' });
+    let notificationText = String(row?.notification_text || '');
+    let emergencyLock = Boolean(row?.emergency_lock);
 
     if (section === 'payment-method') {
       if (type === 'upi-id') paymentMethod.upiId = String(req.body?.upiId || '').trim();
@@ -1747,15 +1606,25 @@ app.post('/api/admin/live-updates', adminOnly, requireAdminRoles('super_admin', 
       offer = String(req.body?.offer || '').trim();
     }
 
+    if (section === 'contact-support') {
+      supportLinks.telegram = sanitizeSupportLink(req.body?.telegram || '');
+      supportLinks.whatsapp = sanitizeSupportLink(req.body?.whatsapp || '');
+    }
+
+    if (section === 'system-control') {
+      notificationText = String(req.body?.notificationText || '').trim().slice(0, 400);
+      emergencyLock = Boolean(req.body?.emergencyLock);
+    }
+
     await pool.query(
-      `UPDATE live_updates SET payment_method = $1, offer = $2 WHERE id = $3`,
-      [JSON.stringify(paymentMethod), offer, row.id]
+      `UPDATE live_updates SET payment_method = $1, offer = $2, support_links = $3, notification_text = $4, emergency_lock = $5 WHERE id = $6`,
+      [JSON.stringify(paymentMethod), offer, JSON.stringify(supportLinks), notificationText, emergencyLock, row.id]
     );
 
     return res.json({
       success: true,
       message: 'Live updates saved successfully',
-      liveUpdates: { paymentMethod, offer }
+      liveUpdates: { paymentMethod, offer, supportLinks, notificationText, emergencyLock }
     });
   } catch (error) {
     console.error('LIVE UPDATES SAVE ERROR:', error);
