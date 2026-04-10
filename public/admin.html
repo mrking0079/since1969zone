@@ -400,10 +400,6 @@
       <div class="dashboard-shell">
         <div class="section-card">
           <div class="section-title">Dashboard Overview</div>
-<div class="dashboard-filter-trigger-row" style="display:flex;justify-content:flex-end;gap:10px;align-items:center;flex-wrap:wrap;">
-  <button type="button" class="dashboard-filter-trigger-btn" onclick="toggleDashboardFilterPanel()">Filter</button>
-  <button type="button" onclick="adminLogout()" style="background:#374151;color:#fff;">Logout</button>
-</div>
 <div id="dashboardFilterPanel" class="dashboard-filter-panel">
   <div style="font-weight:900;color:#ffd54a;margin-bottom:10px;">History Filters &amp; Export</div>
   <div class="dashboard-filter-grid">
@@ -2349,7 +2345,16 @@ async function clearGlobalChatAdmin() {
     const dashboardCard = document.querySelector('#panelSection .section-card');
     if (dashboardCard && !document.getElementById('adminRoleBadgeCard')) {
       const title = dashboardCard.querySelector('.section-title');
-      const rowHtml = `<div id="adminRoleBadgeCard" class="dashboard-top-row"><div class="dashboard-top-left"><div class="dashboard-top-label">Admin Session</div><div id="adminRoleBadgeText" class="dashboard-top-value">Logged in role: -</div></div></div>`;
+      const rowHtml = `<div id="adminRoleBadgeCard" class="dashboard-top-row">
+  <div class="dashboard-top-left">
+    <div class="dashboard-top-label">Admin Session</div>
+    <div id="adminRoleBadgeText" class="dashboard-top-value">Logged in role: -</div>
+  </div>
+  <div class="dashboard-filter-trigger-row" style="display:flex;justify-content:flex-end;gap:10px;align-items:center;flex-wrap:wrap;margin:0;">
+    <button type="button" class="dashboard-filter-trigger-btn" onclick="toggleDashboardFilterPanel()">Filter</button>
+    <button type="button" onclick="adminLogout()" style="background:#374151;color:#fff;">Logout</button>
+  </div>
+</div>`;
       if (title) {
         title.insertAdjacentHTML('afterend', rowHtml);
       } else {
