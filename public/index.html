@@ -378,8 +378,9 @@ button.secondary:hover {
 }
 
 .history-table {
-  display: table;
-  overflow-x: visible;
+  width: 100%;
+  display: block;
+  overflow-x: auto;
   white-space: normal;
 }
 
@@ -407,6 +408,9 @@ button.secondary:hover {
     border-color: rgba(255,215,0,0.65);
   }
 }
+
+@media (min-width: 1281px) {
+  .wrap {
     max-width: 1420px;
     padding: 28px;
   }
