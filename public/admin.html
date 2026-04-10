@@ -355,7 +355,15 @@
       button{width:100%}
       .subhead{font-size:13px}
     }
-  </style>
+  
+.admin-chat-card{background:linear-gradient(180deg,#131c2f,#0c1322);border:1px solid #243041;border-radius:18px;padding:16px;}
+.admin-chat-list{display:grid;gap:10px;max-height:320px;overflow:auto;padding-right:4px;}
+.admin-chat-item{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;line-height:1.6;}
+.admin-chat-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#9ca3af;font-size:12px;margin-bottom:6px;}
+.admin-chat-msg{color:#f8fafc;word-break:break-word;}
+.admin-chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+</style>
 
 </head>
 <body>
@@ -392,8 +400,9 @@
       <div class="dashboard-shell">
         <div class="section-card">
           <div class="section-title">Dashboard Overview</div>
-<div class="dashboard-filter-trigger-row">
+<div class="dashboard-filter-trigger-row" style="display:flex;justify-content:flex-end;gap:10px;align-items:center;flex-wrap:wrap;">
   <button type="button" class="dashboard-filter-trigger-btn" onclick="toggleDashboardFilterPanel()">Filter</button>
+  <button type="button" onclick="adminLogout()" style="background:#374151;color:#fff;">Logout</button>
 </div>
 <div id="dashboardFilterPanel" class="dashboard-filter-panel">
   <div style="font-weight:900;color:#ffd54a;margin-bottom:10px;">History Filters &amp; Export</div>
@@ -443,6 +452,7 @@
               <button onclick="openLiveUpdatesPanel()" style="background:#22c55e;color:#111;">LIVE UPDATES</button>
               <button onclick="loadUsers()">Load Users</button>
               <button onclick="loadTransactions()">Transaction History</button>
+              <button onclick="loadAdminChatPanel()" style="background:#2563eb;color:#fff;">Global Chat</button>
               <button id="depositRequestsBtn" onclick="loadDepositRequests('deposit')">Deposit Requests (0)</button>
               <button id="withdrawalRequestsBtn" onclick="loadDepositRequests('withdrawal')">Withdrawal Requests (0)</button>
               <button onclick="loadCurrentRound()">Round Control</button>
@@ -553,6 +563,15 @@
   <div id="liveUpdatesContent" style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;line-height:1.8;">
     Live update options will appear here...
   </div>
+
+<div id="adminChatPanel" class="section-card" style="display:none;">
+  <h3 style="margin:0 0 10px 0;color:#ffd54a;">Global Chat Moderation</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+    <button type="button" onclick="loadAdminChatPanel()" style="background:#2563eb;color:#fff;">Refresh Chat</button>
+    <button type="button" onclick="clearGlobalChatAdmin()" style="background:#ff4d4f;color:#fff;">Clear Chat</button>
+  </div>
+  <div id="adminChatList" class="admin-chat-list"></div>
+</div>
 </div>
           </div>
         </div>
@@ -2208,7 +2227,77 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
 
   setTimeout(loadAdminMiniLiveCard, 400);
 }
-  </script>
+  
+async function loadAdminChatPanel() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const panel = document.getElementById('adminChatPanel');
+  const list = document.getElementById('adminChatList');
+  hideAllAdminSections();
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+  panel.style.display = 'block';
+  openAdminModal('Global Chat Moderation', 'adminChatPanel');
+  list.innerHTML = '<div class="admin-chat-item">Loading chat...</div>';
+  try {
+    const res = await fetch('/api/admin/chat', { headers: getAdminHeaders() });
+    const data = await res.json();
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to load chat';
+      return;
+    }
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+    if (!messages.length) {
+      list.innerHTML = '<div class="admin-chat-item">No chat messages yet.</div>';
+      output.textContent = 'Chat loaded';
+      return;
+    }
+    list.innerHTML = messages.map(item => {
+      const reactions = Object.entries(item.reactions || {}).map(([k,v]) => `${k} ${v}`).join(' | ') || '-';
+      return `<div class="admin-chat-item"><div class="admin-chat-meta"><span><strong>${item.username || 'User'}</strong></span><span>${item.createdAt ? new Date(Number(item.createdAt)).toLocaleString() : '-'}</span></div><div class="admin-chat-msg">${String(item.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div style="margin-top:8px;color:#9ca3af;font-size:12px;">Reactions: ${reactions}</div><div class="admin-chat-actions"><button type="button" onclick="toggleAdminChatHidden(${Number(item.id)}, ${item.isHidden ? 'false' : 'true'})" style="background:${item.isHidden ? '#22c55e' : '#ff4d4f'};color:#fff;">${item.isHidden ? 'Restore' : 'Hide'}</button></div></div>`;
+    }).join('');
+    output.textContent = 'Chat loaded';
+  } catch (err) {
+    output.textContent = 'Failed to load chat: ' + err.message;
+  }
+}
+
+async function toggleAdminChatHidden(messageId, hidden) {
+  const output = document.getElementById('output');
+  try {
+    const res = await fetch('/api/admin/chat/hide', { method: 'POST', headers: getAdminHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ messageId, hidden }) });
+    const data = await res.json();
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed';
+      return;
+    }
+    output.textContent = data.message || 'Done';
+    loadAdminChatPanel();
+  } catch (err) {
+    output.textContent = 'Failed to update chat: ' + err.message;
+  }
+}
+
+async function clearGlobalChatAdmin() {
+  const output = document.getElementById('output');
+  if (!confirm('Clear full global chat?')) return;
+  try {
+    const res = await fetch('/api/admin/chat/clear', { method: 'POST', headers: getAdminHeaders({ 'Content-Type': 'application/json' }) });
+    const data = await res.json();
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed';
+      return;
+    }
+    output.textContent = data.message || 'Chat cleared';
+    loadAdminChatPanel();
+  } catch (err) {
+    output.textContent = 'Failed to clear chat: ' + err.message;
+  }
+}
+
+</script>
 <div class="footer-note">
   ®️Since 1969 Zone Designed by - MrKinG
 </div>
@@ -2233,6 +2322,14 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
 .activity-log-item{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;line-height:1.6;color:#dbe2ea;}
 [data-role-guard-hidden="true"]{display:none !important;}
 @media (max-width:900px){.admin-mini-live-grid,.admin-form-grid{grid-template-columns:1fr;}}
+
+.admin-chat-card{background:linear-gradient(180deg,#131c2f,#0c1322);border:1px solid #243041;border-radius:18px;padding:16px;}
+.admin-chat-list{display:grid;gap:10px;max-height:320px;overflow:auto;padding-right:4px;}
+.admin-chat-item{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;line-height:1.6;}
+.admin-chat-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#9ca3af;font-size:12px;margin-bottom:6px;}
+.admin-chat-msg{color:#f8fafc;word-break:break-word;}
+.admin-chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
 </style>
 <script id="phase2RoleScript">
 (function(){
@@ -2252,7 +2349,7 @@ if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole
     const dashboardCard = document.querySelector('#panelSection .section-card');
     if (dashboardCard && !document.getElementById('adminRoleBadgeCard')) {
       const title = dashboardCard.querySelector('.section-title');
-      const rowHtml = `<div id="adminRoleBadgeCard" class="dashboard-top-row"><div class="dashboard-top-left"><div class="dashboard-top-label">Admin Session</div><div id="adminRoleBadgeText" class="dashboard-top-value">Logged in role: -</div></div><button type="button" onclick="adminLogout()">Logout</button></div>`;
+      const rowHtml = `<div id="adminRoleBadgeCard" class="dashboard-top-row"><div class="dashboard-top-left"><div class="dashboard-top-label">Admin Session</div><div id="adminRoleBadgeText" class="dashboard-top-value">Logged in role: -</div></div></div>`;
       if (title) {
         title.insertAdjacentHTML('afterend', rowHtml);
       } else {

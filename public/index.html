@@ -1854,6 +1854,26 @@ body.auth-open {
   }
 }
 
+
+.chat-panel{margin-top:18px;display:grid;gap:12px;}
+.chat-card{background:linear-gradient(180deg,#141414,#0d0d0d);border:1px solid #2f2f2f;border-radius:20px;padding:18px;box-shadow:0 12px 30px rgba(0,0,0,0.28);}
+.chat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.chat-title{font-size:20px;font-weight:900;color:#ffd700;}
+.chat-sub{font-size:12px;color:#aaa;}
+.chat-list{display:grid;gap:10px;max-height:320px;overflow:auto;padding-right:4px;}
+.chat-item{background:#101010;border:1px solid #2f2f2f;border-radius:14px;padding:10px;}
+.chat-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:#aaa;margin-bottom:6px;}
+.chat-user{color:#ffd700;font-weight:800;}
+.chat-msg{color:#f5f5f5;line-height:1.55;word-break:break-word;}
+.chat-reactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.chat-react-btn,.chat-emoji-btn{border:1px solid #3a3a3a;background:#181818;color:#fff;border-radius:999px;padding:6px 10px;cursor:pointer;font-size:13px;font-weight:700;min-height:auto;box-shadow:none;}
+.chat-react-btn:hover,.chat-emoji-btn:hover{transform:none;border-color:#ffd700;}
+.chat-compose{display:grid;gap:10px;margin-top:10px;}
+.chat-compose-row{display:flex;gap:10px;flex-wrap:wrap;}
+.chat-input{width:100%;min-height:84px;border:1px solid #3a3a3a;background:#080808;color:#fff;border-radius:14px;padding:12px;resize:vertical;}
+.chat-empty{padding:12px;border-radius:12px;background:#101010;color:#aaa;text-align:center;border:1px solid #2f2f2f;}
+@media (max-width:900px){.chat-card{padding:14px;border-radius:16px}.chat-list{max-height:260px}.chat-compose-row{flex-direction:column}}
+
 </style>
 </head>
 <body>
@@ -2403,6 +2423,8 @@ body.auth-open {
 
 <script>
 let currentUser = null;
+let chatPollInterval = null;
+let chatReactionOptions = ['👍','❤️','😂','🔥'];
 let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
 let lastFlashedRoundId = null;
 let flashInitialized = false;
@@ -2434,6 +2456,7 @@ flashSubMessage: document.getElementById('flashSubMessage'),
   winningWalletBalance: document.getElementById('winningWalletBalance'),
   walletEligibilityNote: document.getElementById('walletEligibilityNote'),
   logoutBtn: document.getElementById('logoutBtn'),
+  globalChatMount: document.getElementById('globalChatMount'),
   soundToggleBtn: document.getElementById('soundToggleBtn'),
   timer: document.getElementById('timer'),
   statusBadge: document.getElementById('statusBadge'),
@@ -2977,6 +3000,7 @@ function showGameView() {
   document.body.classList.remove('auth-open');
   document.getElementById('loginBox').style.display = 'none';
   document.querySelector('.wrap').style.display = 'block';
+  ensureGlobalChatUi();
 }
 
 function handleAuthAction() {
@@ -3014,6 +3038,8 @@ async function login() {
 
     await loadState();
     await loadLiveUpdates();
+    await loadGlobalChat();
+    startGlobalChatPolling();
     showMessage(`Welcome ${data.user.username}`);
   } catch (error) {
     alert(error.message);
@@ -3437,6 +3463,132 @@ function updateTimer() {
   }
 }
 
+
+function ensureGlobalChatUi() {
+  const wrap = document.querySelector('.wrap');
+  const sideStack = wrap ? wrap.querySelector('.side-stack') : null;
+  if (!sideStack || document.getElementById('globalChatPanel')) return;
+  const panel = document.createElement('div');
+  panel.id = 'globalChatPanel';
+  panel.className = 'chat-panel';
+  panel.innerHTML = `
+    <div class="chat-card">
+      <div class="chat-head">
+        <div>
+          <div class="chat-title">💬 Global Chat</div>
+          <div class="chat-sub">Safe chat • emoji • reactions • lightweight refresh</div>
+        </div>
+      </div>
+      <div id="globalChatList" class="chat-list"><div class="chat-empty">Loading chat...</div></div>
+      <div class="chat-compose">
+        <div id="globalChatEmojiRow" class="chat-compose-row"></div>
+        <textarea id="globalChatInput" class="chat-input" maxlength="220" placeholder="Type message for global chat..."></textarea>
+        <div class="chat-compose-row">
+          <button id="globalChatSendBtn" type="button" class="secondary" style="min-width:170px;">Send Message</button>
+        </div>
+      </div>
+    </div>`;
+  sideStack.prepend(panel);
+  const emojiRow = document.getElementById('globalChatEmojiRow');
+  if (emojiRow) {
+    ['😀','😂','😎','🔥','❤️','🎉'].forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chat-emoji-btn';
+      btn.textContent = emoji;
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('globalChatInput');
+        if (!input) return;
+        input.value = (input.value || '') + emoji;
+        input.focus();
+      });
+      emojiRow.appendChild(btn);
+    });
+  }
+  document.getElementById('globalChatSendBtn')?.addEventListener('click', sendGlobalChatMessage);
+}
+
+function renderGlobalChat(messages = []) {
+  const list = document.getElementById('globalChatList');
+  if (!list) return;
+  if (!Array.isArray(messages) || !messages.length) {
+    list.innerHTML = '<div class="chat-empty">No messages yet. Start the chat.</div>';
+    return;
+  }
+  list.innerHTML = messages.map(item => {
+    const reactionHtml = chatReactionOptions.map(reaction => {
+      const count = Number(item.reactions?.[reaction] || 0);
+      return `<button type="button" class="chat-react-btn" onclick="reactToGlobalChat(${Number(item.id)}, '${reaction.replace(/'/g, "\'")}')">${reaction}${count ? ' ' + count : ''}</button>`;
+    }).join('');
+    const timeText = item.createdAt ? new Date(Number(item.createdAt)).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : '-';
+    return `
+      <div class="chat-item">
+        <div class="chat-meta"><span class="chat-user">${item.username || 'User'}</span><span>${timeText}</span></div>
+        <div class="chat-msg">${String(item.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        <div class="chat-reactions">${reactionHtml}</div>
+      </div>`;
+  }).join('');
+  list.scrollTop = list.scrollHeight;
+}
+
+async function loadGlobalChat() {
+  if (!currentUser?.sessionToken) return;
+  ensureGlobalChatUi();
+  try {
+    const data = await api('/api/chat');
+    if (Array.isArray(data.reactions) && data.reactions.length) chatReactionOptions = data.reactions;
+    renderGlobalChat(Array.isArray(data.messages) ? data.messages : []);
+  } catch (error) {
+    const list = document.getElementById('globalChatList');
+    if (list) list.innerHTML = `<div class="chat-empty">${error.message}</div>`;
+  }
+}
+
+async function sendGlobalChatMessage() {
+  const input = document.getElementById('globalChatInput');
+  if (!input) return;
+  const message = String(input.value || '').trim();
+  if (!message) {
+    showMessage('Enter chat message');
+    return;
+  }
+  try {
+    const data = await api('/api/chat/send', {
+      method: 'POST',
+      body: JSON.stringify({ message })
+    });
+    input.value = '';
+    renderGlobalChat(Array.isArray(data.messages) ? data.messages : []);
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+
+async function reactToGlobalChat(messageId, reaction) {
+  try {
+    const data = await api('/api/chat/react', {
+      method: 'POST',
+      body: JSON.stringify({ messageId, reaction })
+    });
+    renderGlobalChat(Array.isArray(data.messages) ? data.messages : []);
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+window.reactToGlobalChat = reactToGlobalChat;
+
+function startGlobalChatPolling() {
+  if (chatPollInterval) clearInterval(chatPollInterval);
+  chatPollInterval = setInterval(() => {
+    loadGlobalChat().catch(() => {});
+  }, 5000);
+}
+
+function stopGlobalChatPolling() {
+  if (chatPollInterval) clearInterval(chatPollInterval);
+  chatPollInterval = null;
+}
+
 async function loadState() {
   try {
     const data = await api('/api/state');
@@ -3458,6 +3610,7 @@ els.soundToggleBtn.addEventListener('click', () => {
 els.logoutBtn.addEventListener('click', () => {
   currentUser = null;
   localStorage.removeItem('user');
+  stopGlobalChatPolling();
   showLandingView();
   window.scrollTo({ top: 0, behavior: 'instant' });
   document.getElementById('username').value = '';
@@ -3987,7 +4140,8 @@ setAuthMode('login');
 
 if (currentUser) {
   showGameView();
-  loadState().catch(() => {
+  ensureGlobalChatUi();
+  loadState().then(() => loadGlobalChat()).then(() => startGlobalChatPolling()).catch(() => {
     localStorage.removeItem('user');
     currentUser = null;
     showLandingView();
