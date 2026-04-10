@@ -16,7 +16,12 @@ const __dirname = path.dirname(__filename);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  max: 5,
+  min: 1,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  allowExitOnIdle: false
 });
 
 cloudinary.config({
@@ -26,6 +31,9 @@ cloudinary.config({
 });
 
 const app = express();
+pool.on('error', (err) => {
+  console.error('PG POOL ERROR:', err);
+});
 app.set('trust proxy', 1);
 
 const PORT = process.env.PORT || 3000;
@@ -83,13 +91,8 @@ app.get('/admin', (req, res) => {
   return res.status(404).send('Not found');
 });
 
-app.get('/healthz', async (req, res) => {
-  try {
-    await pool.query('SELECT 1');
-    return res.status(200).json({ ok: true });
-  } catch (error) {
-    return res.status(500).json({ ok: false });
-  }
+app.get('/healthz', (req, res) => {
+  return res.status(200).json({ ok: true });
 });
 
 function nowMs() {
@@ -987,8 +990,14 @@ async function settleRoundTx(roundId) {
   const roundResult = await pool.query(`SELECT * FROM rounds WHERE id = $1 LIMIT 1`, [roundId]);
   const round = roundResult.rows[0] || null;
   if (!round) throw new Error('Round not found');
-  if (round.status === 'settled') throw new Error('Round already settled');
-  if (nowMs() < Number(round.ends_at)) throw new Error('Round timer not finished yet');
+
+  if (round.status === 'settled') {
+    return round;
+  }
+
+  if (nowMs() < Number(round.ends_at)) {
+    throw new Error('Round timer not finished yet');
+  }
 
   const luckyNumber = computeLuckyNumber(round.server_seed, round.client_seed, Number(round.round_number));
 

@@ -331,8 +331,9 @@ button.secondary:hover {
   background: #101010;
   border-radius: 14px;
   overflow: hidden;
-  table-layout: fixed;
+  table-layout: auto;
 }
+
 .history-table th,
 .history-table td {
   padding: 12px 10px;
@@ -340,7 +341,12 @@ button.secondary:hover {
   text-align: center;
   font-size: 14px;
   vertical-align: middle;
-   word-break: break-word;
+  white-space: nowrap;
+}
+
+.history-table td.bet-cell {
+  white-space: nowrap;
+  font-size: 13px;
 }
 
 .history-table th {
@@ -379,9 +385,13 @@ button.secondary:hover {
 
 .history-table {
   width: 100%;
-  display: block;
+  display: table;
+  overflow-x: visible;
+  white-space: nowrap;
+}
+
+#historyCard {
   overflow-x: auto;
-  white-space: normal;
 }
 
 #historyPager {
@@ -1028,15 +1038,19 @@ body.auth-open {
     display: table;
     width: 100%;
     overflow-x: visible;
-    white-space: normal;
+    white-space: nowrap;
     border-radius: 12px;
-    table-layout: fixed;
+    table-layout: auto;
   }
 
   .history-table th,
   .history-table td {
     font-size: 13px;
     padding: 10px 8px;
+  }
+
+  #historyCard {
+    overflow-x: auto;
   }
 
   #historyPager {
@@ -1674,7 +1688,7 @@ body.auth-open {
 }
 
 #historyCard .history-table {
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 #historyCard .history-table th,
@@ -1683,7 +1697,12 @@ body.auth-open {
 }
 
 #historyCard .history-table td {
-  white-space: normal;
+  white-space: nowrap;
+}
+
+#historyCard .history-table td.bet-cell {
+  white-space: nowrap;
+  font-size: 13px;
 }
 
 
@@ -3212,7 +3231,7 @@ function renderHistory(history = []) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${item.round_code || item.round_number || '-'}</td>
-      <td>${betSummary || '-'}</td>
+      <td class="bet-cell">${betSummary || '-'}</td>
       <td>${item.lucky_number ?? '-'}</td>
       <td style="font-weight:700;color:${resultLower === 'win' ? '#00cc66' : resultLower === 'lose' ? '#ff4d4d' : '#ffd700'};">
         ${resultText}
