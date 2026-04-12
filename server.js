@@ -146,14 +146,9 @@ async function getDeviceSignupStats(deviceFingerprint) {
   };
 }
 
+
 function hashPassword(password) {
   return sha256(`secure-live-game-password:${String(password || '')}`);
-}
-
-function generateRefCode(username) {
-  const base = username.replace(/\s+/g, '').toUpperCase().slice(0, 4);
-  const random = Math.floor(1000 + Math.random() * 9000);
-  return `${base}${random}`;
 }
 
 function isPasswordMatch(user, plainPassword) {
@@ -266,8 +261,6 @@ async function initDatabase() {
       admin_role TEXT DEFAULT 'read_only',
       last_active_at BIGINT DEFAULT 0,
       created_at BIGINT NOT NULL
-      ref_code TEXT UNIQUE,
-      referred_by TEXT
     );
 
     CREATE TABLE IF NOT EXISTS admin_activity_logs (
@@ -522,7 +515,6 @@ async function updateUserSessionToken(userId, sessionToken) {
 }
 
 async function createUserRecord({ username, password, walletBalance = JOINING_BONUS_AMOUNT, isAdmin = false, bonusBalance = null, depositBalance = null, winningBalance = null, deviceFingerprint = '', signupBonusGiven = false }) {
-  const refCode = generateRefCode(username);
   const createdAt = nowMs();
   const resolvedBonusBalance = Number(bonusBalance !== null ? bonusBalance : (isAdmin ? 0 : JOINING_BONUS_AMOUNT));
   const resolvedDepositBalance = Number(depositBalance !== null ? depositBalance : 0);
@@ -535,13 +527,11 @@ async function createUserRecord({ username, password, walletBalance = JOINING_BO
 
   const result = await pool.query(
     `INSERT INTO users (
-    ref_code, referred_by,
       username, password, session_token, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins,
       bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at, device_fingerprint, signup_bonus_given
     )
     VALUES ($1,$2,$3,$4,$5,$6,$7,0,0,0,0,false,$8,$9,0,$10,$11,$12)
-    RETURNING *`,refCode,
-null,
+    RETURNING *`,
     [username, password, crypto.randomUUID(), resolvedWalletBalance, resolvedBonusBalance, resolvedDepositBalance, resolvedWinningBalance, isAdmin, isAdmin ? 'super_admin' : 'read_only', createdAt, sanitizeDeviceFingerprint(deviceFingerprint), Boolean(signupBonusGiven)]
   );
   return normalizeWalletUser(result.rows[0]);
