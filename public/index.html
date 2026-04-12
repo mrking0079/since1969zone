@@ -682,6 +682,8 @@ body.auth-open {
   background: linear-gradient(180deg, #111, #090909);
   box-shadow: 0 20px 44px rgba(0,0,0,0.4);
   padding: 24px;
+  scroll-margin-top: 20px;
+
 }
 
 .auth-card h2 {
@@ -1245,7 +1247,12 @@ body.auth-open {
   #flashSubMessage {
     font-size: 16px !important;
   }
+
+    #authCard {
+    scroll-margin-top: 14px;
+  }
 }
+
 @media (min-width: 1281px) {
   body {
     background:
@@ -1927,8 +1934,8 @@ body.auth-open {
           </p>
 
           <div class="quick-links">
-            <button type="button" class="quick-link-btn" onclick="setAuthMode('login')">Login</button>
-            <button type="button" class="quick-link-btn" onclick="setAuthMode('signup')">Create Account</button>
+            <button type="button" class="quick-link-btn" onclick="setAuthCard('login')">Login</button>
+            <button type="button" class="quick-link-btn" onclick="setAuthCard('signup')">Create Account</button>
             <button type="button" class="quick-link-btn" onclick="document.getElementById('rulesSection').scrollIntoView({ behavior: 'smooth' })">Game Rules</button>
             <button type="button" class="quick-link-btn" onclick="document.getElementById('supportSection').scrollIntoView({ behavior: 'smooth' })">Contact Support</button>
           </div>
@@ -1975,7 +1982,7 @@ body.auth-open {
 
         </div>
 
-        <div class="auth-card">
+        <div id="authCard" class="auth-card">
           <h2 id="authTitle">Account Access</h2>
           <div id="authSubtext" class="auth-subtext">
             <strong>Existing users can log in with their username and password</strong> and open the main game page instantly.
@@ -2075,7 +2082,7 @@ body.auth-open {
 
       <div class="support-actions">
         <a class="support-btn primary" href="https://t.me/x_snny" target="_blank" rel="noopener noreferrer">Open Telegram Support</a>
-        <button type="button" class="support-btn secondary" onclick="setAuthMode('login'); window.scrollTo({ top: 0, behavior: 'smooth' });">Go To Login</button>
+        <button typ<button type="button" class="support-btn secondary" onclick="openAuthCard('login')">Go To Login</button>e="button" class="support-btn secondary" onclick="setAuthMode('login'); window.scrollTo({ top: 0, behavior: 'smooth' });">Go To Login</button>
       </div>
     </section>
   </div>
@@ -2981,6 +2988,26 @@ function setAuthMode(mode) {
     if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
     if (confirmPasswordWrap) confirmPasswordWrap.style.display = 'block';
   }
+}
+
+function openAuthCard(mode) {
+  setAuthMode(mode);
+
+  const authCard = document.getElementById('authCard');
+  const username = document.getElementById('username');
+
+  if (authCard) {
+    authCard.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+  }
+
+  setTimeout(() => {
+    if (username) {
+      username.focus({ preventScroll: true });
+    }
+  }, 350);
 }
 
 function toggleAuthMode() {
