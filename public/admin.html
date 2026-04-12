@@ -670,7 +670,57 @@ button {
     grid-template-columns: 1fr !important;
   }
 }
+/* ===== FINAL ALIGNMENT FIX ===== */
 
+/* MIDDLE 3 BOX PERFECT BALANCE */
+.toolbar-grid {
+  grid-template-columns: 1fr 1fr 1fr !important;
+  align-items: stretch;
+}
+
+/* SAB CARDS SAME HEIGHT */
+.toolbar-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* BOTTOM SECTION FIX */
+.content-layout {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 16px;
+}
+
+/* LIVE OUTPUT FULL WIDTH FEEL */
+#output {
+  min-height: 160px;
+  width: 100%;
+}
+
+/* ADMIN PANEL SAME SIZE */
+.admin-management-panel {
+  height: 100%;
+}
+
+/* LEFT RIGHT BALANCE */
+.left-stack,
+.right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* MOBILE SAFE */
+@media (max-width: 900px) {
+  .toolbar-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .content-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
 </style>
 
 </head>
