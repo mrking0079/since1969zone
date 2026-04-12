@@ -1904,6 +1904,78 @@ body.auth-open {
 .chat-empty{padding:12px;border-radius:12px;background:#101010;color:#aaa;text-align:center;border:1px solid #2f2f2f;}
 @media (max-width:900px){.chat-card{padding:14px;border-radius:16px}.chat-list{max-height:260px}.chat-compose-row{flex-direction:column}}
 
+
+
+.topbar {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+#referralCard .wallet-actions {
+  margin-top: 10px;
+}
+@media (max-width: 900px) {
+  .topbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  #referralCard {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ===== Referral + Mobile Compact Upgrade ===== */
+@media (max-width: 900px) {
+  .game-hero {
+    margin-bottom: 10px;
+    padding: 14px 12px;
+  }
+  .header-mini-strip, .quick-guide, #pwaStatusCard {
+    display: none !important;
+  }
+  .topbar {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+  .topbar .card {
+    padding: 10px;
+    border-radius: 14px;
+  }
+  .wallet-main-box, .lucky-mini-box, .wallet-note {
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 12px;
+  }
+  .wallet-mini-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .wallet-mini-item {
+    padding: 8px;
+  }
+  .big {
+    font-size: 22px;
+  }
+  .lucky-mini-number {
+    font-size: 26px;
+  }
+  .mini-label {
+    font-size: 10px;
+    margin-bottom: 4px;
+  }
+  .wallet-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  #referralCodeDisplay {
+    font-size: 20px !important;
+  }
+  .grid {
+    gap: 10px !important;
+  }
+  #historyCard {
+    margin-top: 10px !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -2022,6 +2094,18 @@ body.auth-open {
     placeholder="Re-enter password"
     autocomplete="new-password"
   />
+</div>
+
+<div id="referralCodeWrap" style="display:none;">
+  <input
+    id="referralCode"
+    class="auth-input"
+    type="text"
+    placeholder="Referral code (optional)"
+    autocomplete="off"
+    style="text-transform:uppercase;"
+  />
+  <div style="margin:-2px 0 12px;color:#bdbdbd;font-size:12px;line-height:1.5;">Referral bonus unlock hoga jab referred user 200 coins play karega.</div>
 </div>
 
 <button id="authMainBtn" type="button" class="auth-main-btn" onclick="handleAuthAction()">
@@ -2210,6 +2294,19 @@ body.auth-open {
         <div id="liveOfferMiniCard">
           <div id="liveOfferMiniTitle">LIVE TODAY OFFER</div>
           <div id="liveOfferText">Loading today offer...</div>
+        </div>
+      </div>
+      <div class="card" id="referralCard">
+        <div class="mini-label">Invite & Earn</div>
+        <div class="wallet-main-box" style="margin-top:4px;">
+          <div class="mini-label" style="margin-bottom:6px;">Your Referral Code</div>
+          <div class="big" id="referralCodeDisplay" style="font-size:28px;">----</div>
+          <div class="muted" id="referralSummaryText" style="margin-top:8px;line-height:1.5;">0 successful / 0 pending referrals</div>
+        </div>
+        <div class="wallet-note" id="referralNote">Referral bonus: 20 coins • Unlock after 200 played coins • First 30 successful referrals only.</div>
+        <div class="wallet-actions">
+          <button id="copyReferralBtn" class="secondary" style="flex:1;">Copy Code</button>
+          <button id="shareReferralBtn" class="secondary" style="flex:1;">Share</button>
         </div>
       </div>
     </div>
@@ -2554,6 +2651,11 @@ withdrawAccountNumberInput: document.getElementById('withdrawAccountNumberInput'
 withdrawReAccountNumberInput: document.getElementById('withdrawReAccountNumberInput'),
 saveWithdrawDetailsBtn: document.getElementById('saveWithdrawDetailsBtn'),
 withdrawSavedStatus: document.getElementById('withdrawSavedStatus'),
+referralCodeDisplay: document.getElementById('referralCodeDisplay'),
+referralSummaryText: document.getElementById('referralSummaryText'),
+referralNote: document.getElementById('referralNote'),
+copyReferralBtn: document.getElementById('copyReferralBtn'),
+shareReferralBtn: document.getElementById('shareReferralBtn'),
 };
 
 const state = {
@@ -2958,6 +3060,8 @@ function setAuthMode(mode) {
   const loginTabBtn = document.getElementById('loginTabBtn');
   const signupTabBtn = document.getElementById('signupTabBtn');
   const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+  const referralCodeWrap = document.getElementById('referralCodeWrap');
+  const referralCodeInput = document.getElementById('referralCode');
 
   if (loginTabBtn) loginTabBtn.classList.toggle('active', mode === 'login');
   if (signupTabBtn) signupTabBtn.classList.toggle('active', mode === 'signup');
@@ -2974,6 +3078,9 @@ function setAuthMode(mode) {
   if (confirmPassword) {
     confirmPassword.value = '';
   }
+  if (referralCodeInput && mode === 'login') {
+    referralCodeInput.value = '';
+  }
 
   if (mode === 'login') {
     if (authTitle) authTitle.textContent = 'Login';
@@ -2983,6 +3090,7 @@ function setAuthMode(mode) {
     if (authHelper) authHelper.textContent = 'After login, you will enter the main game page. After signup, your account will be logged in automatically.';
     if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
     if (confirmPasswordWrap) confirmPasswordWrap.style.display = 'none';
+    if (referralCodeWrap) referralCodeWrap.style.display = 'none';
   } else {
     if (authTitle) authTitle.textContent = 'Create Account';
     if (authSubtext) authSubtext.innerHTML = '<strong>New users can create an account here.</strong> After successful signup, you will automatically enter the main game page.';
@@ -2991,6 +3099,7 @@ function setAuthMode(mode) {
     if (authHelper) authHelper.innerHTML = '<strong>Create your account using a username and password.</strong> Once your account is ready, you can instantly access the game.';
     if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
     if (confirmPasswordWrap) confirmPasswordWrap.style.display = 'block';
+    if (referralCodeWrap) referralCodeWrap.style.display = 'block';
   }
 }
 
@@ -3021,6 +3130,8 @@ function toggleAuthMode() {
 function togglePasswordVisibility() {
   const passwordInput = document.getElementById('password');
   const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+  const referralCodeWrap = document.getElementById('referralCodeWrap');
+  const referralCodeInput = document.getElementById('referralCode');
 
   if (!passwordInput || !togglePasswordBtn) return;
 
@@ -3045,6 +3156,8 @@ function showLandingView() {
   if (username) username.value = '';
   if (password) password.value = '';
   if (confirmPassword) confirmPassword.value = '';
+  const referralCodeInput = document.getElementById('referralCode');
+  if (referralCodeInput) referralCodeInput.value = '';
 
   setAuthMode('login');
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -3104,6 +3217,7 @@ async function signup() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
   const confirmPassword = document.getElementById('confirmPassword').value.trim();
+  const referralCode = (document.getElementById('referralCode')?.value || '').trim().toUpperCase();
 
   if (!name) {
     alert('Enter username');
@@ -3142,6 +3256,37 @@ async function signup() {
   } catch (error) {
     alert(error.message);
   }
+}
+
+
+function buildReferralShareText() {
+  const code = els.referralCodeDisplay?.textContent?.trim() || '';
+  if (!code || code === '----') return '';
+  return `Join Since1969Zone with my referral code ${code}. Referral unlocks after 200 played coins.`;
+}
+
+async function copyReferralCode() {
+  const code = els.referralCodeDisplay?.textContent?.trim() || '';
+  if (!code || code === '----') {
+    showMessage('Referral code not ready');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(code);
+    showMessage('Referral code copied');
+  } catch (error) {
+    showMessage('Copy failed');
+  }
+}
+
+function shareReferralCode() {
+  const text = buildReferralShareText();
+  if (!text) {
+    showMessage('Referral code not ready');
+    return;
+  }
+  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
 }
 
 function showMessage(text) {
@@ -3373,6 +3518,21 @@ function renderServerState() {
   els.totalWins.textContent = data.user.totalWins;
   els.bonusClaimed.textContent = data.user.bonusClaimed;
   els.currentBet.textContent = getCurrentBetTotal();
+
+  if (els.referralCodeDisplay) {
+    els.referralCodeDisplay.textContent = data.user.referralCode || '----';
+  }
+  if (els.referralSummaryText) {
+    const successCount = Number(data.user.referralSuccessfulCount || 0);
+    const pendingCount = Number(data.user.referralPendingCount || 0);
+    const cap = Number(data.user.referralBonusCap || 30);
+    els.referralSummaryText.textContent = `${successCount}/${cap} successful • ${pendingCount} pending`;
+  }
+  if (els.referralNote) {
+    const reward = Number(data.user.referralBonusAmount || 20);
+    const threshold = Number(data.user.referralThreshold || 200);
+    els.referralNote.textContent = `Referral bonus: ${reward} coins • Unlock after ${threshold} played coins • First ${Number(data.user.referralBonusCap || 30)} successful referrals only.`;
+  }
 
   if (data.round) {
     els.statusBadge.textContent =
@@ -4187,6 +4347,9 @@ document.getElementById('password').addEventListener('keydown', (e) => {
 document.getElementById('confirmPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleAuthAction();
 });
+
+if (els.copyReferralBtn) els.copyReferralBtn.addEventListener('click', copyReferralCode);
+if (els.shareReferralBtn) els.shareReferralBtn.addEventListener('click', shareReferralCode);
 
 buildNumbers();
 

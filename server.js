@@ -55,6 +55,9 @@ const DELETED_USERS_FILE = path.join(__dirname, 'deleted-users.json');
 const CHAT_MESSAGE_MAX_LENGTH = 220;
 const CHAT_FETCH_LIMIT = 40;
 const CHAT_REACTIONS = ['👍','❤️','😂','🔥'];
+const REFERRAL_BONUS_AMOUNT = 20;
+const REFERRAL_BONUS_PLAY_THRESHOLD = 200;
+const REFERRAL_BONUS_CAP = 30;
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '20mb' }));
@@ -368,6 +371,9 @@ async function initDatabase() {
     ALTER TABLE withdraw_requests ADD COLUMN IF NOT EXISTS upi_id TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_role TEXT DEFAULT 'read_only';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at BIGINT DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS ref_code TEXT UNIQUE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_bonus_unlocked BOOLEAN DEFAULT FALSE;
   `);
 
   await ensureWalletColumnsReady();
@@ -512,6 +518,66 @@ async function getUserByUsername(username) {
   return normalizeWalletUser(result.rows[0] || null);
 }
 
+async function getUserByRefCode(refCode) {
+  const safeCode = String(refCode || '').trim().toUpperCase();
+  if (!safeCode) return null;
+  const result = await pool.query(`SELECT * FROM users WHERE UPPER(COALESCE(ref_code,'')) = $1 LIMIT 1`, [safeCode]);
+  return normalizeWalletUser(result.rows[0] || null);
+}
+
+async function getReferralSummaryForUser(user) {
+  if (!user?.ref_code) {
+    return { referralCode: '', successfulCount: 0, pendingCount: 0, bonusCap: REFERRAL_BONUS_CAP, bonusAmount: REFERRAL_BONUS_AMOUNT, playThreshold: REFERRAL_BONUS_PLAY_THRESHOLD };
+  }
+  const result = await pool.query(
+    `SELECT
+      COUNT(*) FILTER (WHERE COALESCE(referral_bonus_unlocked, FALSE) = TRUE)::int AS successful_count,
+      COUNT(*) FILTER (WHERE COALESCE(referral_bonus_unlocked, FALSE) = FALSE)::int AS pending_count
+     FROM users
+     WHERE referred_by = $1 AND is_admin = FALSE`,
+    [String(user.ref_code)]
+  );
+  return {
+    referralCode: String(user.ref_code || ''),
+    successfulCount: Number(result.rows[0]?.successful_count || 0),
+    pendingCount: Number(result.rows[0]?.pending_count || 0),
+    bonusCap: REFERRAL_BONUS_CAP,
+    bonusAmount: REFERRAL_BONUS_AMOUNT,
+    playThreshold: REFERRAL_BONUS_PLAY_THRESHOLD
+  };
+}
+
+async function processReferralRewardIfEligible(userId) {
+  const user = await getUser(userId);
+  if (!user || user.is_admin === true) return;
+  if (!user.referred_by) return;
+  if (Boolean(user.referral_bonus_unlocked)) return;
+  if (Number(user.total_played || 0) < REFERRAL_BONUS_PLAY_THRESHOLD) return;
+
+  const referrer = await getUserByRefCode(user.referred_by);
+  if (!referrer || referrer.is_admin === true) {
+    await updateUserFields(user.id, { referral_bonus_unlocked: true });
+    return;
+  }
+
+  const summary = await getReferralSummaryForUser(referrer);
+  const canRewardReferrer = summary.successfulCount < REFERRAL_BONUS_CAP;
+
+  if (canRewardReferrer) {
+    await incrementUserFields(referrer.id, {
+      wallet_balance: REFERRAL_BONUS_AMOUNT,
+      bonus_balance: REFERRAL_BONUS_AMOUNT
+    });
+    await addTransaction(referrer.id, 'referral_bonus_credit', REFERRAL_BONUS_AMOUNT, {
+      referredUserId: Number(user.id),
+      referredUsername: String(user.username || ''),
+      threshold: REFERRAL_BONUS_PLAY_THRESHOLD
+    });
+  }
+
+  await updateUserFields(user.id, { referral_bonus_unlocked: true });
+}
+
 async function getUserBySessionToken(token) {
   const result = await pool.query(`SELECT * FROM users WHERE session_token = $1 LIMIT 1`, [String(token || '').trim()]);
   return normalizeWalletUser(result.rows[0] || null);
@@ -521,7 +587,7 @@ async function updateUserSessionToken(userId, sessionToken) {
   await pool.query(`UPDATE users SET session_token = $1 WHERE id = $2`, [sessionToken, userId]);
 }
 
-async function createUserRecord({ username, password, walletBalance = JOINING_BONUS_AMOUNT, isAdmin = false, bonusBalance = null, depositBalance = null, winningBalance = null, deviceFingerprint = '', signupBonusGiven = false }) {
+async function createUserRecord({ username, password, walletBalance = JOINING_BONUS_AMOUNT, isAdmin = false, bonusBalance = null, depositBalance = null, winningBalance = null, deviceFingerprint = '', signupBonusGiven = false, referredBy = null }) {
   const refCode = generateRefCode(username);
   const createdAt = nowMs();
   const resolvedBonusBalance = Number(bonusBalance !== null ? bonusBalance : (isAdmin ? 0 : JOINING_BONUS_AMOUNT));
@@ -540,7 +606,7 @@ async function createUserRecord({ username, password, walletBalance = JOINING_BO
       wallet_balance, bonus_balance, deposit_balance, winning_balance,
       total_played, total_wins, bonus_claimed, last_bonus_time,
       blocked, is_admin, admin_role, last_active_at, created_at,
-      device_fingerprint, signup_bonus_given
+      device_fingerprint, signup_bonus_given, referral_bonus_unlocked
     )
     VALUES (
       $1, $2,
@@ -548,12 +614,12 @@ async function createUserRecord({ username, password, walletBalance = JOINING_BO
       $6, $7, $8, $9,
       0, 0, 0, 0,
       false, $10, $11, 0, $12,
-      $13, $14
+      $13, $14, FALSE
     )
     RETURNING *`,
     [
       refCode,
-      null,
+      referredBy ? String(referredBy).trim().toUpperCase() : null,
       username,
       password,
       crypto.randomUUID(),
@@ -1150,6 +1216,7 @@ async function buildGameState(userId = DEMO_USER_ID) {
   const placedBet = round ? await getBetForRound(Number(user.id), Number(round.id)) : null;
   const lastSettled = await getLastSettledRound();
   const history = await getRecentHistory(Number(user.id));
+  const referralSummary = await getReferralSummaryForUser(user);
 
   const depositResult = await pool.query(`SELECT * FROM deposit_requests WHERE user_id = $1 ORDER BY created_at DESC`, [user.id]);
   const withdrawResult = await pool.query(`SELECT * FROM withdraw_requests WHERE user_id = $1 ORDER BY created_at DESC`, [user.id]);
@@ -1164,7 +1231,14 @@ async function buildGameState(userId = DEMO_USER_ID) {
       totalPlayedCoins: Number(user.total_played || 0),
       totalWins: Number(user.total_wins || 0),
       bonusClaimed: Number(user.bonus_claimed || 0),
-      lastBonusTime: Number(user.last_bonus_time || 0)
+      lastBonusTime: Number(user.last_bonus_time || 0),
+      referralCode: referralSummary.referralCode,
+      referredBy: String(user.referred_by || ''),
+      referralSuccessfulCount: referralSummary.successfulCount,
+      referralPendingCount: referralSummary.pendingCount,
+      referralBonusCap: referralSummary.bonusCap,
+      referralBonusAmount: referralSummary.bonusAmount,
+      referralThreshold: referralSummary.playThreshold
     },
     round: round ? {
       id: Number(round.id),
@@ -1251,6 +1325,8 @@ async function placeBetTx(userId, roundId, betMap, totalCoins) {
     depositUsed: Number(usage.depositUsed || 0),
     winningUsed: Number(usage.winningUsed || 0)
   });
+
+  await processReferralRewardIfEligible(userId);
 }
 
 async function claimBonusTx(userId) {
@@ -1391,6 +1467,7 @@ app.post('/api/signup', async (req, res) => {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '').trim();
     const deviceFingerprint = sanitizeDeviceFingerprint(req.body?.deviceFingerprint || '');
+    const referralCode = String(req.body?.referralCode || '').trim().toUpperCase();
 
     if (!username) return res.status(400).json({ error: 'Username required' });
     if (!password) return res.status(400).json({ error: 'Password required' });
@@ -1400,6 +1477,17 @@ app.post('/api/signup', async (req, res) => {
 
     const existingUser = await getUserByUsername(username);
     if (existingUser) return res.status(409).json({ error: 'Username already exists' });
+
+    let validReferrer = null;
+    if (referralCode) {
+      validReferrer = await getUserByRefCode(referralCode);
+      if (!validReferrer || validReferrer.is_admin === true) {
+        return res.status(400).json({ error: 'Invalid referral code' });
+      }
+      if (String(validReferrer.username || '').toLowerCase() === username.toLowerCase()) {
+        return res.status(400).json({ error: 'You cannot use your own referral code' });
+      }
+    }
 
     const stats = await getDeviceSignupStats(deviceFingerprint);
     if (stats.totalAccounts >= DEVICE_SIGNUP_LIMIT) {
@@ -1418,12 +1506,17 @@ app.post('/api/signup', async (req, res) => {
       winningBalance: 0,
       isAdmin: false,
       deviceFingerprint,
-      signupBonusGiven: canGiveBonus
+      signupBonusGiven: canGiveBonus,
+      referredBy: validReferrer ? validReferrer.ref_code : null
     });
+
+    const referralSummary = await getReferralSummaryForUser(user);
 
     return res.json({
       success: true,
-      message: 'Signup successful',
+      message: validReferrer
+        ? `Signup successful. Referral will unlock after you play ${REFERRAL_BONUS_PLAY_THRESHOLD} coins.`
+        : 'Signup successful',
       user: {
         id: Number(user.id),
         username: user.username,
@@ -1439,7 +1532,10 @@ app.post('/api/signup', async (req, res) => {
         bonusClaimed: Number(user.bonus_claimed || 0),
         lastBonusTime: Number(user.last_bonus_time || 0),
         isAdmin: false,
-        role: 'user'
+        role: 'user',
+        referralCode: referralSummary.referralCode,
+        referralSuccessfulCount: referralSummary.successfulCount,
+        referralPendingCount: referralSummary.pendingCount
       }
     });
   } catch (error) {
@@ -2590,6 +2686,9 @@ app.get('/api/wallet-history', async (req, res) => {
         } else if (tx.type === 'admin_add_coin') {
           title = 'Admin Added Coins';
           details = `Coins added by admin to ${String(meta.walletType || 'deposit')} balance`;
+        } else if (tx.type === 'referral_bonus_credit') {
+          title = 'Referral Bonus';
+          details = meta.referredUsername ? `Referral unlocked by ${meta.referredUsername}` : 'Referral bonus credited';
         } else if (tx.type === 'admin_withdraw_coin') {
           title = 'Admin Removed Coins';
           details = `Coins removed by admin | Bonus ${Number(meta.bonusUsed || 0)} | Deposit ${Number(meta.depositUsed || 0)} | Winning ${Number(meta.winningUsed || 0)}`;
