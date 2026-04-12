@@ -363,13 +363,178 @@
 .admin-chat-msg{color:#f8fafc;word-break:break-word;}
 .admin-chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
 
+
+/* ===== Since1969 Admin Pro Theme Override ===== */
+body{
+  background:
+    radial-gradient(circle at top left, rgba(109,40,217,0.12), transparent 24%),
+    radial-gradient(circle at top right, rgba(59,130,246,0.10), transparent 20%),
+    linear-gradient(180deg,#040507 0%,#0a0d14 55%,#05070d 100%);
+}
+.box{
+  max-width:1520px;
+  padding:20px;
+  border-radius:30px;
+  background:linear-gradient(180deg, rgba(18,18,24,.98), rgba(10,11,17,.99));
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:0 24px 80px rgba(0,0,0,.48);
+}
+h1{
+  font-size:32px;
+  margin-bottom:6px;
+}
+.subhead{
+  color:#b8c0cc;
+  margin-bottom:18px;
+}
+#panelSection .hero-grid,
+#panelSection .hero-card,
+#panelSection .hero-mini-grid{display:none !important;}
+#panelSection .section-card:first-child{
+  padding:16px;
+  border-radius:24px;
+  background:linear-gradient(180deg,#18181f,#101218);
+  border:1px solid rgba(255,255,255,0.06);
+}
+.dashboard-top-row{
+  margin:0 0 16px;
+  padding:14px 16px;
+  border-radius:18px;
+  background:linear-gradient(180deg,#14161d,#0f1218);
+  border:1px solid rgba(255,255,255,0.07);
+}
+.dashboard-top-label{font-size:18px;}
+.dashboard-top-value{font-size:13px;color:#b7c0ca;}
+.dashboard-filter-trigger-btn,
+.dashboard-top-row button[onclick="adminLogout()"]{
+  min-height:42px;
+  padding:10px 16px;
+  border-radius:12px;
+}
+.dashboard-compact-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+  margin-bottom:14px;
+}
+.dashboard-compact-grid .stat-box{
+  min-height:126px;
+  border-radius:22px;
+  padding:18px;
+  border:none;
+  box-shadow:0 16px 34px rgba(0,0,0,.22);
+  position:relative;
+  overflow:hidden;
+}
+.dashboard-compact-grid .stat-box::after{
+  content:"";
+  position:absolute;
+  inset:auto -12px -18px auto;
+  width:92px;
+  height:92px;
+  border-radius:24px;
+  background:rgba(255,255,255,.12);
+  filter:blur(0.5px);
+  transform:rotate(14deg);
+}
+.dashboard-compact-grid .stat-box:nth-child(1){background:linear-gradient(135deg,#23c2ff,#26d0ce); color:#07131b;}
+.dashboard-compact-grid .stat-box:nth-child(2){background:linear-gradient(135deg,#8b5cf6,#c084fc); color:#140a24;}
+.dashboard-compact-grid .stat-box:nth-child(3){background:linear-gradient(135deg,#ffb11b,#ffd84d); color:#211300;}
+.dashboard-compact-grid .stat-box:nth-child(4){background:linear-gradient(135deg,#ffd84d,#ffe680); color:#2a1c00;}
+.dashboard-compact-grid .stat-box:nth-child(5){background:linear-gradient(135deg,#0f172a,#16233b); border:1px solid rgba(255,255,255,0.07); color:#fff;}
+.dashboard-compact-grid .stat-box:nth-child(6){background:linear-gradient(135deg,#0f172a,#16233b); border:1px solid rgba(255,255,255,0.07); color:#fff;}
+.dashboard-compact-grid .stat-box:nth-child(7){background:linear-gradient(135deg,#0f172a,#16233b); border:1px solid rgba(255,255,255,0.07); color:#fff;}
+.dashboard-compact-grid .stat-box:nth-child(8){background:linear-gradient(135deg,#0f172a,#16233b); border:1px solid rgba(255,255,255,0.07); color:#fff;}
+.dashboard-compact-grid .stat-label{font-size:12px;font-weight:700;color:inherit;opacity:.9;}
+.dashboard-compact-grid .stat-value{font-size:34px;line-height:1.06;color:inherit;}
+#proInsightRow{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:4px;}
+#proInsightRow .stat-box{
+  min-height:104px;
+  border-radius:20px;
+  padding:16px;
+  background:linear-gradient(180deg,#12151d,#0d1017);
+  border:1px solid rgba(255,255,255,0.06);
+}
+#selectedUserInfo{
+  margin-top:14px;
+  border-radius:18px;
+  background:linear-gradient(180deg,#12151d,#0d1017);
+  border:1px solid rgba(255,255,255,0.06);
+  color:#f2f5f8;
+}
+.toolbar-grid{
+  grid-template-columns:1.15fr 1fr 1fr;
+  gap:14px;
+  margin-top:14px;
+}
+.toolbar-card,.live-round-card,.section-card,.surface-card,.admin-chat-card{
+  background:linear-gradient(180deg,#14171f,#0d1016);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:24px;
+  box-shadow:0 14px 34px rgba(0,0,0,.20);
+}
+.toolbar-card{padding:18px;}
+.toolbar-card h3,.live-round-card h3,.panel-title,.section-title{letter-spacing:.2px;}
+.quick-controls-stack{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.quick-controls-stack button,
+.action-grid button,
+.single-action button,
+.admin-actions button,
+.dashboard-filter-actions button,
+.accordion-toggle-row button,
+.support-btn{
+  border-radius:14px;
+}
+.quick-controls-stack button:nth-child(1){background:linear-gradient(135deg,#22c55e,#86efac);color:#06230f;}
+.quick-controls-stack button:nth-child(2){background:linear-gradient(135deg,#ffd84d,#ffe680);color:#2a1c00;}
+.quick-controls-stack button:nth-child(3){background:linear-gradient(135deg,#1d4ed8,#60a5fa);color:#fff;}
+.quick-controls-stack button:nth-child(4){background:linear-gradient(135deg,#8b5cf6,#c084fc);color:#fff;}
+.quick-controls-stack button:nth-child(5),.quick-controls-stack button:nth-child(6){background:linear-gradient(180deg,#171a22,#11141b);color:#fff;border:1px solid rgba(255,255,255,0.06);box-shadow:none;}
+.quick-controls-stack button:nth-child(7){background:linear-gradient(180deg,#171a22,#11141b);color:#fff;border:1px solid rgba(255,255,255,0.06);box-shadow:none;}
+.quick-controls-stack button:nth-child(8){background:linear-gradient(180deg,#171a22,#11141b);color:#fff;border:1px solid rgba(255,255,255,0.06);box-shadow:none;}
+.live-round-card{padding:18px;}
+.admin-mini-live-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.admin-mini-live-box{border-radius:18px;background:linear-gradient(180deg,#10131b,#0b0e14);border:1px solid rgba(255,255,255,0.06);}
+.admin-mini-live-value{font-size:30px;}
+.content-layout{grid-template-columns:minmax(0,1.35fr) minmax(320px,.8fr);gap:16px;}
+.left-stack,.right-stack{gap:16px;}
+pre,#roundInfo,.admin-chat-item,.wallet-history-item,.activity-log-item{
+  border-radius:18px;
+  background:linear-gradient(180deg,#10131a,#0b0e14);
+  border:1px solid rgba(255,255,255,0.06);
+}
+#usersList > div,#transactionsList > div,#depositRequestsList > div,#userHistoryContent > div{
+  border-radius:18px !important;
+  background:linear-gradient(180deg,#11141c,#0c0f16) !important;
+  border:1px solid rgba(255,255,255,0.06) !important;
+}
+.modal-shell{
+  width:min(1280px,100%);
+  border-radius:28px;
+  background:linear-gradient(180deg,#14161d,#0d1016);
+  border:1px solid rgba(255,255,255,0.06);
+}
+.modal-head{background:#10131a;border-bottom:1px solid rgba(255,255,255,0.06);}
+.modal-body{background:linear-gradient(180deg,#11141c,#0b0e14);}
+.footer-note{margin-top:18px;border-radius:0 0 22px 22px;background:#080a0f;}
+@media (max-width:1250px){
+  .toolbar-grid{grid-template-columns:1fr 1fr;}
+  .content-layout{grid-template-columns:1fr;}
+}
+@media (max-width:900px){
+  .box{padding:12px;border-radius:22px;}
+  .dashboard-compact-grid,.toolbar-grid,#proInsightRow,.quick-controls-stack,.admin-mini-live-grid,.content-layout{grid-template-columns:1fr !important;}
+  .dashboard-compact-grid .stat-box{min-height:112px;padding:16px;}
+  .dashboard-compact-grid .stat-value{font-size:28px;}
+  .dashboard-top-row{padding:12px;}
+}
+
 </style>
 
 </head>
 <body>
   <div class="box">
     <h1>Since1969Zone Admin Panel</h1>
-    <div class="subhead">Premium responsive admin control center for users, wallet actions, requests, rounds, live updates and full account history.</div>
+    <div class="subhead">Compact premium black dashboard for users, requests, round control, live updates and full admin actions.</div>
 
 
     <div id="loginSection" class="login-shell">
@@ -399,7 +564,7 @@
     <div id="panelSection" class="hidden">
       <div class="dashboard-shell">
         <div class="section-card">
-          <div class="section-title">Dashboard Overview</div>
+          <div class="section-title">Admin Dashboard</div>
 <div id="dashboardFilterPanel" class="dashboard-filter-panel">
   <div style="font-weight:900;color:#ffd54a;margin-bottom:10px;">History Filters &amp; Export</div>
   <div class="dashboard-filter-grid">
@@ -506,12 +671,12 @@
         <div class="content-layout">
           <div class="left-stack">
             <div id="usersPanel" class="section-card" style="display:none;">
-              <div class="panel-title">Users</div>
+              <div class="panel-title">Manage Users</div>
               <div id="usersList" style="display:grid;gap:10px;"></div>
             </div>
 
             <div class="section-card">
-              <div class="panel-title">Admin Output</div>
+              <div class="panel-title">Live Output</div>
               <pre id="output">Admin action results will appear here....</pre>
             </div>
           </div>
@@ -2606,6 +2771,16 @@ async function clearGlobalChatAdmin() {
 };
   ensureUiContainers();
   if (localStorage.getItem('adminSessionToken')) { applyRoleUi(); setTimeout(loadAdminMiniLiveCard, 600); }
+})();
+</script>
+
+
+<script>
+(function(){
+  const h1 = document.querySelector('h1');
+  if (h1) h1.textContent = 'Since1969 Admin';
+  const topTitle = document.querySelector('#panelSection .section-title');
+  if (topTitle) topTitle.textContent = 'Hello, Admin';
 })();
 </script>
 
