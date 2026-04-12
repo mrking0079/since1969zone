@@ -527,96 +527,7 @@ pre,#roundInfo,.admin-chat-item,.wallet-history-item,.activity-log-item{
   .dashboard-compact-grid .stat-value{font-size:28px;}
   .dashboard-top-row{padding:12px;}
 }
-/* ===== FINAL ADMIN GRID FIX ===== */
-.admin-container {
-  max-width: 1100px;
-  margin: auto;
-  padding: 16px;
-}
-
-.dashboard-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 15px;
-}
-
-.card {
-  background: #0b0f1a;
-  border-radius: 10px;
-  padding: 12px;
-  border: 1px solid rgba(255,215,0,0.1);
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-}
-
-.left-panel,
-.center-panel,
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-button {
-  border-radius: 6px;
-  padding: 6px 10px;
-}
-
-@media (max-width: 900px) {
-  .dashboard-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-/* ===== FINAL PRO POLISH ===== */
-
-/* FULL WIDTH BOX */
-.box {
-  max-width: 1400px !important;
-  width: 95%;
-}
-
-/* TOP CARDS FIX */
-.dashboard-cards {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-/* MAIN GRID BALANCE */
-.dashboard-grid {
-  grid-template-columns: 1.2fr 1fr 1.2fr;
-}
-
-/* RIGHT PANEL BIG */
-.right-panel {
-  min-height: 100%;
-}
-
-/* LIVE OUTPUT FIX */
-#liveOutput {
-  min-height: 120px;
-}
-
-/* LOG PANEL HEIGHT */
-.admin-logs {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-/* CARD HOVER (premium feel) */
-.card:hover {
-  transform: translateY(-2px);
-  transition: 0.2s;
-}
-/* ===== FINAL WIDTH + BALANCE FIX ===== */
-
+/* ===== CLEAN FINAL LAYOUT TUNING ===== */
 .box {
   max-width: 1500px !important;
   width: 96% !important;
@@ -624,13 +535,17 @@ button {
 }
 
 .toolbar-grid {
-  grid-template-columns: 1.15fr 0.9fr 1.15fr !important;
+  grid-template-columns: 1.08fr 0.84fr 1.08fr !important;
   gap: 14px !important;
   align-items: stretch !important;
 }
 
+.toolbar-card {
+  height: auto !important;
+  justify-content: flex-start !important;
+}
+
 .dashboard-compact-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   gap: 12px !important;
 }
 
@@ -651,7 +566,11 @@ button {
 }
 
 #output {
-  min-height: 150px !important;
+  min-height: 160px !important;
+  width: 100%;
+  background: rgba(0,0,0,0.35);
+  border-radius: 14px;
+  padding: 12px;
 }
 
 #adminActivityLogList,
@@ -659,6 +578,20 @@ button {
 .admin-chat-list {
   max-height: 320px !important;
   overflow-y: auto !important;
+}
+
+.card,
+.toolbar-card,
+.section-card {
+  box-shadow: 0 8px 25px rgba(0,0,0,0.55);
+}
+
+button {
+  transition: all 0.2s ease;
+}
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(255,215,0,0.22);
 }
 
 @media (max-width: 1150px) {
@@ -670,112 +603,191 @@ button {
     grid-template-columns: 1fr !important;
   }
 }
-/* ===== FINAL ALIGNMENT FIX ===== */
 
-/* MIDDLE 3 BOX PERFECT BALANCE */
-.toolbar-grid {
-  grid-template-columns: 1fr 1fr 1fr !important;
-  align-items: stretch;
-}
+@media (max-width: 650px) {
+  body {
+    padding: 4px;
+  }
 
-/* SAB CARDS SAME HEIGHT */
-.toolbar-card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
+  .box {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 4px auto 8px !important;
+    padding: 10px !important;
+    border-radius: 18px !important;
+  }
 
-/* BOTTOM SECTION FIX */
-.content-layout {
-  grid-template-columns: 1fr 1fr !important;
-  gap: 16px;
-}
+  h1 {
+    font-size: 20px !important;
+    margin-bottom: 4px !important;
+  }
 
-/* LIVE OUTPUT FULL WIDTH FEEL */
-#output {
-  min-height: 160px;
-  width: 100%;
-}
+  .subhead {
+    font-size: 9px !important;
+    line-height: 1.35 !important;
+    margin: 0 0 8px !important;
+  }
 
-/* ADMIN PANEL SAME SIZE */
-.admin-management-panel {
-  height: 100%;
-}
+  .dashboard-top-row {
+    margin: 0 0 8px !important;
+    padding: 10px !important;
+    gap: 8px !important;
+    border-radius: 14px !important;
+  }
 
-/* LEFT RIGHT BALANCE */
-.left-stack,
-.right-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+  .dashboard-top-label {
+    font-size: 13px !important;
+  }
 
-/* MOBILE SAFE */
-@media (max-width: 900px) {
+  .dashboard-top-value {
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+  }
+
+  .dashboard-compact-grid {
+    grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .dashboard-compact-grid .stat-box {
+    min-height: 74px !important;
+    padding: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .dashboard-compact-grid .stat-label {
+    font-size: 9px !important;
+  }
+
+  .dashboard-compact-grid .stat-value {
+    font-size: 18px !important;
+  }
+
+  #proInsightRow {
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
+  }
+
+  #proInsightRow .stat-box {
+    min-height: 68px !important;
+    padding: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  #proInsightRow .stat-label {
+    font-size: 9px !important;
+  }
+
+  #proInsightRow .stat-value {
+    font-size: 12px !important;
+  }
+
+  #selectedUserInfo {
+    margin-top: 8px !important;
+    padding: 10px 12px !important;
+    font-size: 11px !important;
+    border-radius: 14px !important;
+    line-height: 1.4 !important;
+  }
+
   .toolbar-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1.1fr 0.78fr 1.1fr !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+
+  .toolbar-card,
+  .live-round-card,
+  .section-card,
+  .surface-card,
+  .admin-chat-card {
+    padding: 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .toolbar-card h3,
+  .live-round-card h3,
+  .panel-title,
+  .section-title {
+    font-size: 11px !important;
+    margin: 0 0 8px !important;
+  }
+
+  .quick-controls-stack {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 6px !important;
+  }
+
+  button,
+  .quick-controls-stack button,
+  .action-grid button,
+  .single-action button {
+    min-height: 30px !important;
+    padding: 6px 8px !important;
+    font-size: 9px !important;
+    border-radius: 10px !important;
+  }
+
+  input,
+  textarea,
+  select,
+  .admin-inline-select,
+  .admin-inline-input {
+    padding: 8px 10px !important;
+    font-size: 10px !important;
+    border-radius: 10px !important;
+    margin: 0 0 8px !important;
+    min-height: auto !important;
+  }
+
+  .admin-mini-live-grid {
+    gap: 6px !important;
+  }
+
+  .admin-mini-live-box {
+    padding: 8px !important;
+    border-radius: 12px !important;
+  }
+
+  .admin-mini-live-label {
+    font-size: 8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .admin-mini-live-value {
+    font-size: 18px !important;
+  }
+
+  .admin-mini-live-sub {
+    font-size: 9px !important;
   }
 
   .content-layout {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1.2fr 0.82fr !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
   }
-}
-/* REMOVE EXTRA EMPTY SPACE */
-.toolbar-card {
-  justify-content: flex-start !important;
-  height: auto !important;
-}
-/* ===== PREMIUM FINISH ===== */
 
-/* STAT CARDS GRADIENT */
-.dashboard-compact-grid .stat-box:nth-child(1) {
-  background: linear-gradient(135deg, #00c6ff, #0072ff);
-}
-.dashboard-compact-grid .stat-box:nth-child(2) {
-  background: linear-gradient(135deg, #a855f7, #6366f1);
-}
-.dashboard-compact-grid .stat-box:nth-child(3) {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-}
-.dashboard-compact-grid .stat-box:nth-child(4) {
-  background: linear-gradient(135deg, #fde68a, #facc15);
-  color: #000;
-}
+  .left-stack,
+  .right-stack {
+    gap: 8px !important;
+  }
 
-/* CARD DEPTH */
-.card, .toolbar-card, .section-card {
-  box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-  border: 1px solid rgba(255,215,0,0.15);
-}
+  pre,
+  #output {
+    min-height: 88px !important;
+    font-size: 10px !important;
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
 
-/* BUTTON STYLE */
-button {
-  transition: all 0.2s ease;
-}
-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(255,215,0,0.3);
-}
-
-/* GAP IMPROVEMENT */
-.toolbar-grid {
-  gap: 18px !important;
-}
-.content-layout {
-  gap: 18px !important;
-}
-
-/* LIVE OUTPUT BOX */
-#output {
-  background: rgba(0,0,0,0.4);
-  border-radius: 10px;
-  padding: 10px;
-}
-
-/* LOG PANEL SCROLL SMOOTH */
-#adminActivityLogList {
-  scrollbar-width: thin;
+  .footer-note {
+    margin-top: 8px !important;
+    padding: 10px 8px !important;
+    font-size: 10px !important;
+  }
 }
 
 </style>
@@ -784,7 +796,7 @@ button:hover {
 <body>
   <div class="box">
     <h1>Since1969Zone Admin Panel</h1>
-    <div class="subhead">Compact premium black dashboard for users, requests, round control, live updates and full admin actions.</div>
+    <div class="subhead">Compact premium black dashboard for users, requests, round control, live updates and full admin actions. Mobile app view stays compact in one screen.</div>
 
 
     <div id="loginSection" class="login-shell">
@@ -1147,6 +1159,11 @@ async function refreshRequestCounts() {
   if (!token) return;
 
   try {
+    const reqPreset = getEl('reqFilterPreset')?.value || 'today';
+    const reqFrom = getEl('reqFilterFrom')?.value || '';
+    const reqTo = getEl('reqFilterTo')?.value || '';
+    const reqStatus = getEl('reqFilterStatus')?.value || '';
+
     const res = await fetch('/api/admin/deposit-requests' + buildAdminQuery({ preset: reqPreset, from: reqFrom, to: reqTo, status: reqStatus }), {
       headers: getAdminHeaders()
     });
@@ -1579,11 +1596,6 @@ async function loadLiveUpdatesData() {
           return;
         }
 
-        if (String(data.user?.username || '').toLowerCase() !== 'admin') {
-          loginMsg.textContent = 'Admin account only';
-          return;
-        }
-
         localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
         localStorage.setItem('adminRole', data.user.role || 'super_admin');
         loginMsg.textContent = 'Admin login successful';
@@ -1617,7 +1629,7 @@ hideAllAdminSections();
   }
 
   try {
-    const res = await fetch('/api/admin/users', {
+    const res = await fetch('/api/admin/load-users', {
       headers: getAdminHeaders()
     });
 
@@ -1774,7 +1786,7 @@ if (!confirm(`Add ${amount} ${walletType} coins to ${username}?`)) {
   return;
 }
   try {
-    const res = await fetch('/api/admin/add-coins', {
+    const res = await fetch('/api/admin/add-coin', {
       method: 'POST',
       headers: getAdminHeaders({
   'Content-Type': 'application/json'
@@ -1836,7 +1848,7 @@ if (!confirm(`Withdraw ${amount} ${walletType} coins from ${username}?`)) {
   return;
 }
   try {
-    const res = await fetch('/api/admin/withdraw-coins', {
+    const res = await fetch('/api/admin/withdraw-coin', {
       method: 'POST',
       headers: getAdminHeaders({
   'Content-Type': 'application/json'
@@ -1904,7 +1916,7 @@ async function toggleBlockUser() {
   }
 
   try {
-    const res = await fetch('/api/admin/toggle-block-user', {
+    const res = await fetch('/api/admin/block-user', {
       method: 'POST',
       headers: getAdminHeaders({
   'Content-Type': 'application/json'
@@ -1999,7 +2011,7 @@ async function forceSettleRound() {
   }
 
   try {
-    const res = await fetch('/api/admin/settle', {
+    const res = await fetch('/api/admin/force-settle-round', {
       method: 'POST',
       headers: getAdminHeaders()
     });
@@ -2095,6 +2107,11 @@ list.innerHTML = `<div style="padding:12px;background:#111827;border-radius:10px
   const reqStatus = getEl('reqFilterStatus')?.value || '';
 
   try {
+    const reqPreset = getEl('reqFilterPreset')?.value || 'today';
+    const reqFrom = getEl('reqFilterFrom')?.value || '';
+    const reqTo = getEl('reqFilterTo')?.value || '';
+    const reqStatus = getEl('reqFilterStatus')?.value || '';
+
     const res = await fetch('/api/admin/deposit-requests' + buildAdminQuery({ preset: reqPreset, from: reqFrom, to: reqTo, status: reqStatus }), {
       headers: getAdminHeaders()
     });
@@ -2327,7 +2344,7 @@ async function toggleHistoryUserBlock(username) {
   }
 
   try {
-    const res = await fetch('/api/admin/toggle-block-user', {
+    const res = await fetch('/api/admin/block-user', {
       method: 'POST',
       headers: getAdminHeaders({
         'Content-Type': 'application/json'
@@ -2508,6 +2525,11 @@ async function loadTransactions() {
   list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading transactions.</div>';
 
   try {
+    const txPreset = getEl('txFilterPreset')?.value || 'today';
+    const txFrom = getEl('txFilterFrom')?.value || '';
+    const txTo = getEl('txFilterTo')?.value || '';
+    const txWalletType = getEl('txFilterWalletType')?.value || '';
+
     const res = await fetch('/api/admin/transaction-history' + buildAdminQuery({ preset: txPreset, from: txFrom, to: txTo, walletType: txWalletType }), {
       headers: getAdminHeaders()
     });

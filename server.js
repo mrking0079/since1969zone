@@ -146,9 +146,14 @@ async function getDeviceSignupStats(deviceFingerprint) {
   };
 }
 
-
 function hashPassword(password) {
   return sha256(`secure-live-game-password:${String(password || '')}`);
+}
+
+function generateRefCode(username) {
+  const base = username.replace(/\s+/g, '').toUpperCase().slice(0, 4);
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `${base}${random}`;
 }
 
 function isPasswordMatch(user, plainPassword) {
@@ -260,7 +265,9 @@ async function initDatabase() {
       is_admin BOOLEAN DEFAULT FALSE,
       admin_role TEXT DEFAULT 'read_only',
       last_active_at BIGINT DEFAULT 0,
-      created_at BIGINT NOT NULL
+      created_at BIGINT NOT NULL,
+      ref_code TEXT UNIQUE,
+      referred_by TEXT
     );
 
     CREATE TABLE IF NOT EXISTS admin_activity_logs (
@@ -515,6 +522,7 @@ async function updateUserSessionToken(userId, sessionToken) {
 }
 
 async function createUserRecord({ username, password, walletBalance = JOINING_BONUS_AMOUNT, isAdmin = false, bonusBalance = null, depositBalance = null, winningBalance = null, deviceFingerprint = '', signupBonusGiven = false }) {
+  const refCode = generateRefCode(username);
   const createdAt = nowMs();
   const resolvedBonusBalance = Number(bonusBalance !== null ? bonusBalance : (isAdmin ? 0 : JOINING_BONUS_AMOUNT));
   const resolvedDepositBalance = Number(depositBalance !== null ? depositBalance : 0);
@@ -527,12 +535,38 @@ async function createUserRecord({ username, password, walletBalance = JOINING_BO
 
   const result = await pool.query(
     `INSERT INTO users (
-      username, password, session_token, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins,
-      bonus_claimed, last_bonus_time, blocked, is_admin, admin_role, last_active_at, created_at, device_fingerprint, signup_bonus_given
+      ref_code, referred_by,
+      username, password, session_token,
+      wallet_balance, bonus_balance, deposit_balance, winning_balance,
+      total_played, total_wins, bonus_claimed, last_bonus_time,
+      blocked, is_admin, admin_role, last_active_at, created_at,
+      device_fingerprint, signup_bonus_given
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,0,0,0,0,false,$8,$9,0,$10,$11,$12)
+    VALUES (
+      $1, $2,
+      $3, $4, $5,
+      $6, $7, $8, $9,
+      0, 0, 0, 0,
+      false, $10, $11, 0, $12,
+      $13, $14
+    )
     RETURNING *`,
-    [username, password, crypto.randomUUID(), resolvedWalletBalance, resolvedBonusBalance, resolvedDepositBalance, resolvedWinningBalance, isAdmin, isAdmin ? 'super_admin' : 'read_only', createdAt, sanitizeDeviceFingerprint(deviceFingerprint), Boolean(signupBonusGiven)]
+    [
+      refCode,
+      null,
+      username,
+      password,
+      crypto.randomUUID(),
+      resolvedWalletBalance,
+      resolvedBonusBalance,
+      resolvedDepositBalance,
+      resolvedWinningBalance,
+      isAdmin,
+      isAdmin ? 'super_admin' : 'read_only',
+      createdAt,
+      sanitizeDeviceFingerprint(deviceFingerprint),
+      Boolean(signupBonusGiven)
+    ]
   );
   return normalizeWalletUser(result.rows[0]);
 }
@@ -1518,7 +1552,7 @@ app.get('/api/state', async (req, res) => {
   try {
     await createNextRoundIfNeeded();
     const userId = await getUserIdFromReq(req);
-    return res.json(await buildGameState(userId));
+    return res.json({ ...(await buildGameState(userId)), serverNow: nowMs() });
   } catch (err) {
     console.error('STATE ERROR:', err);
     return res.status(500).json({ error: err.message });
@@ -2194,6 +2228,191 @@ app.post('/api/admin/force-settle-round', adminOnly, requireAdminRoles('super_ad
     return res.json({ success: true, message: 'Round settled successfully' });
   } catch (error) {
     console.error('FORCE SETTLE ERROR:', error);
+    return res.status(400).json({ error: error.message || 'Unable to settle round' });
+  }
+});
+
+
+// Compatibility aliases for admin panel UI
+app.get('/api/admin/users', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'support_admin', 'read_only', 'game_admin'), async (req, res) => {
+  const result = await pool.query(
+    `SELECT id, username, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins, bonus_claimed, blocked, created_at
+     FROM users
+     WHERE is_admin = false
+     ORDER BY id DESC`
+  );
+
+  const users = result.rows.map(user => ({
+    id: Number(user.id),
+    username: user.username,
+    walletBalance: Number(user.wallet_balance || 0),
+    mainBalance: Number(user.wallet_balance || 0),
+    bonusBalance: Number(user.bonus_balance || 0),
+    depositBalance: Number(user.deposit_balance || 0),
+    winningBalance: Number(user.winning_balance || 0),
+    eligibleRequestBalance: Number(user.deposit_balance || 0) + Number(user.winning_balance || 0),
+    totalPlayed: Number(user.total_played || 0),
+    totalWins: Number(user.total_wins || 0),
+    bonusClaimed: Number(user.bonus_claimed || 0),
+    blocked: Boolean(user.blocked),
+    createdAt: Number(user.created_at || 0)
+  }));
+
+  return res.json({ users });
+});
+
+app.post('/api/admin/add-coins', adminOnly, requireAdminRoles('super_admin', 'finance_admin'), async (req, res) => {
+  try {
+    let userId = Number(req.body?.userId || 0);
+    const username = String(req.body?.username || '').trim();
+    const amount = Number(req.body?.amount);
+    const walletType = String(req.body?.walletType || 'deposit').trim().toLowerCase();
+
+    if (!userId && username) {
+      const found = await getUserByUsername(username);
+      userId = Number(found?.id || 0);
+    }
+
+    if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Valid amount required' });
+    if (!['bonus', 'deposit'].includes(walletType)) return res.status(400).json({ error: 'Valid wallet type required' });
+
+    const user = await getUser(userId);
+    if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
+
+    await incrementUserFields(user.id, {
+      wallet_balance: amount,
+      [walletType === 'bonus' ? 'bonus_balance' : 'deposit_balance']: amount
+    });
+    await addTransaction(user.id, 'admin_add_coin', amount, { adminId: req.user.id, walletType });
+
+    const refreshed = await refreshMainBalance(user.id);
+    await logAdminActivity(req.user, 'admin_add_coin', user, { amount, walletType });
+
+    return res.json({
+      success: true,
+      message: `${amount} ${walletType} coins added to ${user.username}`,
+      user: {
+        id: Number(refreshed.id),
+        username: refreshed.username,
+        walletBalance: Number(refreshed.wallet_balance || 0),
+        bonusBalance: Number(refreshed.bonus_balance || 0),
+        depositBalance: Number(refreshed.deposit_balance || 0),
+        winningBalance: Number(refreshed.winning_balance || 0),
+        blocked: Boolean(refreshed.blocked)
+      }
+    });
+  } catch (error) {
+    console.error('ADMIN ADD COINS COMPAT ERROR:', error);
+    return res.status(500).json({ error: 'Unable to add coins' });
+  }
+});
+
+app.post('/api/admin/withdraw-coins', adminOnly, requireAdminRoles('super_admin', 'finance_admin'), async (req, res) => {
+  try {
+    let userId = Number(req.body?.userId || 0);
+    const username = String(req.body?.username || '').trim();
+    const amount = Number(req.body?.amount);
+    const walletType = String(req.body?.walletType || 'deposit').trim().toLowerCase();
+
+    if (!userId && username) {
+      const found = await getUserByUsername(username);
+      userId = Number(found?.id || 0);
+    }
+
+    if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Valid amount required' });
+    if (!['bonus', 'deposit', 'winning'].includes(walletType)) return res.status(400).json({ error: 'Valid wallet type required' });
+
+    const user = await refreshMainBalance(userId);
+    if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
+
+    const selectedWalletKey = `${walletType}_balance`;
+    const selectedWalletAmount = Number(user[selectedWalletKey] || 0);
+    if (selectedWalletAmount < amount) {
+      return res.status(400).json({ error: `${walletType} wallet has insufficient balance` });
+    }
+
+    await incrementUserFields(user.id, {
+      wallet_balance: -amount,
+      [selectedWalletKey]: -amount
+    });
+    await addTransaction(user.id, 'admin_withdraw_coin', -amount, {
+      adminId: req.user.id,
+      walletType,
+      bonusUsed: walletType === 'bonus' ? amount : 0,
+      depositUsed: walletType === 'deposit' ? amount : 0,
+      winningUsed: walletType === 'winning' ? amount : 0
+    });
+
+    const refreshed = await refreshMainBalance(user.id);
+    await logAdminActivity(req.user, 'admin_withdraw_coin', user, { amount, walletType });
+
+    return res.json({
+      success: true,
+      message: `${amount} ${walletType} coins removed from ${user.username}`,
+      user: {
+        id: Number(refreshed.id),
+        username: refreshed.username,
+        walletBalance: Number(refreshed.wallet_balance || 0),
+        bonusBalance: Number(refreshed.bonus_balance || 0),
+        depositBalance: Number(refreshed.deposit_balance || 0),
+        winningBalance: Number(refreshed.winning_balance || 0),
+        blocked: Boolean(refreshed.blocked)
+      }
+    });
+  } catch (error) {
+    console.error('ADMIN WITHDRAW COINS COMPAT ERROR:', error);
+    return res.status(500).json({ error: 'Unable to withdraw coins' });
+  }
+});
+
+app.post('/api/admin/toggle-block-user', adminOnly, requireAdminRoles('super_admin', 'support_admin'), async (req, res) => {
+  try {
+    let userId = Number(req.body?.userId || 0);
+    const username = String(req.body?.username || '').trim();
+
+    if (!userId && username) {
+      const found = await getUserByUsername(username);
+      userId = Number(found?.id || 0);
+    }
+
+    if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'Valid userId required' });
+
+    const user = await getUser(userId);
+    if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
+
+    const nextBlocked = typeof req.body?.blocked === 'boolean' ? Boolean(req.body.blocked) : !Boolean(user.blocked);
+    await setUserBlockedStatus(user.id, nextBlocked);
+
+    return res.json({
+      success: true,
+      message: nextBlocked ? `${user.username} blocked` : `${user.username} unblocked`,
+      user: {
+        id: Number(user.id),
+        username: user.username,
+        blocked: nextBlocked
+      },
+      blocked: nextBlocked
+    });
+  } catch (error) {
+    console.error('TOGGLE BLOCK USER COMPAT ERROR:', error);
+    return res.status(500).json({ error: 'Failed to update block status' });
+  }
+});
+
+app.post('/api/admin/settle', adminOnly, requireAdminRoles('super_admin', 'game_admin'), async (req, res) => {
+  try {
+    const round = await getCurrentRound();
+    if (!round) return res.status(404).json({ error: 'No active round found' });
+
+    await pool.query(`UPDATE rounds SET ends_at = LEAST(ends_at, $1) WHERE id = $2`, [nowMs(), round.id]);
+    await settleRoundTx(round.id);
+    await createNextRoundIfNeeded();
+
+    return res.json({ success: true, message: 'Round settled successfully' });
+  } catch (error) {
+    console.error('SETTLE COMPAT ERROR:', error);
     return res.status(400).json({ error: error.message || 'Unable to settle round' });
   }
 });
