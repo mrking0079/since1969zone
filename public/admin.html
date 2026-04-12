@@ -527,7 +527,55 @@ pre,#roundInfo,.admin-chat-item,.wallet-history-item,.activity-log-item{
   .dashboard-compact-grid .stat-value{font-size:28px;}
   .dashboard-top-row{padding:12px;}
 }
+/* ===== FINAL ADMIN GRID FIX ===== */
+.admin-container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 16px;
+}
 
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.card {
+  background: #0b0f1a;
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255,215,0,0.1);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.left-panel,
+.center-panel,
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+button {
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+@media (max-width: 900px) {
+  .dashboard-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
 
 </head>
