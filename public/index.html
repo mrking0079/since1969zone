@@ -944,7 +944,6 @@ body.auth-open {
     padding: 10px;
   }
 
-  .topbar,
   .grid,
   .side-stack,
   .stat-grid,
@@ -954,7 +953,11 @@ body.auth-open {
   }
 
   .topbar {
-    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .topbar {
+    gap: 8px;
     margin-bottom: 14px;
   }
 
@@ -963,8 +966,8 @@ body.auth-open {
   }
 
   .card {
-    padding: 14px;
-    border-radius: 18px;
+    padding: 10px;
+    border-radius: 16px;
     box-shadow: 0 10px 26px rgba(0,0,0,0.34);
   }
 
@@ -973,12 +976,12 @@ body.auth-open {
   }
 
   .mini-label {
-    font-size: 12px;
-    letter-spacing: 0.9px;
+    font-size: 10px;
+    letter-spacing: 0.7px;
   }
 
   .big {
-    font-size: 28px;
+    font-size: 22px;
   }
 
   .lucky-mini-box {
@@ -988,41 +991,41 @@ body.auth-open {
   }
 
   .lucky-mini-number {
-    font-size: 36px;
+    font-size: 28px;
   }
 
   .numbers {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin: 14px 0;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin: 10px 0;
   }
 
   .num {
-    padding: 10px;
-    border-radius: 16px;
+    padding: 6px;
+    border-radius: 12px;
   }
 
   .num button {
-    width: 56px;
-    height: 56px;
-    font-size: 22px;
-    margin-bottom: 8px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    margin-bottom: 6px;
     box-shadow: 0 6px 14px rgba(255, 215, 0, 0.18);
   }
 
   .num input {
-    padding: 10px;
-    font-size: 14px;
-    border-radius: 12px;
+    padding: 8px 4px;
+    font-size: 12px;
+    border-radius: 10px;
   }
 
   button.primary,
   button.secondary,
   button.danger {
     width: 100%;
-    padding: 13px 14px;
-    font-size: 14px;
-    border-radius: 12px;
+    padding: 10px 10px;
+    font-size: 12px;
+    border-radius: 10px;
   }
 
   .btns {
@@ -1130,14 +1133,42 @@ body.auth-open {
 
   .wallet-mini-grid {
     grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   #logoutBtn,
   #addCoinBtn,
   #withdrawCoinBtn {
     width: 100% !important;
-    font-size: 13px !important;
-    padding: 12px 10px !important;
+    font-size: 12px !important;
+    padding: 10px 8px !important;
+  }
+
+  .top-info-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px;
+  }
+
+  .header-mini-card {
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .header-mini-card strong {
+    font-size: 11px;
+  }
+
+  .header-mini-card span {
+    font-size: 12px;
+  }
+
+  .header-mini-card--status,
+  .header-mini-card--logout {
+    min-height: 100%;
+  }
+
+  .install-status-actions {
+    gap: 6px;
   }
 
   #depositMethodOptions,
@@ -1557,6 +1588,68 @@ body.auth-open {
   font-size: 14px;
   line-height: 1.55;
 }
+.header-mini-toggle {
+  width: 100%;
+  border: 1px solid rgba(255,215,0,0.12);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.header-mini-toggle span {
+  display: none;
+}
+.header-mini-toggle.is-open span {
+  display: block;
+}
+.header-mini-toggle:hover,
+.header-mini-toggle.is-open {
+  border-color: rgba(255,215,0,0.34);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.22);
+}
+.top-info-strip {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+}
+.header-mini-card--status {
+  text-align: center;
+}
+.install-status-actions {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+.header-inline-btn {
+  min-height: 40px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg,#ffe066 0%,#ffd700 45%,#d4a900 100%);
+  color: #111;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 0 18px rgba(255,215,0,0.25), 0 6px 18px rgba(0,0,0,0.35);
+}
+.install-hint {
+  color: #b8b8b8;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.5;
+}
+.header-mini-card--logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 800;
+}
+.wallet-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
 .wallet-breakdown {
   display: grid;
   grid-template-columns: 1fr;
@@ -1656,9 +1749,15 @@ body.auth-open {
 @media (max-width: 1100px) {
   .hero-stats,
   .trust-strip,
-  .header-mini-strip,
   .guide-grid {
     grid-template-columns: 1fr;
+  }
+  .top-info-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .header-mini-card--status,
+  .header-mini-card--logout {
+    grid-column: span 1;
   }
 }
 @media (max-width: 700px) {
@@ -1676,8 +1775,11 @@ body.auth-open {
   .game-hero-note {
     font-size: 13px;
   }
+  .top-info-strip {
+    grid-template-columns: 1fr;
+  }
   .wallet-actions {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1904,78 +2006,6 @@ body.auth-open {
 .chat-empty{padding:12px;border-radius:12px;background:#101010;color:#aaa;text-align:center;border:1px solid #2f2f2f;}
 @media (max-width:900px){.chat-card{padding:14px;border-radius:16px}.chat-list{max-height:260px}.chat-compose-row{flex-direction:column}}
 
-
-
-.topbar {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-#referralCard .wallet-actions {
-  margin-top: 10px;
-}
-@media (max-width: 900px) {
-  .topbar {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-  #referralCard {
-    grid-column: 1 / -1;
-  }
-}
-
-/* ===== Referral + Mobile Compact Upgrade ===== */
-@media (max-width: 900px) {
-  .game-hero {
-    margin-bottom: 10px;
-    padding: 14px 12px;
-  }
-  .header-mini-strip, .quick-guide, #pwaStatusCard {
-    display: none !important;
-  }
-  .topbar {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-    margin-bottom: 10px !important;
-  }
-  .topbar .card {
-    padding: 10px;
-    border-radius: 14px;
-  }
-  .wallet-main-box, .lucky-mini-box, .wallet-note {
-    padding: 10px;
-    margin-top: 8px;
-    border-radius: 12px;
-  }
-  .wallet-mini-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-  .wallet-mini-item {
-    padding: 8px;
-  }
-  .big {
-    font-size: 22px;
-  }
-  .lucky-mini-number {
-    font-size: 26px;
-  }
-  .mini-label {
-    font-size: 10px;
-    margin-bottom: 4px;
-  }
-  .wallet-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-  #referralCodeDisplay {
-    font-size: 20px !important;
-  }
-  .grid {
-    gap: 10px !important;
-  }
-  #historyCard {
-    margin-top: 10px !important;
-  }
-}
-
 </style>
 </head>
 <body>
@@ -2096,18 +2126,6 @@ body.auth-open {
   />
 </div>
 
-<div id="referralCodeWrap" style="display:none;">
-  <input
-    id="referralCode"
-    class="auth-input"
-    type="text"
-    placeholder="Referral code (optional)"
-    autocomplete="off"
-    style="text-transform:uppercase;"
-  />
-  <div style="margin:-2px 0 12px;color:#bdbdbd;font-size:12px;line-height:1.5;">Referral bonus unlock hoga jab referred user 200 coins play karega.</div>
-</div>
-
 <button id="authMainBtn" type="button" class="auth-main-btn" onclick="handleAuthAction()">
   Enter Game
 </button>
@@ -2188,52 +2206,29 @@ body.auth-open {
   Premium Live Game Experience • Fast Play • Clean Wallet Tracking
 </div>
 
-<div class="header-actions">
-  <button id="installBtn" style="
-    display:none;
-    padding:12px 24px;
-    background:linear-gradient(180deg,#ffe066 0%,#ffd700 45%,#d4a900 100%);
-    color:#111;
-    border:none;
-    border-radius:999px;
-    font-size:15px;
-    font-weight:800;
-    letter-spacing:0.4px;
-    cursor:pointer;
-    box-shadow:0 0 18px rgba(255,215,0,0.35), 0 6px 18px rgba(0,0,0,0.35);
-    transition:transform 0.2s ease, box-shadow 0.2s ease;
-  "
-  onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 0 22px rgba(255,215,0,0.5), 0 8px 22px rgba(0,0,0,0.4)'"
-  onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 0 18px rgba(255,215,0,0.35), 0 6px 18px rgba(0,0,0,0.35)'">
-    Install App
-  </button>
-  <div id="installHint" style="display:none;margin-top:10px;color:#b8b8b8;font-size:13px;font-weight:600;text-align:center;max-width:420px;line-height:1.5;">
-    To install, use your browser menu and tap <strong>Install App</strong> or <strong>Open in app</strong>.
-  </div>
-</div>
-
-<div class="header-mini-strip">
-  <div class="header-mini-card">
+<div class="header-mini-strip top-info-strip">
+  <button type="button" class="header-mini-card header-mini-toggle is-open" onclick="toggleHeroInfo(this)">
     <strong>How to Start</strong>
     <span>Login, choose numbers, enter coins, and place your bet before the round closes.</span>
-  </div>
-  <div class="header-mini-card">
+  </button>
+  <button type="button" class="header-mini-card header-mini-toggle" onclick="toggleHeroInfo(this)">
     <strong>What to Track</strong>
     <span>Watch the live timer, latest lucky number, wallet movement, and recent game history.</span>
-  </div>
-  <div class="header-mini-card">
+  </button>
+  <button type="button" class="header-mini-card header-mini-toggle" onclick="toggleHeroInfo(this)">
     <strong>Need Help</strong>
     <span>Use deposit request, withdrawal request, and Telegram support when you need assistance.</span>
+  </button>
+  <div id="pwaStatusCard" class="header-mini-card header-mini-card--status" style="display:none;">
+    <strong>App Install Status</strong>
+    <span id="pwaStatusText">Install Since1969Zone for a faster full-screen experience on mobile.</span>
+    <div class="install-status-actions">
+      <button id="installBtn" type="button" class="header-inline-btn" style="display:none;">Install App</button>
+      <div id="installHint" class="install-hint" style="display:none;">Use your browser menu and tap <strong>Install App</strong> or <strong>Open in app</strong>.</div>
+    </div>
   </div>
+  <button id="logoutBtn" type="button" class="header-mini-card header-mini-card--logout secondary">Logout</button>
 </div>
-</div>
-
-    
-<div id="pwaStatusCard" class="card" style="display:none;margin-top:18px;">
-  <div class="mini-label">App Install Status</div>
-  <div id="pwaStatusText" class="muted" style="line-height:1.7;">
-    Install Since1969Zone for a faster full-screen experience on mobile.
-  </div>
 </div>
 
     <div class="topbar">
@@ -2266,9 +2261,8 @@ body.auth-open {
           </div>
         </div>
 <div class="wallet-actions">
-  <button id="logoutBtn" class="secondary" style="flex:1;">Logout</button>
-  <button id="addCoinBtn" class="secondary" style="flex:1;">Deposit Request</button>
-  <button id="withdrawCoinBtn" class="secondary" style="flex:1;">Withdrawal Request</button>
+  <button id="addCoinBtn" class="secondary">Deposit Request</button>
+  <button id="withdrawCoinBtn" class="secondary">Withdrawal Request</button>
 </div>
       </div>
       <div class="card">
@@ -2294,19 +2288,6 @@ body.auth-open {
         <div id="liveOfferMiniCard">
           <div id="liveOfferMiniTitle">LIVE TODAY OFFER</div>
           <div id="liveOfferText">Loading today offer...</div>
-        </div>
-      </div>
-      <div class="card" id="referralCard">
-        <div class="mini-label">Invite & Earn</div>
-        <div class="wallet-main-box" style="margin-top:4px;">
-          <div class="mini-label" style="margin-bottom:6px;">Your Referral Code</div>
-          <div class="big" id="referralCodeDisplay" style="font-size:28px;">----</div>
-          <div class="muted" id="referralSummaryText" style="margin-top:8px;line-height:1.5;">0 successful / 0 pending referrals</div>
-        </div>
-        <div class="wallet-note" id="referralNote">Referral bonus: 20 coins • Unlock after 200 played coins • First 30 successful referrals only.</div>
-        <div class="wallet-actions">
-          <button id="copyReferralBtn" class="secondary" style="flex:1;">Copy Code</button>
-          <button id="shareReferralBtn" class="secondary" style="flex:1;">Share</button>
         </div>
       </div>
     </div>
@@ -2651,11 +2632,6 @@ withdrawAccountNumberInput: document.getElementById('withdrawAccountNumberInput'
 withdrawReAccountNumberInput: document.getElementById('withdrawReAccountNumberInput'),
 saveWithdrawDetailsBtn: document.getElementById('saveWithdrawDetailsBtn'),
 withdrawSavedStatus: document.getElementById('withdrawSavedStatus'),
-referralCodeDisplay: document.getElementById('referralCodeDisplay'),
-referralSummaryText: document.getElementById('referralSummaryText'),
-referralNote: document.getElementById('referralNote'),
-copyReferralBtn: document.getElementById('copyReferralBtn'),
-shareReferralBtn: document.getElementById('shareReferralBtn'),
 };
 
 const state = {
@@ -3060,8 +3036,6 @@ function setAuthMode(mode) {
   const loginTabBtn = document.getElementById('loginTabBtn');
   const signupTabBtn = document.getElementById('signupTabBtn');
   const togglePasswordBtn = document.getElementById('togglePasswordBtn');
-  const referralCodeWrap = document.getElementById('referralCodeWrap');
-  const referralCodeInput = document.getElementById('referralCode');
 
   if (loginTabBtn) loginTabBtn.classList.toggle('active', mode === 'login');
   if (signupTabBtn) signupTabBtn.classList.toggle('active', mode === 'signup');
@@ -3078,9 +3052,6 @@ function setAuthMode(mode) {
   if (confirmPassword) {
     confirmPassword.value = '';
   }
-  if (referralCodeInput && mode === 'login') {
-    referralCodeInput.value = '';
-  }
 
   if (mode === 'login') {
     if (authTitle) authTitle.textContent = 'Login';
@@ -3090,7 +3061,6 @@ function setAuthMode(mode) {
     if (authHelper) authHelper.textContent = 'After login, you will enter the main game page. After signup, your account will be logged in automatically.';
     if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
     if (confirmPasswordWrap) confirmPasswordWrap.style.display = 'none';
-    if (referralCodeWrap) referralCodeWrap.style.display = 'none';
   } else {
     if (authTitle) authTitle.textContent = 'Create Account';
     if (authSubtext) authSubtext.innerHTML = '<strong>New users can create an account here.</strong> After successful signup, you will automatically enter the main game page.';
@@ -3099,7 +3069,6 @@ function setAuthMode(mode) {
     if (authHelper) authHelper.innerHTML = '<strong>Create your account using a username and password.</strong> Once your account is ready, you can instantly access the game.';
     if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
     if (confirmPasswordWrap) confirmPasswordWrap.style.display = 'block';
-    if (referralCodeWrap) referralCodeWrap.style.display = 'block';
   }
 }
 
@@ -3130,8 +3099,6 @@ function toggleAuthMode() {
 function togglePasswordVisibility() {
   const passwordInput = document.getElementById('password');
   const togglePasswordBtn = document.getElementById('togglePasswordBtn');
-  const referralCodeWrap = document.getElementById('referralCodeWrap');
-  const referralCodeInput = document.getElementById('referralCode');
 
   if (!passwordInput || !togglePasswordBtn) return;
 
@@ -3156,8 +3123,6 @@ function showLandingView() {
   if (username) username.value = '';
   if (password) password.value = '';
   if (confirmPassword) confirmPassword.value = '';
-  const referralCodeInput = document.getElementById('referralCode');
-  if (referralCodeInput) referralCodeInput.value = '';
 
   setAuthMode('login');
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -3217,7 +3182,6 @@ async function signup() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
   const confirmPassword = document.getElementById('confirmPassword').value.trim();
-  const referralCode = (document.getElementById('referralCode')?.value || '').trim().toUpperCase();
 
   if (!name) {
     alert('Enter username');
@@ -3256,37 +3220,6 @@ async function signup() {
   } catch (error) {
     alert(error.message);
   }
-}
-
-
-function buildReferralShareText() {
-  const code = els.referralCodeDisplay?.textContent?.trim() || '';
-  if (!code || code === '----') return '';
-  return `Join Since1969Zone with my referral code ${code}. Referral unlocks after 200 played coins.`;
-}
-
-async function copyReferralCode() {
-  const code = els.referralCodeDisplay?.textContent?.trim() || '';
-  if (!code || code === '----') {
-    showMessage('Referral code not ready');
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(code);
-    showMessage('Referral code copied');
-  } catch (error) {
-    showMessage('Copy failed');
-  }
-}
-
-function shareReferralCode() {
-  const text = buildReferralShareText();
-  if (!text) {
-    showMessage('Referral code not ready');
-    return;
-  }
-  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-  window.open(url, '_blank');
 }
 
 function showMessage(text) {
@@ -3518,21 +3451,6 @@ function renderServerState() {
   els.totalWins.textContent = data.user.totalWins;
   els.bonusClaimed.textContent = data.user.bonusClaimed;
   els.currentBet.textContent = getCurrentBetTotal();
-
-  if (els.referralCodeDisplay) {
-    els.referralCodeDisplay.textContent = data.user.referralCode || '----';
-  }
-  if (els.referralSummaryText) {
-    const successCount = Number(data.user.referralSuccessfulCount || 0);
-    const pendingCount = Number(data.user.referralPendingCount || 0);
-    const cap = Number(data.user.referralBonusCap || 30);
-    els.referralSummaryText.textContent = `${successCount}/${cap} successful • ${pendingCount} pending`;
-  }
-  if (els.referralNote) {
-    const reward = Number(data.user.referralBonusAmount || 20);
-    const threshold = Number(data.user.referralThreshold || 200);
-    els.referralNote.textContent = `Referral bonus: ${reward} coins • Unlock after ${threshold} played coins • First ${Number(data.user.referralBonusCap || 30)} successful referrals only.`;
-  }
 
   if (data.round) {
     els.statusBadge.textContent =
@@ -4348,9 +4266,6 @@ document.getElementById('confirmPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleAuthAction();
 });
 
-if (els.copyReferralBtn) els.copyReferralBtn.addEventListener('click', copyReferralCode);
-if (els.shareReferralBtn) els.shareReferralBtn.addEventListener('click', shareReferralCode);
-
 buildNumbers();
 
 setAuthMode('login');
@@ -4405,23 +4320,34 @@ function isStandaloneMode() {
 function updatePwaStatus() {
   if (!pwaStatusCard || !pwaStatusText) return;
 
-  pwaStatusCard.style.display = 'block';
-
   if (isStandaloneMode()) {
-    pwaStatusText.innerHTML = '<strong style="color:#ffd700;">App Installed:</strong> Since1969Zone is running in app mode.';
+    pwaStatusCard.style.display = 'none';
     if (installBtn) installBtn.style.display = 'none';
     if (installHint) installHint.style.display = 'none';
     return;
   }
 
+  pwaStatusCard.style.display = 'block';
+
   const ua = navigator.userAgent || '';
   const isIOS = /iPhone|iPad|iPod/i.test(ua);
 
   if (isIOS) {
-    pwaStatusText.innerHTML = '<strong style="color:#ffd700;">Install Tip:</strong> Open browser menu and tap <strong>Add to Home Screen</strong> for full-screen app mode.';
+    pwaStatusText.innerHTML = 'Use browser menu and tap <strong>Add to Home Screen</strong> for app mode.';
   } else {
-    pwaStatusText.innerHTML = '<strong style="color:#ffd700;">Install Tip:</strong> Use the Install App button for faster access and cleaner mobile experience.';
+    pwaStatusText.innerHTML = 'Use the Install App button for faster access and cleaner mobile experience.';
   }
+}
+
+function toggleHeroInfo(buttonEl) {
+  const cards = document.querySelectorAll('.header-mini-toggle');
+  cards.forEach(card => {
+    if (card === buttonEl) {
+      card.classList.toggle('is-open');
+    } else {
+      card.classList.remove('is-open');
+    }
+  });
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
