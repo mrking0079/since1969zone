@@ -387,7 +387,7 @@ async function ensureUsersSeeded() {
     {
       id: 999,
       username: 'admin',
-      password: `sha256$${hashPassword('admin123')}`,
+      password: `sha256$${hashPassword('pk0079@sk')}`,
       session_token: '',
       wallet_balance: 0,
       bonus_balance: 0,
