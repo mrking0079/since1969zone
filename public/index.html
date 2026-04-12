@@ -1934,8 +1934,8 @@ body.auth-open {
           </p>
 
           <div class="quick-links">
-            <button type="button" class="quick-link-btn" onclick="setAuthCard('login')">Login</button>
-            <button type="button" class="quick-link-btn" onclick="setAuthCard('signup')">Create Account</button>
+            <button type="button" class="quick-link-btn" onclick="openAuthCard('login')">Login</button>
+<button type="button" class="quick-link-btn" onclick="openAuthCard('signup')">Create Account</button>
             <button type="button" class="quick-link-btn" onclick="document.getElementById('rulesSection').scrollIntoView({ behavior: 'smooth' })">Game Rules</button>
             <button type="button" class="quick-link-btn" onclick="document.getElementById('supportSection').scrollIntoView({ behavior: 'smooth' })">Contact Support</button>
           </div>
@@ -2081,9 +2081,13 @@ body.auth-open {
       </div>
 
       <div class="support-actions">
-        <a class="support-btn primary" href="https://t.me/x_snny" target="_blank" rel="noopener noreferrer">Open Telegram Support</a>
-        <button typ<button type="button" class="support-btn secondary" onclick="openAuthCard('login')">Go To Login</button>e="button" class="support-btn secondary" onclick="setAuthMode('login'); window.scrollTo({ top: 0, behavior: 'smooth' });">Go To Login</button>
-      </div>
+  <a class="support-btn primary" href="https://t.me/x_snny" target="_blank" rel="noopener noreferrer">
+    Open Telegram Support
+  </a>
+  <button type="button" class="support-btn secondary" onclick="openAuthCard('login')">
+    Go To Login
+  </button>
+</div>
     </section>
   </div>
 </div>
