@@ -721,6 +721,63 @@ button {
     grid-template-columns: 1fr !important;
   }
 }
+/* REMOVE EXTRA EMPTY SPACE */
+.toolbar-card {
+  justify-content: flex-start !important;
+  height: auto !important;
+}
+/* ===== PREMIUM FINISH ===== */
+
+/* STAT CARDS GRADIENT */
+.dashboard-compact-grid .stat-box:nth-child(1) {
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+}
+.dashboard-compact-grid .stat-box:nth-child(2) {
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+}
+.dashboard-compact-grid .stat-box:nth-child(3) {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+.dashboard-compact-grid .stat-box:nth-child(4) {
+  background: linear-gradient(135deg, #fde68a, #facc15);
+  color: #000;
+}
+
+/* CARD DEPTH */
+.card, .toolbar-card, .section-card {
+  box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,215,0,0.15);
+}
+
+/* BUTTON STYLE */
+button {
+  transition: all 0.2s ease;
+}
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(255,215,0,0.3);
+}
+
+/* GAP IMPROVEMENT */
+.toolbar-grid {
+  gap: 18px !important;
+}
+.content-layout {
+  gap: 18px !important;
+}
+
+/* LIVE OUTPUT BOX */
+#output {
+  background: rgba(0,0,0,0.4);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* LOG PANEL SCROLL SMOOTH */
+#adminActivityLogList {
+  scrollbar-width: thin;
+}
+
 </style>
 
 </head>
