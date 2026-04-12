@@ -615,6 +615,61 @@ button {
   transform: translateY(-2px);
   transition: 0.2s;
 }
+/* ===== FINAL WIDTH + BALANCE FIX ===== */
+
+.box {
+  max-width: 1500px !important;
+  width: 96% !important;
+  padding: 18px !important;
+}
+
+.toolbar-grid {
+  grid-template-columns: 1.15fr 0.9fr 1.15fr !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+}
+
+.dashboard-compact-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.dashboard-compact-grid .stat-box {
+  min-height: 108px !important;
+  padding: 14px !important;
+}
+
+.content-layout {
+  grid-template-columns: 1.35fr 0.95fr !important;
+  gap: 16px !important;
+  align-items: start !important;
+}
+
+.left-stack,
+.right-stack {
+  gap: 16px !important;
+}
+
+#output {
+  min-height: 150px !important;
+}
+
+#adminActivityLogList,
+.activity-log-grid,
+.admin-chat-list {
+  max-height: 320px !important;
+  overflow-y: auto !important;
+}
+
+@media (max-width: 1150px) {
+  .toolbar-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .content-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
 
 </style>
 
