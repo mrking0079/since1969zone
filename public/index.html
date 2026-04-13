@@ -2059,6 +2059,44 @@ body.auth-open {
   opacity: 1;
 }
 
+.pwa-text-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 10px 12px;
+}
+
+.install-text-btn {
+  background: transparent;
+  border: none;
+  color: #ffd700;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  padding: 0;
+  min-height: auto;
+  width: auto;
+  box-shadow: none;
+  line-height: 1.2;
+}
+
+.install-text-btn:hover {
+  transform: none;
+  box-shadow: none;
+  text-shadow: 0 0 10px rgba(255,215,0,0.22);
+}
+
+.install-text-btn.is-installed {
+  color: #ffe58a;
+}
+
+.install-text-btn:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+
 .install-hint {
   margin-top: 10px;
   color: #b8b8b8;
@@ -2258,6 +2296,13 @@ body.auth-open {
     font-size: 18px;
   }
 }
+
+@media (max-width: 900px) {
+  .install-text-btn {
+    font-size: 16px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -2467,7 +2512,7 @@ body.auth-open {
 </div>
 
 <div class="header-mini-strip top-info-strip">
-  <button type="button" class="header-mini-card header-mini-toggle is-open" onclick="toggleHeroInfo(this)">
+  <button type="button" class="header-mini-card header-mini-toggle" onclick="toggleHeroInfo(this)">
     <strong>How to Start</strong>
     <span>Login, choose numbers, enter coins, and place your bet before the round closes.</span>
   </button>
@@ -2479,8 +2524,8 @@ body.auth-open {
     <strong>Need Help</strong>
     <span>Use deposit request, withdrawal request, and Telegram support when you need assistance.</span>
   </button>
-  <div id="pwaStatusCard" class="header-mini-card header-mini-card--status" style="display:none;">
-    <button id="pwaStatusToggleBtn" type="button" class="install-status-btn">Install</button>
+  <div id="pwaStatusCard" class="header-mini-card header-mini-card--status pwa-text-card" style="display:none;">
+    <button id="pwaStatusToggleBtn" type="button" class="install-text-btn">Install</button>
     <div id="installHint" class="install-hint" style="display:none;">Use your browser menu and tap <strong>Install App</strong> or <strong>Add to Home Screen</strong>.</div>
   </div>
   <button id="logoutBtn" type="button" class="header-mini-card header-mini-card--logout secondary">Logout</button>
@@ -4707,6 +4752,18 @@ if (els.historyNextBtn) {
 loadLiveUpdates();
 setInterval(updateTimer, 1000);
 setInterval(loadState, 2000);
+
+
+function toggleHeroInfo(buttonEl) {
+  const cards = document.querySelectorAll('.header-mini-toggle');
+  cards.forEach(card => {
+    if (card === buttonEl) {
+      card.classList.toggle('is-open');
+    } else {
+      card.classList.remove('is-open');
+    }
+  });
+}
 
 // ===== PWA FINAL POLISH =====
 const installHint = document.getElementById('installHint');
