@@ -1,4 +1,4 @@
-const CACHE_NAME = "since1969zone-v4";
+const CACHE_NAME = "since1969zone-v5";
 const PRECACHE_ASSETS = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {

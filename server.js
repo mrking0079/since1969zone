@@ -561,9 +561,9 @@ async function processReferralRewardIfEligible(userId) {
   }
 
   const summary = await getReferralSummaryForUser(referrer);
-  const canRewardReferrer = summary.successfulCount < REFERRAL_BONUS_CAP;
+  const canRewardPair = summary.successfulCount < REFERRAL_BONUS_CAP;
 
-  if (canRewardReferrer) {
+  if (canRewardPair) {
     await incrementUserFields(referrer.id, {
       wallet_balance: REFERRAL_BONUS_AMOUNT,
       bonus_balance: REFERRAL_BONUS_AMOUNT
@@ -571,7 +571,19 @@ async function processReferralRewardIfEligible(userId) {
     await addTransaction(referrer.id, 'referral_bonus_credit', REFERRAL_BONUS_AMOUNT, {
       referredUserId: Number(user.id),
       referredUsername: String(user.username || ''),
-      threshold: REFERRAL_BONUS_PLAY_THRESHOLD
+      threshold: REFERRAL_BONUS_PLAY_THRESHOLD,
+      rewardSide: 'referrer'
+    });
+
+    await incrementUserFields(user.id, {
+      wallet_balance: REFERRAL_BONUS_AMOUNT,
+      bonus_balance: REFERRAL_BONUS_AMOUNT
+    });
+    await addTransaction(user.id, 'referral_bonus_credit', REFERRAL_BONUS_AMOUNT, {
+      referrerUserId: Number(referrer.id),
+      referrerUsername: String(referrer.username || ''),
+      threshold: REFERRAL_BONUS_PLAY_THRESHOLD,
+      rewardSide: 'referred_user'
     });
   }
 

@@ -2124,6 +2124,14 @@ body.auth-open {
     placeholder="Re-enter password"
     autocomplete="new-password"
   />
+  <input
+    id="referralCodeInput"
+    class="auth-input"
+    type="text"
+    placeholder="Referral code (optional)"
+    autocomplete="off"
+    style="text-transform:uppercase;"
+  />
 </div>
 
 <button id="authMainBtn" type="button" class="auth-main-btn" onclick="handleAuthAction()">
@@ -2220,9 +2228,12 @@ body.auth-open {
     <span>Use deposit request, withdrawal request, and Telegram support when you need assistance.</span>
   </button>
   <div id="pwaStatusCard" class="header-mini-card header-mini-card--status" style="display:none;">
-    <strong>App Install Status</strong>
-    <span id="pwaStatusText">Install Since1969Zone for a faster full-screen experience on mobile.</span>
-    <div class="install-status-actions">
+    <button id="pwaStatusToggleBtn" type="button" class="install-status-btn">
+      <strong>App Install Status</strong>
+      <span id="pwaStatusText">Install Since1969Zone for a faster full-screen experience on mobile.</span>
+      <span class="mini-open-text">Tap to open install options</span>
+    </button>
+    <div class="install-status-actions" id="installStatusActions" style="display:none;">
       <button id="installBtn" type="button" class="header-inline-btn" style="display:none;">Install App</button>
       <div id="installHint" class="install-hint" style="display:none;">Use your browser menu and tap <strong>Install App</strong> or <strong>Open in app</strong>.</div>
     </div>
@@ -2366,11 +2377,12 @@ body.auth-open {
       <div class="side-stack">
         <div class="card">
           <div class="mini-label">Player Stats</div>
-          <div class="stat-grid">
 <div style="margin-bottom:12px;padding:12px;border:1px solid #333;border-radius:14px;background:#111;text-align:center;">
   <div class="mini-label" style="margin-bottom:8px;">Sound Control</div>
   <button id="soundToggleBtn" class="secondary" style="width:100%;">🔊 Sound On</button>
 </div>
+<button id="referEarnBtn" type="button" class="referral-trigger-btn">✨ Refer & Earn</button>
+          <div class="stat-grid">
             <div class="stat">
               <h4>Total Played</h4>
               <p id="totalPlayed">0</p>
@@ -2517,6 +2529,296 @@ body.auth-open {
     <button id="submitWithdrawCoin" class="danger" style="width:100%;">Send Withdrawal Request</button>
   </div>
 </div>
+.referral-trigger-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: linear-gradient(180deg, #ffd700, #d4a900);
+  color: #111;
+  border: none;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(255, 215, 0, 0.22);
+}
+
+.install-status-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  display: grid;
+  gap: 8px;
+}
+
+.install-status-btn strong {
+  color: #ffd700;
+  font-size: 14px;
+}
+
+.install-status-btn span {
+  color: #ededed;
+  line-height: 1.5;
+}
+
+.install-status-btn .mini-open-text {
+  color: #ffd700;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.referral-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  background: rgba(0, 0, 0, 0.88);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.referral-modal-overlay.show {
+  display: flex;
+}
+
+.referral-modal-shell {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 22px;
+  padding: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(255,215,0,0.16), transparent 26%),
+    linear-gradient(180deg, #141414, #090909);
+  border: 1px solid rgba(255,215,0,0.26);
+  box-shadow: 0 22px 60px rgba(0,0,0,0.48), 0 0 24px rgba(255,215,0,0.12);
+}
+
+.referral-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.referral-modal-head h3 {
+  margin: 0 0 6px;
+  color: #ffd700;
+  font-size: 24px;
+}
+
+.referral-modal-head p {
+  margin: 0;
+  color: #d9d9d9;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.referral-close-btn {
+  min-width: 42px;
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid #3a3a3a;
+  background: #161616;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.referral-code-box {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,215,0,0.24);
+  background: linear-gradient(180deg, rgba(255,215,0,0.07), rgba(255,215,0,0.02));
+  margin-bottom: 14px;
+}
+
+.referral-code-label {
+  color: #cfcfcf;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.referral-code-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.referral-code-value {
+  flex: 1;
+  min-width: 0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #0b0b0b;
+  border: 1px solid #3a2d00;
+  color: #ffd700;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.referral-copy-btn {
+  min-width: 120px;
+}
+
+.referral-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.referral-mini-card {
+  padding: 14px;
+  border-radius: 16px;
+  background: #111;
+  border: 1px solid #2c2c2c;
+}
+
+.referral-mini-card strong {
+  display: block;
+  color: #9f9f9f;
+  font-size: 12px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.referral-mini-card span {
+  display: block;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.referral-rule-box {
+  padding: 16px;
+  border-radius: 18px;
+  background: #101010;
+  border: 1px solid #2f2f2f;
+}
+
+.referral-rule-box h4 {
+  margin: 0 0 12px;
+  color: #ffd700;
+  font-size: 16px;
+}
+
+.referral-rule-box .rule-line {
+  color: #e7e7e7;
+  line-height: 1.65;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.referral-status-note {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,215,0,0.08);
+  border: 1px solid rgba(255,215,0,0.16);
+  color: #f1f1f1;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .referral-trigger-btn {
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .install-status-btn strong {
+    font-size: 13px;
+  }
+
+  .referral-modal-shell {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .referral-modal-head h3 {
+    font-size: 20px;
+  }
+
+  .referral-code-value {
+    font-size: 20px;
+    padding: 12px;
+  }
+
+  .referral-mini-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .referral-mini-card span {
+    font-size: 18px;
+  }
+}
+
+
+<div id="referralModal" class="referral-modal-overlay">
+  <div class="referral-modal-shell">
+    <div class="referral-modal-head">
+      <div>
+        <h3>Refer &amp; Earn</h3>
+        <p>Black &amp; gold referral bonus system. Share your code and unlock rewards after valid play.</p>
+      </div>
+      <button id="closeReferralModalBtn" type="button" class="referral-close-btn" aria-label="Close referral popup">&times;</button>
+    </div>
+
+    <div class="referral-code-box">
+      <div class="referral-code-label">Your referral code</div>
+      <div class="referral-code-row">
+        <div id="referralCodeValue" class="referral-code-value">----</div>
+        <button id="copyReferralBtn" type="button" class="secondary referral-copy-btn">Copy Code</button>
+      </div>
+    </div>
+
+    <div class="referral-mini-grid">
+      <div class="referral-mini-card">
+        <strong>Successful</strong>
+        <span id="referralSuccessCount">0</span>
+      </div>
+      <div class="referral-mini-card">
+        <strong>Pending</strong>
+        <span id="referralPendingCount">0</span>
+      </div>
+      <div class="referral-mini-card">
+        <strong>Bonus / User</strong>
+        <span id="referralBonusAmountText">20</span>
+      </div>
+      <div class="referral-mini-card">
+        <strong>Bonus Cap</strong>
+        <span id="referralCapText">30</span>
+      </div>
+    </div>
+
+    <div class="referral-rule-box">
+      <h4>Referral Rules</h4>
+      <div class="rule-line">1. You can refer unlimited users.</div>
+      <div class="rule-line">2. Bonus unlock only for the first <strong>30 successful referrals</strong>.</div>
+      <div class="rule-line">3. Referred user must complete <strong id="referralThresholdText">200</strong> coins play.</div>
+      <div class="rule-line">4. On valid unlock, <strong>both referrer and new user</strong> get <strong id="referralBonusBothText">20 coins</strong>.</div>
+    </div>
+
+    <div id="referralStatusNote" class="referral-status-note">
+      Referral stats will appear here.
+    </div>
+  </div>
+</div>
 
 <div id="confirmActionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100000;align-items:center;justify-content:center;padding:20px;">
   <div style="width:100%;max-width:420px;background:#111;border:1px solid #333;border-radius:18px;padding:20px;text-align:center;">
@@ -2568,6 +2870,18 @@ flashSubMessage: document.getElementById('flashSubMessage'),
   winningWalletBalance: document.getElementById('winningWalletBalance'),
   walletEligibilityNote: document.getElementById('walletEligibilityNote'),
   logoutBtn: document.getElementById('logoutBtn'),
+  referEarnBtn: document.getElementById('referEarnBtn'),
+  referralModal: document.getElementById('referralModal'),
+  closeReferralModalBtn: document.getElementById('closeReferralModalBtn'),
+  copyReferralBtn: document.getElementById('copyReferralBtn'),
+  referralCodeValue: document.getElementById('referralCodeValue'),
+  referralSuccessCount: document.getElementById('referralSuccessCount'),
+  referralPendingCount: document.getElementById('referralPendingCount'),
+  referralBonusAmountText: document.getElementById('referralBonusAmountText'),
+  referralBonusBothText: document.getElementById('referralBonusBothText'),
+  referralCapText: document.getElementById('referralCapText'),
+  referralThresholdText: document.getElementById('referralThresholdText'),
+  referralStatusNote: document.getElementById('referralStatusNote'),
   globalChatMount: document.getElementById('globalChatMount'),
   soundToggleBtn: document.getElementById('soundToggleBtn'),
   timer: document.getElementById('timer'),
@@ -3111,6 +3425,55 @@ function togglePasswordVisibility() {
   }
 }
 
+
+function hydrateReferralUi(userData = {}) {
+  const referralCode = String(userData.referralCode || '').trim().toUpperCase() || '----';
+  const successfulCount = Number(userData.referralSuccessfulCount || 0);
+  const pendingCount = Number(userData.referralPendingCount || 0);
+  const bonusAmount = Number(userData.referralBonusAmount || 20);
+  const bonusCap = Number(userData.referralBonusCap || 30);
+  const threshold = Number(userData.referralThreshold || 200);
+
+  if (els.referralCodeValue) els.referralCodeValue.textContent = referralCode;
+  if (els.referralSuccessCount) els.referralSuccessCount.textContent = String(successfulCount);
+  if (els.referralPendingCount) els.referralPendingCount.textContent = String(pendingCount);
+  if (els.referralBonusAmountText) els.referralBonusAmountText.textContent = String(bonusAmount);
+  if (els.referralBonusBothText) els.referralBonusBothText.textContent = String(bonusAmount) + ' coins';
+  if (els.referralCapText) els.referralCapText.textContent = String(bonusCap);
+  if (els.referralThresholdText) els.referralThresholdText.textContent = String(threshold);
+
+  if (els.referralStatusNote) {
+    const remainingBonusSlots = Math.max(0, bonusCap - successfulCount);
+    els.referralStatusNote.innerHTML = remainingBonusSlots > 0
+      ? `You have <strong>${remainingBonusSlots}</strong> bonus slots left. Pending users must finish <strong>${threshold}</strong> coins play to unlock rewards.`
+      : `Your first <strong>${bonusCap}</strong> referral bonuses are already used. New referrals can still join, but bonus will not unlock now.`;
+  }
+}
+
+function openReferralModal() {
+  hydrateReferralUi(state.server?.user || currentUser || {});
+  if (els.referralModal) els.referralModal.classList.add('show');
+}
+
+function closeReferralModal() {
+  if (els.referralModal) els.referralModal.classList.remove('show');
+}
+
+async function copyReferralCode() {
+  const code = String(state.server?.user?.referralCode || currentUser?.referralCode || '').trim().toUpperCase();
+  if (!code) {
+    showMessage('Referral code not ready yet');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(code);
+    showMessage('Referral code copied');
+  } catch (error) {
+    showMessage('Unable to copy referral code');
+  }
+}
+
 function showLandingView() {
   document.body.classList.add('auth-open');
   document.getElementById('loginBox').style.display = 'flex';
@@ -3119,10 +3482,12 @@ function showLandingView() {
   const username = document.getElementById('username');
   const password = document.getElementById('password');
   const confirmPassword = document.getElementById('confirmPassword');
+  const referralCodeInput = document.getElementById('referralCodeInput');
 
   if (username) username.value = '';
   if (password) password.value = '';
   if (confirmPassword) confirmPassword.value = '';
+  if (referralCodeInput) referralCodeInput.value = '';
 
   setAuthMode('login');
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -3182,6 +3547,7 @@ async function signup() {
   const name = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
   const confirmPassword = document.getElementById('confirmPassword').value.trim();
+  const referralCode = document.getElementById('referralCodeInput').value.trim().toUpperCase();
 
   if (!name) {
     alert('Enter username');
@@ -3206,7 +3572,7 @@ async function signup() {
   try {
     const data = await api('/api/signup', {
       method: 'POST',
-      body: JSON.stringify({ username: name, password, deviceFingerprint: generateDeviceFingerprint() })
+      body: JSON.stringify({ username: name, password, deviceFingerprint: generateDeviceFingerprint(), referralCode })
     });
 
     currentUser = data.user;
@@ -3451,6 +3817,13 @@ function renderServerState() {
   els.totalWins.textContent = data.user.totalWins;
   els.bonusClaimed.textContent = data.user.bonusClaimed;
   els.currentBet.textContent = getCurrentBetTotal();
+  currentUser = {
+    ...(currentUser || {}),
+    ...(data.user || {}),
+    sessionToken: currentUser?.sessionToken || ''
+  };
+  localStorage.setItem('user', JSON.stringify(currentUser));
+  hydrateReferralUi(data.user || {});
 
   if (data.round) {
     els.statusBadge.textContent =
@@ -3738,6 +4111,24 @@ els.soundToggleBtn.addEventListener('click', () => {
   localStorage.setItem('soundEnabled', String(soundEnabled));
   els.soundToggleBtn.textContent = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
 });
+
+if (els.referEarnBtn) {
+  els.referEarnBtn.addEventListener('click', openReferralModal);
+}
+
+if (els.closeReferralModalBtn) {
+  els.closeReferralModalBtn.addEventListener('click', closeReferralModal);
+}
+
+if (els.copyReferralBtn) {
+  els.copyReferralBtn.addEventListener('click', copyReferralCode);
+}
+
+if (els.referralModal) {
+  els.referralModal.addEventListener('click', (e) => {
+    if (e.target === els.referralModal) closeReferralModal();
+  });
+}
 
 els.logoutBtn.addEventListener('click', () => {
   currentUser = null;
@@ -4266,6 +4657,12 @@ document.getElementById('confirmPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleAuthAction();
 });
 
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeReferralModal();
+  }
+});
+
 buildNumbers();
 
 setAuthMode('login');
@@ -4311,6 +4708,8 @@ const installBtn = document.getElementById('installBtn');
 const installHint = document.getElementById('installHint');
 const pwaStatusCard = document.getElementById('pwaStatusCard');
 const pwaStatusText = document.getElementById('pwaStatusText');
+const pwaStatusToggleBtn = document.getElementById('pwaStatusToggleBtn');
+const installStatusActions = document.getElementById('installStatusActions');
 let deferredPrompt = null;
 
 function isStandaloneMode() {
@@ -4324,6 +4723,7 @@ function updatePwaStatus() {
     pwaStatusCard.style.display = 'none';
     if (installBtn) installBtn.style.display = 'none';
     if (installHint) installHint.style.display = 'none';
+    if (installStatusActions) installStatusActions.style.display = 'none';
     return;
   }
 
@@ -4347,6 +4747,16 @@ function toggleHeroInfo(buttonEl) {
     } else {
       card.classList.remove('is-open');
     }
+  });
+}
+
+if (pwaStatusToggleBtn) {
+  pwaStatusToggleBtn.addEventListener('click', () => {
+    if (isStandaloneMode()) return;
+    if (!installStatusActions) return;
+    const shouldOpen = installStatusActions.style.display !== 'block';
+    installStatusActions.style.display = shouldOpen ? 'block' : 'none';
+    if (!shouldOpen && installHint) installHint.style.display = 'none';
   });
 }
 
