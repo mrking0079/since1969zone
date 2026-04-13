@@ -1697,6 +1697,10 @@ if (selectedUsername) {
       <div><strong>Total Played:</strong> ${user.totalPlayed}</div>
       <div><strong>Total Wins:</strong> ${user.totalWins}</div>
       <div><strong>Bonus Claimed:</strong> ${user.bonusClaimed}</div>
+      <div><strong>Referral Code:</strong> ${user.referralCode || '-'}</div>
+      <div><strong>Referral:</strong> Success ${user.referralSuccessfulCount || 0} | Pending ${user.referralPendingCount || 0}</div>
+      <div><strong>Used Code:</strong> ${user.referredBy || '-'}</div>
+      <div><strong>Referral Unlock:</strong> ${user.referralBonusUnlocked ? 'Unlocked' : 'Pending / None'}</div>
       <div><strong>Status:</strong> ${user.blocked ? 'Blocked' : 'Active'}</div>
     </div>
   `).join('');
@@ -1728,6 +1732,10 @@ function renderSelectedUserCard(user) {
     <div><strong>Selected user:</strong> ${user.username}</div>
     <div><strong>Status:</strong> ${blockedText}</div>
     <div><strong>Eligible Request:</strong> ${eligibleWallet}</div>
+    <div><strong>Referral Code:</strong> ${user.referralCode || '-'}</div>
+    <div><strong>Used Code:</strong> ${user.referredBy || '-'}</div>
+    <div><strong>Referral Stats:</strong> Success ${user.referralSuccessfulCount || 0} | Pending ${user.referralPendingCount || 0}</div>
+    <div><strong>Referral Unlock:</strong> ${user.referralBonusUnlocked ? 'Unlocked' : 'Pending / None'}</div>
   `;
 
   if (liveCard) {

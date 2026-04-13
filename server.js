@@ -1400,6 +1400,7 @@ app.post('/api/login', async (req, res) => {
 
     const newSessionToken = crypto.randomUUID();
     await updateUserSessionToken(user.id, newSessionToken);
+    const referralSummary = await getReferralSummaryForUser(user);
 
     return res.json({
       success: true,
@@ -1417,7 +1418,13 @@ app.post('/api/login', async (req, res) => {
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
         lastBonusTime: Number(user.last_bonus_time || 0),
-        role: user.admin_role || (user.is_admin ? 'super_admin' : 'read_only')
+        role: user.admin_role || (user.is_admin ? 'super_admin' : 'read_only'),
+        referralCode: referralSummary.referralCode,
+        referralSuccessfulCount: referralSummary.successfulCount,
+        referralPendingCount: referralSummary.pendingCount,
+        referralBonusCap: referralSummary.bonusCap,
+        referralBonusAmount: referralSummary.bonusAmount,
+        referralThreshold: referralSummary.playThreshold
       }
     });
   } catch (error) {
@@ -1942,10 +1949,38 @@ app.get('/api/admin/dashboard-stats', adminOnly, requireAdminRoles('super_admin'
 
 app.get('/api/admin/load-users', adminOnly, requireAdminRoles('super_admin', 'finance_admin', 'support_admin', 'read_only', 'game_admin'), async (req, res) => {
   const result = await pool.query(
-    `SELECT id, username, wallet_balance, bonus_balance, deposit_balance, winning_balance, total_played, total_wins, bonus_claimed, blocked, created_at
-     FROM users
-     WHERE is_admin = false
-     ORDER BY id DESC`
+    `SELECT
+        u.id,
+        u.username,
+        u.wallet_balance,
+        u.bonus_balance,
+        u.deposit_balance,
+        u.winning_balance,
+        u.total_played,
+        u.total_wins,
+        u.bonus_claimed,
+        u.blocked,
+        u.created_at,
+        u.ref_code,
+        u.referred_by,
+        COALESCE(u.referral_bonus_unlocked, FALSE) AS referral_bonus_unlocked,
+        (
+          SELECT COUNT(*)::int
+          FROM users r
+          WHERE r.referred_by = u.ref_code
+            AND r.is_admin = FALSE
+            AND COALESCE(r.referral_bonus_unlocked, FALSE) = TRUE
+        ) AS referral_successful_count,
+        (
+          SELECT COUNT(*)::int
+          FROM users r
+          WHERE r.referred_by = u.ref_code
+            AND r.is_admin = FALSE
+            AND COALESCE(r.referral_bonus_unlocked, FALSE) = FALSE
+        ) AS referral_pending_count
+     FROM users u
+     WHERE u.is_admin = false
+     ORDER BY u.id DESC`
   );
 
   const users = result.rows.map(user => ({
@@ -1961,7 +1996,12 @@ app.get('/api/admin/load-users', adminOnly, requireAdminRoles('super_admin', 'fi
     totalWins: Number(user.total_wins || 0),
     bonusClaimed: Number(user.bonus_claimed || 0),
     blocked: Boolean(user.blocked),
-    createdAt: Number(user.created_at || 0)
+    createdAt: Number(user.created_at || 0),
+    referralCode: String(user.ref_code || ''),
+    referredBy: String(user.referred_by || ''),
+    referralBonusUnlocked: Boolean(user.referral_bonus_unlocked),
+    referralSuccessfulCount: Number(user.referral_successful_count || 0),
+    referralPendingCount: Number(user.referral_pending_count || 0)
   }));
 
   return res.json({ users });

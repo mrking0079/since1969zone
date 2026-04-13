@@ -2892,15 +2892,20 @@ let chatReactionOptions = ['👍','❤️','😂','🔥'];
 let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
 let lastFlashedRoundId = null;
 let flashInitialized = false;
+let manualLogoutTriggered = localStorage.getItem('manualLogout') === '1';
+
 
 const savedUser = localStorage.getItem('user');
-if (savedUser) {
+if (!manualLogoutTriggered && savedUser) {
   try {
     currentUser = JSON.parse(savedUser);
   } catch (e) {
     localStorage.removeItem('user');
     currentUser = null;
   }
+} else if (manualLogoutTriggered) {
+  localStorage.removeItem('user');
+  currentUser = null;
 }
 
 const els = {
@@ -3528,6 +3533,7 @@ function showLandingView() {
   document.body.classList.add('auth-open');
   document.getElementById('loginBox').style.display = 'flex';
   document.querySelector('.wrap').style.display = 'none';
+  state.server = null;
 
   const username = document.getElementById('username');
   const password = document.getElementById('password');
@@ -3580,6 +3586,8 @@ async function login() {
 
     currentUser = data.user;
     localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.removeItem('manualLogout');
+    manualLogoutTriggered = false;
 
     showGameView();
 
@@ -3627,6 +3635,8 @@ async function signup() {
 
     currentUser = data.user;
     localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.removeItem('manualLogout');
+    manualLogoutTriggered = false;
 
     showGameView();
 
@@ -4182,6 +4192,9 @@ if (els.referralModal) {
 
 els.logoutBtn.addEventListener('click', () => {
   currentUser = null;
+  state.server = null;
+  localStorage.setItem('manualLogout', '1');
+  manualLogoutTriggered = true;
   localStorage.removeItem('user');
   stopGlobalChatPolling();
   showLandingView();
