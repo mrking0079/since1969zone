@@ -2228,15 +2228,8 @@ body.auth-open {
     <span>Use deposit request, withdrawal request, and Telegram support when you need assistance.</span>
   </button>
   <div id="pwaStatusCard" class="header-mini-card header-mini-card--status" style="display:none;">
-    <button id="pwaStatusToggleBtn" type="button" class="install-status-btn">
-      <strong>App Install Status</strong>
-      <span id="pwaStatusText">Install Since1969Zone for a faster full-screen experience on mobile.</span>
-      <span class="mini-open-text">Tap to open install options</span>
-    </button>
-    <div class="install-status-actions" id="installStatusActions" style="display:none;">
-      <button id="installBtn" type="button" class="header-inline-btn" style="display:none;">Install App</button>
-      <div id="installHint" class="install-hint" style="display:none;">Use your browser menu and tap <strong>Install App</strong> or <strong>Open in app</strong>.</div>
-    </div>
+    <button id="pwaStatusToggleBtn" type="button" class="install-status-btn">Install</button>
+    <div id="installHint" class="install-hint" style="display:none;">Use your browser menu and tap <strong>Install App</strong> or <strong>Add to Home Screen</strong>.</div>
   </div>
   <button id="logoutBtn" type="button" class="header-mini-card header-mini-card--logout secondary">Logout</button>
 </div>
@@ -2381,7 +2374,7 @@ body.auth-open {
   <div class="mini-label" style="margin-bottom:8px;">Sound Control</div>
   <button id="soundToggleBtn" class="secondary" style="width:100%;">🔊 Sound On</button>
 </div>
-<button id="referEarnBtn" type="button" class="referral-trigger-btn">✨ Refer & Earn</button>
+<button id="referEarnBtn" type="button" class="referral-trigger-btn">✨ Refer &amp; Earn</button>
           <div class="stat-grid">
             <div class="stat">
               <h4>Total Played</h4>
@@ -2545,32 +2538,48 @@ body.auth-open {
 
 .install-status-btn {
   width: 100%;
-  background: transparent;
-  border: none;
-  padding: 0;
-  text-align: left;
+  min-height: 82px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(180deg,#1c1c1c 0%, #101010 100%);
+  border: 1px solid rgba(255,215,0,0.24);
+  border-radius: 16px;
+  color: #ffd700;
+  padding: 14px 18px;
   cursor: pointer;
-  color: inherit;
-  display: grid;
-  gap: 8px;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 22px rgba(0,0,0,0.24);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
 }
 
-.install-status-btn strong {
-  color: #ffd700;
-  font-size: 14px;
+.install-status-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,215,0,0.46);
+  box-shadow: 0 0 18px rgba(255,215,0,0.14), 0 10px 24px rgba(0,0,0,0.28);
 }
 
-.install-status-btn span {
-  color: #ededed;
-  line-height: 1.5;
+.install-status-btn.is-installed {
+  color: #ffe58a;
+  border-color: rgba(255,215,0,0.34);
+  background: linear-gradient(180deg,#171717 0%, #0d0d0d 100%);
 }
 
-.install-status-btn .mini-open-text {
-  color: #ffd700;
+.install-status-btn:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.install-hint {
+  margin-top: 10px;
+  color: #b8b8b8;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.5;
 }
 
 .referral-modal-overlay {
@@ -2734,42 +2743,7 @@ body.auth-open {
 }
 
 @media (max-width: 900px) {
-  .referral-trigger-btn {
-    font-size: 13px;
-    padding: 10px 12px;
-    border-radius: 12px;
-  }
-
-  .install-status-btn strong {
-    font-size: 13px;
-  }
-
-  .referral-modal-shell {
-    padding: 16px;
-    border-radius: 18px;
-  }
-
-  .referral-modal-head h3 {
-    font-size: 20px;
-  }
-
-  .referral-code-value {
-    font-size: 20px;
-    padding: 12px;
-  }
-
-  .referral-mini-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .referral-mini-card span {
-    font-size: 18px;
-  }
-}
-
-
-<div id="referralModal" class="referral-modal-overlay">
+  <div id="referralModal" class="referral-modal-overlay">
   <div class="referral-modal-shell">
     <div class="referral-modal-head">
       <div>
@@ -4704,12 +4678,9 @@ setInterval(updateTimer, 1000);
 setInterval(loadState, 2000);
 
 // ===== PWA FINAL POLISH =====
-const installBtn = document.getElementById('installBtn');
 const installHint = document.getElementById('installHint');
 const pwaStatusCard = document.getElementById('pwaStatusCard');
-const pwaStatusText = document.getElementById('pwaStatusText');
 const pwaStatusToggleBtn = document.getElementById('pwaStatusToggleBtn');
-const installStatusActions = document.getElementById('installStatusActions');
 let deferredPrompt = null;
 
 function isStandaloneMode() {
@@ -4717,77 +4688,50 @@ function isStandaloneMode() {
 }
 
 function updatePwaStatus() {
-  if (!pwaStatusCard || !pwaStatusText) return;
-
-  if (isStandaloneMode()) {
-    pwaStatusCard.style.display = 'none';
-    if (installBtn) installBtn.style.display = 'none';
-    if (installHint) installHint.style.display = 'none';
-    if (installStatusActions) installStatusActions.style.display = 'none';
-    return;
-  }
+  if (!pwaStatusCard || !pwaStatusToggleBtn) return;
 
   pwaStatusCard.style.display = 'block';
 
-  const ua = navigator.userAgent || '';
-  const isIOS = /iPhone|iPad|iPod/i.test(ua);
-
-  if (isIOS) {
-    pwaStatusText.innerHTML = 'Use browser menu and tap <strong>Add to Home Screen</strong> for app mode.';
-  } else {
-    pwaStatusText.innerHTML = 'Use the Install App button for faster access and cleaner mobile experience.';
+  if (isStandaloneMode()) {
+    pwaStatusToggleBtn.textContent = 'App Installed';
+    pwaStatusToggleBtn.classList.add('is-installed');
+    pwaStatusToggleBtn.disabled = true;
+    if (installHint) installHint.style.display = 'none';
+    return;
   }
-}
 
-function toggleHeroInfo(buttonEl) {
-  const cards = document.querySelectorAll('.header-mini-toggle');
-  cards.forEach(card => {
-    if (card === buttonEl) {
-      card.classList.toggle('is-open');
-    } else {
-      card.classList.remove('is-open');
-    }
-  });
+  pwaStatusToggleBtn.textContent = 'Install';
+  pwaStatusToggleBtn.classList.remove('is-installed');
+  pwaStatusToggleBtn.disabled = false;
 }
 
 if (pwaStatusToggleBtn) {
-  pwaStatusToggleBtn.addEventListener('click', () => {
+  pwaStatusToggleBtn.addEventListener('click', async () => {
     if (isStandaloneMode()) return;
-    if (!installStatusActions) return;
-    const shouldOpen = installStatusActions.style.display !== 'block';
-    installStatusActions.style.display = shouldOpen ? 'block' : 'none';
-    if (!shouldOpen && installHint) installHint.style.display = 'none';
+
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      try {
+        await deferredPrompt.userChoice;
+      } catch (e) {}
+      deferredPrompt = null;
+      updatePwaStatus();
+      return;
+    }
+
+    if (installHint) installHint.style.display = 'block';
   });
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  if (installBtn) installBtn.style.display = 'inline-flex';
   if (installHint) installHint.style.display = 'none';
   updatePwaStatus();
 });
 
-if (installBtn) {
-  installBtn.addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      try { await deferredPrompt.userChoice; } catch (e) {}
-      deferredPrompt = null;
-      updatePwaStatus();
-      return;
-    }
-
-    if (installHint) {
-      installHint.style.display = 'block';
-    }
-    updatePwaStatus();
-  });
-}
-
 window.addEventListener('appinstalled', () => {
   deferredPrompt = null;
-  if (installBtn) installBtn.style.display = 'none';
   if (installHint) installHint.style.display = 'none';
   updatePwaStatus();
 });
@@ -4799,7 +4743,6 @@ window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js').catch(() => {});
   }
 });
-
 </script>
 
 <div style="width:100%;text-align:center;padding:18px 12px;color:#ffd700;font-size:14px;font-weight:700;letter-spacing:0.5px;background:#050505;border-top:1px solid rgba(255,215,0,0.12);margin-top:20px;">
