@@ -2007,7 +2007,7 @@ app.get('/api/admin/load-users', adminOnly, requireAdminRoles('super_admin', 'fi
   return res.json({ users });
 });
 
-app.post('/api/admin/add-coin', adminOnly, requireAdminRoles('super_admin', 'finance_admin'), async (req, res) => {
+app.post('/api/admin/add-coins', adminOnly, requireAdminRoles('super_admin', 'finance_admin'), async (req, res) => {
   try {
     const userId = Number(req.body?.userId);
     const amount = Number(req.body?.amount);
@@ -2951,7 +2951,7 @@ app.post('/api/admin/add-coins', async (req, res) => {
   const user = await getUserByUsername(username);
   if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
   req.body = { userId: Number(user.id), amount, walletType };
-  return app._router.handle({ ...req, url: '/api/admin/add-coin', method: 'POST' }, res, () => {});
+  return app._router.handle({ ...req, url: '/api/admin/add-coins', method: 'POST' }, res, () => {});
 });
 
 app.post('/api/admin/withdraw-coins', async (req, res) => {
@@ -2961,7 +2961,7 @@ app.post('/api/admin/withdraw-coins', async (req, res) => {
   const user = await getUserByUsername(username);
   if (!user || user.is_admin === true) return res.status(404).json({ error: 'User not found' });
   req.body = { userId: Number(user.id), amount, walletType };
-  return app._router.handle({ ...req, url: '/api/admin/withdraw-coin', method: 'POST' }, res, () => {});
+  return app._router.handle({ ...req, url: '/api/admin/withdraw-coins', method: 'POST' }, res, () => {});
 });
 
 app.post('/api/admin/toggle-block-user', async (req, res) => {
