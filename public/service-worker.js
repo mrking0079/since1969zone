@@ -1,8 +1,12 @@
-const CACHE_NAME = "since1969zone-v5";
+const CACHE_NAME = "since1969zone-v6";
 const PRECACHE_ASSETS = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS)));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_ASSETS))
+      .catch(() => Promise.resolve())
+  );
   self.skipWaiting();
 });
 
@@ -20,8 +24,8 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
+  // Rescue fix: never intercept API calls. Let the browser hit the network directly.
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(fetch(request));
     return;
   }
 
@@ -31,8 +35,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          if (response && response.ok && url.origin === location.origin) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+          }
           return response;
         })
         .catch(() => caches.match(request).then((cached) => cached || caches.match("/index.html")))
@@ -46,8 +52,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+          }
           return response;
         })
         .catch(() => caches.match(request))
@@ -60,8 +68,10 @@ self.addEventListener("fetch", (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+          }
           return response;
         });
       })
