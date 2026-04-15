@@ -2524,7 +2524,7 @@ body.auth-open {
 <div class="header-mini-strip top-info-strip">
   <button type="button" class="header-mini-card header-mini-toggle" onclick="toggleHeroInfo(this)">
     <strong>How to Start</strong>
-    <span>Login, choose numbers, enter coins, and place your bet before the round closes.</span>
+    <span>Login, choose numbers from 00 to 99, enter coins, and place your bet before the round closes.</span>
   </button>
   <button type="button" class="header-mini-card header-mini-toggle" onclick="toggleHeroInfo(this)">
     <strong>What to Track</strong>
@@ -2541,19 +2541,6 @@ body.auth-open {
   <button id="logoutBtn" type="button" class="header-mini-card header-mini-card--logout secondary">Logout</button>
 </div>
 </div>
-
-
-    <div class="game-hub-card" id="gameHubCard">
-      <div class="game-hub-title">Choose Your Game</div>
-      <div class="game-hub-sub">Desktop jaisa same layout mobile par bhi rahega. Tap any game card to enter.</div>
-      <div class="game-hub-grid">
-        <button type="button" class="game-hub-btn active" data-mode-btn="classic">0-9 Game</button>
-        <button type="button" class="game-hub-btn" data-mode-btn="color">Color Prediction</button>
-        <button type="button" class="game-hub-btn" data-mode-btn="spin">Spin Wheel</button>
-        <button type="button" class="game-hub-btn" data-mode-btn="dice">Dice</button>
-        <button type="button" class="game-hub-btn" data-mode-btn="flip99">00-99 Flip</button>
-      </div>
-    </div>
 
     <div class="topbar">
       <div class="card">
@@ -2624,7 +2611,7 @@ body.auth-open {
 
 
           <div class="mode-note" id="gameModeNote">
-            <strong>0-9 Game:</strong> Select one or more numbers from 0 to 9. Enter a separate coin amount for each selected number.
+            <strong>00-99 Game:</strong> Select one or more numbers from 00 to 99. Enter a separate coin amount for each selected number.
           </div>
           <div class="numbers" id="numbers"></div>
 
@@ -3034,8 +3021,8 @@ const state = {
   server: null,
   selections: new Set(),
   amounts: {},
-  currentGameMode: 'classic',
-  modeDisplayName: '0-9 Game',
+  currentGameMode: 'flip99',
+  modeDisplayName: '00-99 Game',
   liveUpdates: {
     paymentMethod: {
       upiId: '',
@@ -3723,9 +3710,9 @@ function updateModeUiText() {
   } else if (state.currentGameMode === 'dice') {
     els.gameModeNote.innerHTML = '<strong>Dice:</strong> Pick any face from 1 to 6. Winning face uses the live lucky digit result.';
   } else if (state.currentGameMode === 'flip99') {
-    els.gameModeNote.innerHTML = '<strong>00-99 Flip:</strong> UI preview mode added here. Live backend remains protected on the existing round system in this build.';
+    els.gameModeNote.innerHTML = '<strong>00-99 Game:</strong> Select one or more numbers from 00 to 99. Enter a separate coin amount for each selected number.';
   } else {
-    els.gameModeNote.innerHTML = '<strong>0-9 Game:</strong> Select one or more numbers from 0 to 9. Enter a separate coin amount for each selected number.';
+    els.gameModeNote.innerHTML = '<strong>00-99 Game:</strong> Select one or more numbers from 00 to 99. Enter a separate coin amount for each selected number.';
   }
 }
 
@@ -3817,7 +3804,7 @@ function setGameMode(mode) {
   });
   buildNumbers();
   if (mode === 'flip99') {
-    showMessage('00-99 flip UI is visible. Existing live round remains protected in this build.');
+    showMessage('');
   } else {
     showMessage('');
   }
@@ -4353,9 +4340,7 @@ renderLiveOffer();
 els.placeBetBtn.addEventListener('click', async () => {
   try {
     if (state.currentGameMode === 'flip99') {
-      showMessage('00-99 backend mode is not enabled in this build to keep the live system stable.');
-      return;
-    }
+          }
 
     const betMap = transformSelectionsForApi();
 
@@ -4373,7 +4358,7 @@ els.placeBetBtn.addEventListener('click', async () => {
     state.selections.clear();
     state.amounts = {};
     buildNumbers();
-    showMessage(`Bet placed successfully in ${state.currentGameMode}. Total bet: ${Object.values(betMap).reduce((sum, value) => sum + Number(value || 0), 0)} coins`);
+    showMessage(`Bet placed successfully in 00-99 game. Total bet: ${Object.values(betMap).reduce((sum, value) => sum + Number(value || 0), 0)} coins`);
     applyState(data.state);
     playBetSound();
   } catch (error) {
@@ -4874,7 +4859,7 @@ document.querySelectorAll('[data-mode-btn]').forEach(btn => {
   btn.addEventListener('click', () => setGameMode(btn.getAttribute('data-mode-btn') || 'classic'));
 });
 
-setGameMode('classic');
+setGameMode('flip99');
 
 setAuthMode('login');
 
