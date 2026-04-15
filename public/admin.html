@@ -1,48 +1,3116 @@
 <!DOCTYPE html>
-<html>
-<head><title>Admin</title></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Since1969Zone Admin</title>
+  
+  <style>
+    :root{
+      --bg:#05070d;
+      --bg2:#0b1220;
+      --panel:#0f172a;
+      --panel2:#111827;
+      --panel3:#0b1324;
+      --line:#243041;
+      --line2:rgba(255,213,74,0.16);
+      --gold:#ffd54a;
+      --gold2:#ffb800;
+      --text:#f8fafc;
+      --muted:#9ca3af;
+      --green:#22c55e;
+      --red:#ff4d4f;
+      --blue:#2563eb;
+      --shadow:0 18px 50px rgba(0,0,0,.34);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Arial,sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(255,213,74,0.08), transparent 28%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      color:var(--text);
+      padding:16px;
+      min-height:100vh;
+    }
+    .box{
+      width:100%;
+      max-width:1380px;
+      margin:18px auto 34px;
+      background:linear-gradient(180deg, rgba(16,25,43,.96), rgba(9,15,27,.98));
+      border-radius:28px;
+      padding:24px;
+      border:1px solid rgba(255,213,74,0.10);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    h1{
+      text-align:center;
+      color:var(--gold);
+      margin:0 0 8px;
+      font-size:34px;
+      letter-spacing:.5px;
+      text-shadow:0 0 18px rgba(255,213,74,.16);
+    }
+    .subhead{
+      text-align:center;
+      color:#d1d5db;
+      margin:0 0 22px;
+      font-size:14px;
+      line-height:1.7;
+    }
+    .hero-grid{
+      display:grid;
+      grid-template-columns:1.15fr .95fr;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .hero-card,.mini-card,.section-card,.surface-card{
+      background:linear-gradient(180deg, rgba(17,24,39,.94), rgba(11,18,32,.98));
+      border:1px solid var(--line);
+      border-radius:22px;
+      box-shadow:0 10px 28px rgba(0,0,0,.18);
+    }
+    .hero-card{padding:20px}
+    .hero-title{
+      font-size:28px;
+      font-weight:900;
+      color:var(--gold);
+      margin-bottom:10px;
+    }
+    .hero-text{
+      color:#dbe2ea;
+      line-height:1.75;
+      font-size:14px;
+    }
+    .hero-mini-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    .mini-card{padding:16px}
+    .mini-card strong{
+      display:block;
+      color:var(--gold);
+      margin-bottom:6px;
+      font-size:16px;
+    }
+    .mini-card span{
+      color:#dbe2ea;
+      font-size:13px;
+      line-height:1.6;
+    }
+    .login-shell{
+      max-width:520px;
+      margin:0 auto 6px;
+    }
+    .section-card{padding:18px}
+    .section-title{
+      margin:0 0 12px;
+      color:var(--gold);
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.3px;
+    }
+    .dashboard-shell{
+      display:grid;
+      gap:16px;
+    }
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin:0 0 14px;
+    }
+    .stat-box{
+      background:var(--panel2);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:16px;
+    }
+    .stat-label{
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:8px;
+    }
+    .stat-value{
+      font-size:28px;
+      font-weight:900;
+      color:var(--gold);
+    }
+    #selectedUserInfo{
+      margin:0;
+      padding:14px 16px;
+      background:linear-gradient(135deg,#111827,#0b1220);
+      border:1px solid #3a4b63;
+      border-radius:16px;
+      color:var(--gold);
+      box-shadow:0 0 14px rgba(255,213,74,0.08);
+      font-weight:700;
+      line-height:1.6;
+    }
+    .toolbar-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-top:16px;
+    }
+    .toolbar-card{
+      padding:16px;
+      border-radius:18px;
+      background:linear-gradient(180deg,#131c2f,#0c1322);
+      border:1px solid var(--line);
+    }
+    .toolbar-card h3{
+      margin:0 0 12px;
+      font-size:15px;
+      color:var(--gold);
+      letter-spacing:.4px;
+    }
+    .action-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    .single-action{
+      display:grid;
+      gap:10px;
+    }
+    input, textarea{
+      width:100%;
+      box-sizing:border-box;
+      padding:13px 14px;
+      margin:0 0 12px;
+      border-radius:14px;
+      border:1px solid #2a3550;
+      background:#0a1020;
+      color:#fff;
+      font-size:15px;
+      outline:none;
+    }
+    input:focus, textarea:focus{
+      border-color:rgba(255,213,74,.65);
+      box-shadow:0 0 0 3px rgba(255,213,74,.08);
+    }
+    button{
+      padding:12px 16px;
+      border:none;
+      border-radius:14px;
+      background:linear-gradient(180deg,var(--gold),var(--gold2));
+      color:#111;
+      font-weight:800;
+      cursor:pointer;
+      margin:0;
+      min-height:46px;
+      transition:transform .16s ease, box-shadow .16s ease, opacity .16s ease;
+      box-shadow:0 10px 24px rgba(255,213,74,.14);
+    }
+    button:hover{transform:translateY(-1px)}
+    button.full{width:100%}
+    .hidden{display:none}
+    pre{
+      background:#070c18;
+      padding:16px;
+      border-radius:16px;
+      overflow:auto;
+      white-space:pre-wrap;
+      word-break:break-word;
+      min-height:120px;
+      border:1px solid var(--line);
+      line-height:1.65;
+      margin:0;
+    }
+    #loginMsg{
+      margin-bottom:12px;
+      color:var(--gold);
+      font-size:14px;
+      line-height:1.6;
+    }
+    .content-layout{
+      display:grid;
+      grid-template-columns:minmax(0,1.05fr) minmax(330px,.95fr);
+      gap:16px;
+      margin-top:16px;
+      align-items:start;
+    }
+    .left-stack,.right-stack{display:grid;gap:16px}
+    .panel-title{
+      margin:0 0 12px;
+      color:var(--gold);
+      font-size:19px;
+      font-weight:900;
+    }
+
+    .dashboard-top-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin:8px 0 14px;
+      padding:14px 16px;
+      border:1px solid #2b3850;
+      border-radius:16px;
+      background:linear-gradient(180deg,#121a2d,#0b1322);
+    }
+    .dashboard-top-left{display:grid;gap:4px;}
+    .dashboard-top-label{color:var(--gold);font-size:15px;font-weight:900;}
+    .dashboard-top-value{color:#dbe2ea;font-size:14px;font-weight:700;line-height:1.6;}
+    .dashboard-compact-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:10px;
+      margin:0 0 14px;
+    }
+    .dashboard-compact-grid .stat-box{padding:12px;border-radius:16px;min-height:96px;display:grid;align-content:space-between;}
+    .dashboard-compact-grid .stat-label{font-size:12px;}
+    .dashboard-compact-grid .stat-value{font-size:22px;}
+    .quick-controls-stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+    .live-round-card{padding:16px;border-radius:18px;background:linear-gradient(180deg,#131c2f,#0c1322);border:1px solid var(--line);}
+    .live-round-card h3{margin:0 0 12px;font-size:15px;color:var(--gold);letter-spacing:.4px;}
+    .modal-overlay{
+      position:fixed;inset:0;z-index:999999;
+      background:rgba(2,6,16,0.985);
+      display:none;align-items:center;justify-content:center;
+      padding:20px;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.show{display:flex;}
+    .modal-shell{
+      width:min(1100px,100%);
+      max-height:calc(100vh - 40px);
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr);
+      background:linear-gradient(180deg, rgba(16,25,43,.995), rgba(7,12,22,.998));
+      border:1px solid rgba(255,213,74,0.14);
+      border-radius:24px;
+      box-shadow:0 18px 60px rgba(0,0,0,.45);
+      overflow:hidden;
+    }
+    .modal-head{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:16px 18px;border-bottom:1px solid #243041;background:#0d1526;
+    }
+    .modal-title{margin:0;color:var(--gold);font-size:20px;font-weight:900;}
+    .modal-close{
+      min-height:42px;padding:10px 14px;background:#374151;color:#fff;border-radius:12px;
+      box-shadow:none;
+    }
+    .modal-body{
+      overflow:auto;
+      padding:18px;
+      background:linear-gradient(180deg,#0c1322,#09111f);
+    }
+    .modal-body .section-card{
+      margin:0;border:none;box-shadow:none;background:transparent;padding:0;
+    }
+    .admin-filter-bar{display:grid;gap:10px;margin:0 0 14px;}
+    .admin-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .admin-chip{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #2a3550;border-radius:12px;background:#0a1020;color:#fff;font-size:13px;font-weight:700;}
+    .admin-inline-input{width:auto;min-width:140px;margin:0;}
+    .admin-inline-select{width:auto;min-width:140px;box-sizing:border-box;padding:13px 14px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;outline:none;margin:0;}
+    .admin-scroll-box{max-height:320px;overflow-y:auto;padding-right:4px;}
+    .accordion-toggle-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+    .accordion-section{display:none;margin-top:10px;}
+    .accordion-section.open{display:block;}
+    .vertical-admin-form{display:grid;gap:10px;max-width:420px;}
+    .dashboard-filter-trigger-row{display:flex;justify-content:flex-end;align-items:center;margin:0 0 12px;}
+    .dashboard-filter-trigger-btn{background:linear-gradient(180deg,#1b2d52,#10203f);color:#fff;border:1px solid #2f4f86;box-shadow:0 10px 24px rgba(37,99,235,.18);}
+    .dashboard-filter-panel{display:none;margin:0 0 14px;padding:14px;border:1px solid #243041;border-radius:18px;background:linear-gradient(180deg,#111a2d,#0b1322);}
+    .dashboard-filter-panel.open{display:block;}
+    .dashboard-filter-grid{display:grid;gap:12px;}
+    .dashboard-filter-presets{display:flex;gap:10px;flex-wrap:wrap;}
+    .dashboard-filter-option{background:#0a1020;color:#fff;border:1px solid #2a3550;}
+    .dashboard-filter-option.active{background:linear-gradient(180deg,var(--gold),var(--gold2));color:#111;border-color:rgba(255,213,74,.7);}
+    .dashboard-filter-actions{display:flex;gap:10px;flex-wrap:wrap;}
+    .timer-blink{animation:adminTimerBlink .85s ease-in-out infinite;}
+    @keyframes adminTimerBlink{0%,100%{transform:scale(1);opacity:1;text-shadow:0 0 0 rgba(255,213,74,0);}50%{transform:scale(1.06);opacity:.78;text-shadow:0 0 18px rgba(255,213,74,.45);}}
+    .footer-note{
+      width:100%;
+      text-align:center;
+      padding:18px 12px;
+      color:var(--gold);
+      font-size:14px;
+      font-weight:700;
+      letter-spacing:.5px;
+      background:#050505;
+      border-top:1px solid rgba(255,215,0,0.12);
+      margin-top:20px;
+      border-radius:0 0 18px 18px;
+    }
+    @media (max-width:1150px){
+      .hero-grid,.content-layout{grid-template-columns:1fr}
+      .toolbar-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .dashboard-compact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (max-width:760px){
+      body{padding:10px}
+      .box{padding:14px;border-radius:22px}
+      h1{font-size:28px}
+      .hero-title{font-size:22px}
+      .hero-mini-grid,.stats-grid,.toolbar-grid,.action-grid,.dashboard-compact-grid,.quick-controls-stack{grid-template-columns:1fr}
+      .hero-card,.mini-card,.section-card,.toolbar-card{padding:14px;border-radius:18px}
+      button{width:100%}
+      .subhead{font-size:13px}
+    }
+  
+.admin-chat-card{background:linear-gradient(180deg,#131c2f,#0c1322);border:1px solid #243041;border-radius:18px;padding:16px;}
+.admin-chat-list{display:grid;gap:10px;max-height:320px;overflow:auto;padding-right:4px;}
+.admin-chat-item{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;line-height:1.6;}
+.admin-chat-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#9ca3af;font-size:12px;margin-bottom:6px;}
+.admin-chat-msg{color:#f8fafc;word-break:break-word;}
+.admin-chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+
+/* ===== Since1969 Admin Pro Theme Override ===== */
+body{
+  background:
+    radial-gradient(circle at top left, rgba(109,40,217,0.12), transparent 24%),
+    radial-gradient(circle at top right, rgba(59,130,246,0.10), transparent 20%),
+    linear-gradient(180deg,#040507 0%,#0a0d14 55%,#05070d 100%);
+}
+.box{
+  max-width:1520px;
+  padding:20px;
+  border-radius:30px;
+  background:linear-gradient(180deg, rgba(18,18,24,.98), rgba(10,11,17,.99));
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:0 24px 80px rgba(0,0,0,.48);
+}
+h1{
+  font-size:32px;
+  margin-bottom:6px;
+}
+.subhead{
+  color:#b8c0cc;
+  margin-bottom:18px;
+}
+#panelSection .hero-grid,
+#panelSection .hero-card,
+#panelSection .hero-mini-grid{display:none !important;}
+#panelSection .section-card:first-child{
+  padding:16px;
+  border-radius:24px;
+  background:linear-gradient(180deg,#18181f,#101218);
+  border:1px solid rgba(255,255,255,0.06);
+}
+.dashboard-top-row{
+  margin:0 0 16px;
+  padding:14px 16px;
+  border-radius:18px;
+  background:linear-gradient(180deg,#14161d,#0f1218);
+  border:1px solid rgba(255,255,255,0.07);
+}
+.dashboard-top-label{font-size:18px;}
+.dashboard-top-value{font-size:13px;color:#b7c0ca;}
+.dashboard-filter-trigger-btn,
+.dashboard-top-row button[onclick="adminLogout()"]{
+  min-height:42px;
+  padding:10px 16px;
+  border-radius:12px;
+}
+.dashboard-compact-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+  margin-bottom:14px;
+}
+.dashboard-compact-grid .stat-box{
+  min-height:126px;
+  border-radius:22px;
+  padding:18px;
+  border:none;
+  box-shadow:0 16px 34px rgba(0,0,0,.22);
+  position:relative;
+  overflow:hidden;
+}
+.dashboard-compact-grid .stat-box::after{
+  content:"";
+  position:absolute;
+  inset:auto -12px -18px auto;
+  width:92px;
+  height:92px;
+  border-radius:24px;
+  background:rgba(255,255,255,.12);
+  filter:blur(0.5px);
+  transform:rotate(14deg);
+}
+.dashboard-compact-grid .stat-box:nth-child(1){background:linear-gradient(135deg,#23c2ff,#26d0ce); color:#07131b;}
+.dashboard-compact-grid .stat-box:nth-child(2){background:linear-gradient(135deg,#8b5cf6,#c084fc); color:#140a24;}
+.dashboard-compact-grid .stat-box:nth-child(3){background:linear-gradient(135deg,#ffb11b,#ffd84d); color:#211300;}
+.dashboard-compact-grid .stat-box:nth-child(4){background:linear-gradient(135deg,#ffd84d,#ffe680); color:#2a1c00;}
+.dashboard-compact-grid .stat-box:nth-child(5){background:linear-gradient(135deg,#0f172a,#16233b); border:1px solid rgba(255,255,255,0.07); color:#fff;}
+.dashboard-compact-grid .stat-box:nth-child(6){background:linear-gradient(135deg,#0f172a,#16233b); border:1px solid rgba(255,255,255,0.07); color:#fff;}
+.dashboard-compact-grid .stat-box:nth-child(7){background:linear-gradient(135deg,#0f172a,#16233b); border:1px solid rgba(255,255,255,0.07); color:#fff;}
+.dashboard-compact-grid .stat-box:nth-child(8){background:linear-gradient(135deg,#0f172a,#16233b); border:1px solid rgba(255,255,255,0.07); color:#fff;}
+.dashboard-compact-grid .stat-label{font-size:12px;font-weight:700;color:inherit;opacity:.9;}
+.dashboard-compact-grid .stat-value{font-size:34px;line-height:1.06;color:inherit;}
+#proInsightRow{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:4px;}
+#proInsightRow .stat-box{
+  min-height:104px;
+  border-radius:20px;
+  padding:16px;
+  background:linear-gradient(180deg,#12151d,#0d1017);
+  border:1px solid rgba(255,255,255,0.06);
+}
+#selectedUserInfo{
+  margin-top:14px;
+  border-radius:18px;
+  background:linear-gradient(180deg,#12151d,#0d1017);
+  border:1px solid rgba(255,255,255,0.06);
+  color:#f2f5f8;
+}
+.toolbar-grid{
+  grid-template-columns:1.15fr 1fr 1fr;
+  gap:14px;
+  margin-top:14px;
+}
+.toolbar-card,.live-round-card,.section-card,.surface-card,.admin-chat-card{
+  background:linear-gradient(180deg,#14171f,#0d1016);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:24px;
+  box-shadow:0 14px 34px rgba(0,0,0,.20);
+}
+.toolbar-card{padding:18px;}
+.toolbar-card h3,.live-round-card h3,.panel-title,.section-title{letter-spacing:.2px;}
+.quick-controls-stack{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.quick-controls-stack button,
+.action-grid button,
+.single-action button,
+.admin-actions button,
+.dashboard-filter-actions button,
+.accordion-toggle-row button,
+.support-btn{
+  border-radius:14px;
+}
+.quick-controls-stack button:nth-child(1){background:linear-gradient(135deg,#22c55e,#86efac);color:#06230f;}
+.quick-controls-stack button:nth-child(2){background:linear-gradient(135deg,#ffd84d,#ffe680);color:#2a1c00;}
+.quick-controls-stack button:nth-child(3){background:linear-gradient(135deg,#1d4ed8,#60a5fa);color:#fff;}
+.quick-controls-stack button:nth-child(4){background:linear-gradient(135deg,#8b5cf6,#c084fc);color:#fff;}
+.quick-controls-stack button:nth-child(5),.quick-controls-stack button:nth-child(6){background:linear-gradient(180deg,#171a22,#11141b);color:#fff;border:1px solid rgba(255,255,255,0.06);box-shadow:none;}
+.quick-controls-stack button:nth-child(7){background:linear-gradient(180deg,#171a22,#11141b);color:#fff;border:1px solid rgba(255,255,255,0.06);box-shadow:none;}
+.quick-controls-stack button:nth-child(8){background:linear-gradient(180deg,#171a22,#11141b);color:#fff;border:1px solid rgba(255,255,255,0.06);box-shadow:none;}
+.live-round-card{padding:18px;}
+.admin-mini-live-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.admin-mini-live-box{border-radius:18px;background:linear-gradient(180deg,#10131b,#0b0e14);border:1px solid rgba(255,255,255,0.06);}
+.admin-mini-live-value{font-size:30px;}
+.content-layout{grid-template-columns:minmax(0,1.35fr) minmax(320px,.8fr);gap:16px;}
+.left-stack,.right-stack{gap:16px;}
+pre,#roundInfo,.admin-chat-item,.wallet-history-item,.activity-log-item{
+  border-radius:18px;
+  background:linear-gradient(180deg,#10131a,#0b0e14);
+  border:1px solid rgba(255,255,255,0.06);
+}
+#usersList > div,#transactionsList > div,#depositRequestsList > div,#userHistoryContent > div{
+  border-radius:18px !important;
+  background:linear-gradient(180deg,#11141c,#0c0f16) !important;
+  border:1px solid rgba(255,255,255,0.06) !important;
+}
+.modal-shell{
+  width:min(1280px,100%);
+  border-radius:28px;
+  background:linear-gradient(180deg,#14161d,#0d1016);
+  border:1px solid rgba(255,255,255,0.06);
+}
+.modal-head{background:#10131a;border-bottom:1px solid rgba(255,255,255,0.06);}
+.modal-body{background:linear-gradient(180deg,#11141c,#0b0e14);}
+.footer-note{margin-top:18px;border-radius:0 0 22px 22px;background:#080a0f;}
+@media (max-width:1250px){
+  .toolbar-grid{grid-template-columns:1fr 1fr;}
+  .content-layout{grid-template-columns:1fr;}
+}
+@media (max-width:900px){
+  .box{padding:12px;border-radius:22px;}
+  .dashboard-compact-grid,.toolbar-grid,#proInsightRow,.quick-controls-stack,.admin-mini-live-grid,.content-layout{grid-template-columns:1fr !important;}
+  .dashboard-compact-grid .stat-box{min-height:112px;padding:16px;}
+  .dashboard-compact-grid .stat-value{font-size:28px;}
+  .dashboard-top-row{padding:12px;}
+}
+/* ===== CLEAN FINAL LAYOUT TUNING ===== */
+.box {
+  max-width: 1500px !important;
+  width: 96% !important;
+  padding: 18px !important;
+}
+
+.toolbar-grid {
+  grid-template-columns: 1.08fr 0.84fr 1.08fr !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+}
+
+.toolbar-card {
+  height: auto !important;
+  justify-content: flex-start !important;
+}
+
+.dashboard-compact-grid {
+  gap: 12px !important;
+}
+
+.dashboard-compact-grid .stat-box {
+  min-height: 108px !important;
+  padding: 14px !important;
+}
+
+.content-layout {
+  grid-template-columns: 1.35fr 0.95fr !important;
+  gap: 16px !important;
+  align-items: start !important;
+}
+
+.left-stack,
+.right-stack {
+  gap: 16px !important;
+}
+
+#output {
+  min-height: 160px !important;
+  width: 100%;
+  background: rgba(0,0,0,0.35);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+#adminActivityLogList,
+.activity-log-grid,
+.admin-chat-list {
+  max-height: 320px !important;
+  overflow-y: auto !important;
+}
+
+.card,
+.toolbar-card,
+.section-card {
+  box-shadow: 0 8px 25px rgba(0,0,0,0.55);
+}
+
+button {
+  transition: all 0.2s ease;
+}
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(255,215,0,0.22);
+}
+
+@media (max-width: 1150px) {
+  .toolbar-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .content-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 650px) {
+  body {
+    padding: 4px;
+  }
+
+  .box {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 4px auto 8px !important;
+    padding: 10px !important;
+    border-radius: 18px !important;
+  }
+
+  h1 {
+    font-size: 20px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .subhead {
+    font-size: 9px !important;
+    line-height: 1.35 !important;
+    margin: 0 0 8px !important;
+  }
+
+  .dashboard-top-row {
+    margin: 0 0 8px !important;
+    padding: 10px !important;
+    gap: 8px !important;
+    border-radius: 14px !important;
+  }
+
+  .dashboard-top-label {
+    font-size: 13px !important;
+  }
+
+  .dashboard-top-value {
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+  }
+
+  .dashboard-compact-grid {
+    grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .dashboard-compact-grid .stat-box {
+    min-height: 74px !important;
+    padding: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .dashboard-compact-grid .stat-label {
+    font-size: 9px !important;
+  }
+
+  .dashboard-compact-grid .stat-value {
+    font-size: 18px !important;
+  }
+
+  #proInsightRow {
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
+  }
+
+  #proInsightRow .stat-box {
+    min-height: 68px !important;
+    padding: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  #proInsightRow .stat-label {
+    font-size: 9px !important;
+  }
+
+  #proInsightRow .stat-value {
+    font-size: 12px !important;
+  }
+
+  #selectedUserInfo {
+    margin-top: 8px !important;
+    padding: 10px 12px !important;
+    font-size: 11px !important;
+    border-radius: 14px !important;
+    line-height: 1.4 !important;
+  }
+
+  .toolbar-grid {
+    grid-template-columns: 1.1fr 0.78fr 1.1fr !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+
+  .toolbar-card,
+  .live-round-card,
+  .section-card,
+  .surface-card,
+  .admin-chat-card {
+    padding: 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .toolbar-card h3,
+  .live-round-card h3,
+  .panel-title,
+  .section-title {
+    font-size: 11px !important;
+    margin: 0 0 8px !important;
+  }
+
+  .quick-controls-stack {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 6px !important;
+  }
+
+  button,
+  .quick-controls-stack button,
+  .action-grid button,
+  .single-action button {
+    min-height: 30px !important;
+    padding: 6px 8px !important;
+    font-size: 9px !important;
+    border-radius: 10px !important;
+  }
+
+  input,
+  textarea,
+  select,
+  .admin-inline-select,
+  .admin-inline-input {
+    padding: 8px 10px !important;
+    font-size: 10px !important;
+    border-radius: 10px !important;
+    margin: 0 0 8px !important;
+    min-height: auto !important;
+  }
+
+  .admin-mini-live-grid {
+    gap: 6px !important;
+  }
+
+  .admin-mini-live-box {
+    padding: 8px !important;
+    border-radius: 12px !important;
+  }
+
+  .admin-mini-live-label {
+    font-size: 8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .admin-mini-live-value {
+    font-size: 18px !important;
+  }
+
+  .admin-mini-live-sub {
+    font-size: 9px !important;
+  }
+
+  .content-layout {
+    grid-template-columns: 1.2fr 0.82fr !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+
+  .left-stack,
+  .right-stack {
+    gap: 8px !important;
+  }
+
+  pre,
+  #output {
+    min-height: 88px !important;
+    font-size: 10px !important;
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .footer-note {
+    margin-top: 8px !important;
+    padding: 10px 8px !important;
+    font-size: 10px !important;
+  }
+}
+
+</style>
+
+</head>
 <body>
+  <div class="box">
+    <h1>Since1969Zone Admin Panel</h1>
+    <div class="subhead">Compact premium black dashboard for users, requests, round control, live updates and full admin actions. Mobile app view stays compact in one screen.</div>
 
-<input id="coinUsername" />
-<input id="coinAmount" />
 
-<div id="selectedUserInfo"></div>
+    <div id="loginSection" class="login-shell">
+      <div class="hero-grid">
+        <div class="hero-card">
+          <div class="hero-title">Admin Command Center</div>
+          <div class="hero-text">
+            Yaha se tum users load kar sakte ho, transaction history dekh sakte ho, deposit / withdrawal requests handle kar sakte ho, round control use kar sakte ho, live updates change kar sakte ho, aur ek hi jagah se full user history manage kar sakte ho.
+          </div>
+        </div>
+        <div class="hero-mini-grid">
+          <div class="mini-card"><strong>User Controls</strong><span>Load, search, select, block, unblock aur delete actions cleaner flow me.</span></div>
+          <div class="mini-card"><strong>Wallet Actions</strong><span>Add / withdraw coins with quick selected-user workflow.</span></div>
+          <div class="mini-card"><strong>Requests</strong><span>Deposit aur withdrawal approval cards ke andar direct action.</span></div>
+          <div class="mini-card"><strong>Mobile Safe</strong><span>Responsive layout taaki zoom ya mobile width me UI na bikhre.</span></div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-title">Admin Login</div>
+        <input id="adminUsername" type="text" placeholder="Admin username" />
+        <input id="adminPassword" type="password" placeholder="Admin password" />
+        <button class="full" onclick="adminLogin()">Admin Login</button>
+        <div id="loginMsg">Pehle admin login karo.</div>
+      </div>
+    </div>
+
+    <div id="panelSection" class="hidden">
+      <div class="dashboard-shell">
+        <div class="section-card">
+          <div class="section-title">Admin Dashboard</div>
+<div id="dashboardFilterPanel" class="dashboard-filter-panel">
+  <div style="font-weight:900;color:#ffd54a;margin-bottom:10px;">History Filters &amp; Export</div>
+  <div class="dashboard-filter-grid">
+    <div class="dashboard-filter-presets">
+      <button type="button" id="dashPresetTodayBtn" class="dashboard-filter-option" onclick="setDashboardPreset('today')">Today</button>
+      <button type="button" id="dashPresetYesterdayBtn" class="dashboard-filter-option" onclick="setDashboardPreset('yesterday')">Yesterday</button>
+      <button type="button" id="dashPresetLast45Btn" class="dashboard-filter-option" onclick="setDashboardPreset('last45days')">Last 45 Days</button>
+    </div>
+    <div class="admin-filter-row">
+      <input id="dashFromDate" class="admin-inline-input" type="date" />
+      <input id="dashToDate" class="admin-inline-input" type="date" />
+    </div>
+    <div class="dashboard-filter-actions">
+      <button type="button" onclick="applyDashboardFilters()">Apply Filter</button>
+      <button type="button" onclick="exportDashboardCsv()" style="background:#2563eb;color:#fff;">Export CSV</button>
+    </div>
+    <div id="dashboardFilterMeta" style="color:#9ca3af;font-size:12px;line-height:1.5;">Current filter: Today</div>
+  </div>
+</div>
+<div id="dashboardStats" class="dashboard-compact-grid">
+  <div class="stat-box"><div class="stat-label">Total Deposits</div><div id="totalDepositsStat" class="stat-value" style="color:#22c55e;">0</div></div>
+
+  <div class="stat-box"><div class="stat-label">Total Withdrawals</div><div id="totalWithdrawalsStat" class="stat-value" style="color:#ff4d4f;">0</div></div>
+
+  <div class="stat-box"><div class="stat-label">Profit / Loss</div><div id="profitLossStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Total Users</div><div id="totalUsersStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Active Users (24h)</div><div id="activeUsersStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Total Bets Today</div><div id="totalBetsTodayStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Total Wins Today</div><div id="totalWinsTodayStat" class="stat-value">0</div></div>
+  <div class="stat-box"><div class="stat-label">Pending Requests</div><div id="pendingRequestsStat" class="stat-value">0</div></div>
+</div>
+<div id="proInsightRow" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px;">
+  <div class="stat-box"><div class="stat-label">Top Depositor</div><div id="topDepositorStat" class="stat-value" style="font-size:20px;">-</div></div>
+  <div class="stat-box"><div class="stat-label">Top Winner</div><div id="topWinnerStat" class="stat-value" style="font-size:20px;">-</div></div>
+  <div class="stat-box"><div class="stat-label">Today vs Yesterday</div><div id="todayVsYesterdayStat" class="stat-value" style="font-size:20px;">-</div></div>
+</div>
+
+<div id="selectedUserInfo">No user selected</div>
+        </div>
+
+        
+        <div class="toolbar-grid">
+          <div class="toolbar-card">
+            <h3>Quick Controls</h3>
+            <div class="quick-controls-stack">
+              <button onclick="openLiveUpdatesPanel()" style="background:#22c55e;color:#111;">LIVE UPDATES</button>
+              <button onclick="loadUsers()">Load Users</button>
+              <button onclick="loadTransactions()">Transaction History</button>
+              <button onclick="loadAdminChatPanel()" style="background:#2563eb;color:#fff;">Global Chat</button>
+              <button id="depositRequestsBtn" onclick="loadDepositRequests('deposit')">Deposit Requests (0)</button>
+              <button id="withdrawalRequestsBtn" onclick="loadDepositRequests('withdrawal')">Withdrawal Requests (0)</button>
+              <button onclick="loadCurrentRound()">Round Control</button>
+              <button id="adminManagementQuickBtn" onclick="openAdminManagementModal()" style="background:#2563eb;color:#fff;grid-column:1/-1;">Admin Management</button>
+              <button onclick="clearAllSelections()" style="background:#374151;color:#fff;grid-column:1/-1;">Clear All Selections</button>
+            </div>
+          </div>
+
+          <div class="live-round-card" id="liveRoundDisplayCard">
+            <h3>Live Round</h3>
+            <div class="admin-mini-live-grid">
+              <div class="admin-mini-live-box">
+                <div class="admin-mini-live-label">Round Timer</div>
+                <div id="adminMiniTimer" class="admin-mini-live-value">--:--</div>
+                <div id="adminMiniStatus" class="admin-mini-live-sub">Waiting</div>
+              </div>
+              <div class="admin-mini-live-box">
+                <div class="admin-mini-live-label">Latest Lucky</div>
+                <div id="adminMiniLucky" class="admin-mini-live-value">--</div>
+                <div id="adminMiniLuckyRound" class="admin-mini-live-sub">Waiting</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="toolbar-card">
+            <h3>Selected User Actions</h3>
+            <input id="coinUsername" type="text" placeholder="Selected username" />
+            <div id="selectedWalletLiveCard" style="margin:0 0 12px;padding:14px;border-radius:14px;border:1px solid #2a3550;background:linear-gradient(180deg,#111827,#0a1020);line-height:1.7;color:#fff;">
+              <div style="font-weight:900;color:#ffd54a;margin-bottom:6px;">Selected User Live Wallet</div>
+              <div>ID: -</div>
+              <div>M: 0 | B: 0 | D: 0 | W: 0</div>
+            </div>
+            <input id="coinAmount" type="number" placeholder="Coin amount" />
+            <select id="coinWalletType" style="width:100%;box-sizing:border-box;padding:13px 14px;margin:0 0 12px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;outline:none;">
+              <option value="deposit">Deposit Coin</option>
+              <option value="bonus">Bonus Coin</option>
+              <option value="winning">Winning Coin</option>
+            </select>
+            <div class="action-grid">
+              <button onclick="addCoins()">Add Coins</button>
+              <button onclick="withdrawCoins()">Withdraw Coins</button>
+              <button onclick="toggleBlockUser()" style="background:#ff4d4f;color:#fff;grid-column:1/-1;">Block / Unblock User</button>
+            </div>
+          </div>
+
+          <div class="toolbar-card">
+            <h3>User Search & Full History</h3>
+            <input id="userSearch" type="text" placeholder="Search user by username" oninput="filterUsers()" />
+            <input id="historyUsername" type="text" placeholder="Enter username for full history" />
+            <div class="single-action">
+              <button onclick="loadUserHistory()">User Full History</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-layout">
+          <div class="left-stack">
+            <div id="usersPanel" class="section-card" style="display:none;">
+              <div class="panel-title">Manage Users</div>
+              <div id="usersList" style="display:grid;gap:10px;"></div>
+            </div>
+
+            <div class="section-card">
+              <div class="panel-title">Live Output</div>
+              <pre id="output">Admin action results will appear here....</pre>
+            </div>
+          </div>
+
+          <div class="right-stack">
+
+
+<div id="userHistoryPanel" class="section-card" style="display:none;">
+  <h3 style="margin:0 0 10px 0;color:#ffd54a;">User Full History</h3>
+  <div id="userHistoryContent" style="display:grid;gap:12px;"></div>
+</div>
+
+<div id="transactionsPanel" class="section-card" style="display:none;">
+  <h3 style="margin:0 0 10px 0;color:#ffd54a;">Transaction History</h3>
+  <div id="transactionsList" style="display:grid;gap:10px;"></div>
+</div>
+
+<div id="roundPanel" class="section-card" style="display:none;">
+  <h3 style="margin:0 0 10px 0;color:#ffd54a;">Round Control</h3>
+  <div id="roundInfo" style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;line-height:1.8;">
+    Round info will appear here...
+  </div>
+  <div style="margin-top:12px;">
+    <button onclick="forceSettleRound()" style="background:#ff9800;color:#111;">Force Settle Round</button>
+  </div>
+</div>
+<div id="depositRequestsPanel" class="section-card" style="display:none;">
+  <h3 style="margin:0 0 10px 0;color:#ffd54a;">Deposit Requests</h3>
+<div id="pendingRequestCount" style="margin:0 0 10px 0;color:#93c5fd;font-weight:700;">Pending: 0</div>
+  <div id="depositRequestsList" style="display:grid;gap:10px;"></div>
+</div>
+
+<div id="liveUpdatesPanel" class="section-card" style="display:none;">
+  <h3 style="margin:0 0 10px 0;color:#22c55e;">LIVE UPDATES</h3>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    <button onclick="showLiveUpdateSection('payment-method')" style="margin-bottom:0;background:#22c55e;color:#111;">
+      Payment Method
+    </button>
+    <button onclick="showLiveUpdateSection('offer')" style="margin-bottom:0;background:#2563eb;color:#fff;">
+      Offer
+    </button>
+  </div>
+
+  <div id="liveUpdatesContent" style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;line-height:1.8;">
+    Live update options will appear here...
+  </div>
+
+<div id="adminChatPanel" class="section-card" style="display:none;">
+  <h3 style="margin:0 0 10px 0;color:#ffd54a;">Global Chat Moderation</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+    <button type="button" onclick="loadAdminChatPanel()" style="background:#2563eb;color:#fff;">Refresh Chat</button>
+    <button type="button" onclick="clearGlobalChatAdmin()" style="background:#ff4d4f;color:#fff;">Clear Chat</button>
+  </div>
+  <div id="adminChatList" class="admin-chat-list"></div>
+</div>
+</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <div id="adminModalOverlay" class="modal-overlay" onclick="handleAdminModalOverlayClick(event)">
+    <div class="modal-shell" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h2 id="adminModalTitle" class="modal-title">Popup</h2>
+        <button class="modal-close" type="button" onclick="closeAdminModal()">Close</button>
+      </div>
+      <div id="adminModalBody" class="modal-body"></div>
+    </div>
+  </div>
 
 <script>
+  let allUsers = [];
+async function loadDashboardStats() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  if (!token) return;
+  try {
+    const res = await fetch('/api/admin/dashboard-stats' + buildAdminQuery(adminDashboardFilter), { headers: getAdminHeaders() });
+    const data = await res.json();
+    if (!res.ok) return;
+    document.getElementById('totalDepositsStat').textContent = data.stats?.totalDeposits || 0;
+    document.getElementById('totalWithdrawalsStat').textContent = data.stats?.totalWithdrawals || 0;
+    document.getElementById('profitLossStat').textContent = data.stats?.profitLoss || 0;
+    document.getElementById('totalUsersStat').textContent = data.stats?.totalUsers || 0;
+    document.getElementById('activeUsersStat').textContent = data.stats?.activeUsers24h || 0;
+    document.getElementById('totalBetsTodayStat').textContent = data.stats?.totalBetsToday || 0;
+    document.getElementById('totalWinsTodayStat').textContent = data.stats?.totalWinsToday || 0;
+    document.getElementById('pendingRequestsStat').textContent = data.stats?.pendingRequests || 0;
+    document.getElementById('topDepositorStat').textContent = data.stats?.topDepositor ? `${data.stats.topDepositor.username} (${data.stats.topDepositor.amount})` : '-';
+    document.getElementById('topWinnerStat').textContent = data.stats?.topWinner ? `${data.stats.topWinner.username} (${data.stats.topWinner.amount})` : '-';
+    document.getElementById('todayVsYesterdayStat').textContent = data.stats?.todayVsYesterday ? `${data.stats.todayVsYesterday.today} / ${data.stats.todayVsYesterday.yesterday}` : '-';
+    const profit = Number(data.stats?.profitLoss || 0);
+    const el = document.getElementById('profitLossStat');
+    if (profit > 0) el.style.color = '#22c55e'; else if (profit < 0) el.style.color = '#ff4d4f'; else el.style.color = '#ffd54a';
+    const fromText = data.filter?.from ? new Date(Number(data.filter.from)).toLocaleDateString() : '-';
+    const toText = data.filter?.to ? new Date(Number(data.filter.to)).toLocaleDateString() : '-';
+    setDashboardMetaText(`Current filter: ${adminDashboardFilter.preset || 'custom'} | ${fromText} → ${toText}`);
+  } catch (err) { console.log('Dashboard stats load failed'); }
+}
+
+let selectedUsername = '';
 let selectedUserId = null;
+let dashboardRefreshInterval = null;
+let depositRefreshInterval = null;
+let currentRequestTab = 'deposit';
+let adminMiniTimerInterval = null;
+let adminMiniRoundTargetTime = 0;
+let adminMiniRoundStatus = 'Waiting';
+let adminMiniSyncBusy = false;
+let adminMiniLastSyncAt = 0;
+window.loadAdminMiniLiveCard = window.loadAdminMiniLiveCard || (async function(){});
+window.openAdminManagementModal = window.openAdminManagementModal || function(){};
+window.closeAdminManagementModal = window.closeAdminManagementModal || function(){};
 
-function selectUser(user){
-  selectedUserId = user.id;
-  document.getElementById('coinUsername').value = user.username;
-  document.getElementById('selectedUserInfo').innerHTML =
-    "User: " + user.username + " ID: " + user.id;
+let currentModalSectionId = '';
+
+const adminDashboardFilter = { preset: 'today', from: '', to: '' };
+
+function buildAdminQuery(params = {}) { const usp = new URLSearchParams(); Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== null && String(value) !== "") usp.set(key, value); }); const q = usp.toString(); return q ? `?${q}` : ""; }
+function setDashboardMetaText(text) { const el = getEl('dashboardFilterMeta'); if (el) el.textContent = text; }
+function toggleDashboardFilterPanel(forceOpen = null) { const panel = getEl('dashboardFilterPanel'); if (!panel) return; const shouldOpen = forceOpen === null ? !panel.classList.contains('open') : !!forceOpen; panel.classList.toggle('open', shouldOpen); }
+function refreshDashboardPresetButtons() { const map = { today: 'dashPresetTodayBtn', yesterday: 'dashPresetYesterdayBtn', last45days: 'dashPresetLast45Btn' }; Object.values(map).forEach(id => getEl(id)?.classList.remove('active')); if (map[adminDashboardFilter.preset]) getEl(map[adminDashboardFilter.preset])?.classList.add('active'); }
+function setDashboardPreset(preset) { adminDashboardFilter.preset = preset; adminDashboardFilter.from = ""; adminDashboardFilter.to = ""; if (getEl('dashFromDate')) getEl('dashFromDate').value = ""; if (getEl('dashToDate')) getEl('dashToDate').value = ""; refreshDashboardPresetButtons(); }
+function applyDashboardFilters() { const from = getEl('dashFromDate')?.value || ""; const to = getEl('dashToDate')?.value || ""; if (from && to) { adminDashboardFilter.preset = ""; adminDashboardFilter.from = from; adminDashboardFilter.to = to; } refreshDashboardPresetButtons(); loadDashboardStats(); toggleDashboardFilterPanel(false); }
+function exportDashboardCsv() { window.open('/api/admin/export/dashboard.csv' + buildAdminQuery(adminDashboardFilter), "_blank"); }
+function exportTransactionsCsv() { const params = { preset: getEl('txFilterPreset')?.value || "today", from: getEl('txFilterFrom')?.value || "", to: getEl('txFilterTo')?.value || "", walletType: getEl('txFilterWalletType')?.value || "" }; window.open('/api/admin/export/transactions.csv' + buildAdminQuery(params), "_blank"); }
+function exportRequestsCsv() { const params = { preset: getEl('reqFilterPreset')?.value || "today", from: getEl('reqFilterFrom')?.value || "", to: getEl('reqFilterTo')?.value || "", status: getEl('reqFilterStatus')?.value || "" }; window.open('/api/admin/export/requests.csv' + buildAdminQuery(params), "_blank"); }
+
+function getEl(id) {
+  return document.getElementById(id);
 }
 
-async function addCoins(){
-  const amount = Number(document.getElementById('coinAmount').value);
-  if(!selectedUserId){ alert("Select user first"); return; }
+function withEl(id, fn) {
+  const el = document.getElementById(id);
+  if (el) fn(el);
+}
+function updateAdminTimerUi() {
+  const timerEl = getEl('adminMiniTimer');
+  const statusEl = getEl('adminMiniStatus');
+  if (!timerEl) return;
+  const now = Date.now() + adminServerTimeOffset;
+  const diff = Math.max(0, adminMiniRoundTargetTime - now);
+  const totalSec = Math.max(0, Math.ceil(diff / 1000));
+  const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+  const s = String(totalSec % 60).padStart(2, '0');
+  timerEl.textContent = `${m}:${s}`;
+  timerEl.classList.toggle('timer-blink', totalSec > 0 && totalSec <= 5);
+  if (statusEl) statusEl.textContent = adminMiniRoundStatus || 'Waiting';
+}
 
-  const res = await fetch('/api/admin/add-coin',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ userId: selectedUserId, amount })
+async function maybeSyncAdminTimer() {
+  if (adminMiniSyncBusy) return;
+  if ((Date.now() - adminMiniLastSyncAt) < 3000) return;
+  adminMiniSyncBusy = true;
+  try { await loadAdminMiniLiveCard(); } catch (e) {}
+  adminMiniSyncBusy = false;
+}
+
+function ensureSectionPlaceholder(sectionId) {
+  const section = getEl(sectionId);
+  if (!section) return null;
+  let placeholder = getEl(sectionId + '__placeholder');
+  if (!placeholder && section.parentNode) {
+    placeholder = document.createElement('div');
+    placeholder.id = sectionId + '__placeholder';
+    placeholder.style.display = 'none';
+    section.parentNode.insertBefore(placeholder, section);
+  }
+  return placeholder;
+}
+
+function handleAdminModalOverlayClick(event) {
+  if (event.target && event.target.id === 'adminModalOverlay') {
+    closeAdminModal();
+  }
+}
+
+function openAdminModal(title, sectionId) {
+  const overlay = getEl('adminModalOverlay');
+  const body = getEl('adminModalBody');
+  const titleEl = getEl('adminModalTitle');
+  const section = getEl(sectionId);
+  if (!overlay || !body || !titleEl || !section) return;
+
+  closeAdminModal(true);
+  ensureSectionPlaceholder(sectionId);
+
+  titleEl.textContent = title || 'Popup';
+  currentModalSectionId = sectionId;
+  section.style.display = 'block';
+  body.innerHTML = '';
+  body.appendChild(section);
+
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+}
+
+function closeAdminModal(silent = false) {
+  const overlay = getEl('adminModalOverlay');
+  const body = getEl('adminModalBody');
+
+  if (currentModalSectionId) {
+    const section = getEl(currentModalSectionId);
+    const placeholder = getEl(currentModalSectionId + '__placeholder');
+    if (section && placeholder && placeholder.parentNode) {
+      placeholder.parentNode.insertBefore(section, placeholder);
+      if (currentModalSectionId !== 'liveRoundDisplayCard') {
+        section.style.display = 'none';
+      }
+    }
+  }
+
+  currentModalSectionId = '';
+
+  if (body) body.innerHTML = '';
+  if (overlay) overlay.classList.remove('show');
+
+  document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
+}
+async function refreshRequestCounts() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  if (!token) return;
+
+  try {
+    const reqPreset = getEl('reqFilterPreset')?.value || 'today';
+    const reqFrom = getEl('reqFilterFrom')?.value || '';
+    const reqTo = getEl('reqFilterTo')?.value || '';
+    const reqStatus = getEl('reqFilterStatus')?.value || '';
+
+    const res = await fetch('/api/admin/deposit-requests' + buildAdminQuery({ preset: reqPreset, from: reqFrom, to: reqTo, status: reqStatus }), {
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+    if (!res.ok) return;
+
+    const allRequests = Array.isArray(data.requests) ? data.requests : [];
+
+    const depositPendingCount = allRequests.filter(
+      r => (r.type || 'deposit') === 'deposit' && r.status === 'pending'
+    ).length;
+
+    const withdrawalPendingCount = allRequests.filter(
+      r => (r.type || 'deposit') === 'withdrawal' && r.status === 'pending'
+    ).length;
+
+    document.getElementById('depositRequestsBtn').textContent = `Deposit Requests (${depositPendingCount})`;
+    document.getElementById('withdrawalRequestsBtn').textContent = `Withdrawal Requests (${withdrawalPendingCount})`;
+  } catch (err) {
+    console.log('Request counts load failed');
+  }
+}
+
+function hideAllAdminSections() {
+  withEl('transactionsPanel', el => el.style.display = 'none');
+  withEl('roundPanel', el => el.style.display = 'none');
+  withEl('depositRequestsPanel', el => el.style.display = 'none');
+  withEl('liveUpdatesPanel', el => el.style.display = 'none');
+  withEl('userHistoryPanel', el => el.style.display = 'none');
+  withEl('usersPanel', el => el.style.display = 'none');
+}
+
+function clearAllSelections() {
+  closeAdminModal(true);
+  hideAllAdminSections();
+
+  selectedUsername = '';
+  allUsers = [];
+
+  document.getElementById('coinUsername').value = '';
+  document.getElementById('coinAmount').value = '';
+  document.getElementById('coinWalletType').value = 'deposit';
+  document.getElementById('historyUsername').value = '';
+  document.getElementById('userSearch').value = '';
+
+  renderSelectedUserCard(null);
+  document.getElementById('output').textContent = 'All selections cleared';
+
+  document.querySelector('button[onclick="toggleBlockUser()"]').textContent = 'Block / Unblock User';
+
+  document.getElementById('depositRequestsBtn').style.background = '';
+  document.getElementById('depositRequestsBtn').style.color = '';
+
+  document.getElementById('withdrawalRequestsBtn').style.background = '';
+  document.getElementById('withdrawalRequestsBtn').style.color = '';
+
+  document.getElementById('userHistoryContent').innerHTML = '';
+  document.getElementById('transactionsList').innerHTML = '';
+  document.getElementById('depositRequestsList').innerHTML = '';
+}
+function openLiveUpdatesPanel() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const panel = document.getElementById('liveUpdatesPanel');
+  const content = document.getElementById('liveUpdatesContent');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  hideAllAdminSections();
+  panel.style.display = 'block';
+  content.innerHTML = 'Loading live updates...';
+  output.textContent = 'Live updates opened';
+  openAdminModal('Live Updates', 'liveUpdatesPanel');
+
+  showLiveUpdateSection('payment-method');
+}
+
+function showLiveUpdateSection(section) {
+  const content = document.getElementById('liveUpdatesContent');
+
+  if (section === 'payment-method') {
+    content.innerHTML = `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <button onclick="showPaymentMethodType('upi-id')" style="margin-bottom:0;background:#22c55e;color:#111;">
+          UPI ID
+        </button>
+        <button onclick="showPaymentMethodType('qr-code')" style="margin-bottom:0;background:#22c55e;color:#111;">
+          QR Code
+        </button>
+        <button onclick="showPaymentMethodType('bank-account')" style="margin-bottom:0;background:#22c55e;color:#111;">
+          Bank Account
+        </button>
+      </div>
+
+      <div id="paymentMethodTypeContent" style="background:#0f172a;border:1px solid #243041;border-radius:12px;padding:14px;">
+        Select payment method type
+      </div>
+    `;
+    return;
+  }
+
+  if (section === 'offer') {
+    content.innerHTML = `
+      <div style="display:grid;gap:12px;">
+        <textarea id="offerInput" placeholder="Offer text yaha type karo" style="width:100%;min-height:120px;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"></textarea>
+        <button onclick="saveOfferUpdate()" style="margin-bottom:0;background:#2563eb;color:#fff;width:fit-content;">
+          Update Offer
+        </button>
+      </div>
+    `;
+    loadLiveUpdatesData();
+  }
+}
+function showPaymentMethodType(type) {
+  const content = document.getElementById('paymentMethodTypeContent');
+
+  if (type === 'upi-id') {
+    content.innerHTML = `
+      <div style="display:grid;gap:12px;">
+        <input id="liveUpiIdInput" type="text" placeholder="Enter UPI ID" />
+        <button onclick="saveLiveUpiId()" style="margin-bottom:0;background:#22c55e;color:#111;width:fit-content;">
+          Update UPI ID
+        </button>
+      </div>
+    `;
+    loadLiveUpdatesData();
+    return;
+  }
+
+  if (type === 'qr-code') {
+    content.innerHTML = `
+      <div style="display:grid;gap:12px;">
+        <input id="liveQrCodeInput" type="file" accept="image/*" />
+        <button onclick="saveLiveQrCode()" style="margin-bottom:0;background:#22c55e;color:#111;width:fit-content;">
+          Update QR Code
+        </button>
+        <div id="liveQrPreviewBox" style="display:none;">
+          <img id="liveQrPreviewImage" src="" alt="QR Preview" style="width:100%;max-width:260px;border-radius:10px;border:1px solid #243041;background:#000;padding:6px;" />
+        </div>
+      </div>
+    `;
+    loadLiveUpdatesData();
+    return;
+  }
+
+  if (type === 'bank-account') {
+    content.innerHTML = `
+      <div style="display:grid;gap:12px;">
+        <textarea id="liveBankAccountInput" placeholder="Enter bank account details" style="width:100%;min-height:140px;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"></textarea>
+        <button onclick="saveLiveBankAccount()" style="margin-bottom:0;background:#22c55e;color:#111;width:fit-content;">
+          Update Bank Account
+        </button>
+      </div>
+    `;
+    loadLiveUpdatesData();
+  }
+}
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read file'));
+
+    reader.readAsDataURL(file);
   });
-
-  alert(await res.text());
 }
 
-async function withdrawCoins(){
+async function saveLiveUpiId() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const upiId = document.getElementById('liveUpiIdInput')?.value.trim() || '';
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/live-updates', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        section: 'payment-method',
+        type: 'upi-id',
+        upiId
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to update UPI ID';
+      return;
+    }
+
+    output.textContent = data.message || 'UPI ID updated successfully';
+  } catch (err) {
+    output.textContent = 'Failed to update UPI ID: ' + err.message;
+  }
+}
+
+async function saveLiveQrCode() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const fileInput = document.getElementById('liveQrCodeInput');
+  const file = fileInput?.files?.[0];
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!file) {
+    output.textContent = 'Select QR code image first';
+    return;
+  }
+
+  try {
+    const qrCodeImage = await fileToBase64(file);
+
+    const res = await fetch('/api/admin/live-updates', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        section: 'payment-method',
+        type: 'qr-code',
+        qrCodeImage
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to update QR code';
+      return;
+    }
+
+    const previewBox = document.getElementById('liveQrPreviewBox');
+    const previewImage = document.getElementById('liveQrPreviewImage');
+
+    if (previewBox && previewImage) {
+      previewImage.src = qrCodeImage;
+      previewBox.style.display = 'block';
+    }
+
+    output.textContent = data.message || 'QR code updated successfully';
+  } catch (err) {
+    output.textContent = 'Failed to update QR code: ' + err.message;
+  }
+}
+
+async function saveLiveBankAccount() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const bankAccount = document.getElementById('liveBankAccountInput')?.value.trim() || '';
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/live-updates', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        section: 'payment-method',
+        type: 'bank-account',
+        bankAccount
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to update bank account';
+      return;
+    }
+
+    output.textContent = data.message || 'Bank account updated successfully';
+  } catch (err) {
+    output.textContent = 'Failed to update bank account: ' + err.message;
+  }
+}
+
+async function saveOfferUpdate() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const offer = document.getElementById('offerInput')?.value.trim() || '';
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/live-updates', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        section: 'offer',
+        offer
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to update offer';
+      return;
+    }
+
+    output.textContent = data.message || 'Offer updated successfully';
+  } catch (err) {
+    output.textContent = 'Failed to update offer: ' + err.message;
+  }
+}
+async function loadLiveUpdatesData() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+
+  if (!token) return;
+
+  try {
+    const res = await fetch('/api/admin/live-updates', {
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return;
+    }
+
+    const live = data.liveUpdates || {};
+
+    // UPI
+    if (document.getElementById('liveUpiIdInput')) {
+      document.getElementById('liveUpiIdInput').value =
+        live.paymentMethod?.upiId || '';
+    }
+
+    // Bank
+    if (document.getElementById('liveBankAccountInput')) {
+      document.getElementById('liveBankAccountInput').value =
+        live.paymentMethod?.bankAccount || '';
+    }
+
+    // QR preview
+    if (live.paymentMethod?.qrCodeImage) {
+      const previewBox = document.getElementById('liveQrPreviewBox');
+      const previewImage = document.getElementById('liveQrPreviewImage');
+
+      if (previewBox && previewImage) {
+        previewImage.src = live.paymentMethod.qrCodeImage;
+        previewBox.style.display = 'block';
+      }
+    }
+
+    // Offer
+    if (document.getElementById('offerInput')) {
+      document.getElementById('offerInput').value =
+        live.offer || '';
+    }
+
+  } catch (err) {
+    console.log('Live updates load failed');
+  }
+}
+
+    function checkAdminLogin() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const adminKey = new URLSearchParams(window.location.search).get('key') || '';
+
+  if (adminKey) {
+    localStorage.setItem('adminRouteKey', adminKey);
+  }
+
+  const hasValidAdminSession =
+    !!token &&
+    ['super_admin', 'finance_admin', 'game_admin', 'support_admin']
+      .includes(localStorage.getItem('adminRole') || '');
+
+  document.getElementById('loginSection').classList.toggle('hidden', hasValidAdminSession);
+  document.getElementById('panelSection').classList.toggle('hidden', !hasValidAdminSession);
+}
+
+    async function adminLogin() {
+      const username = document.getElementById('adminUsername').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
+      const loginMsg = document.getElementById('loginMsg');
+
+      if (!username) {
+        loginMsg.textContent = 'Username required';
+        return;
+      }
+
+      if (!password) {
+        loginMsg.textContent = 'Password required';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+'x-admin-key': currentAdminKey
+          },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          loginMsg.textContent = data.error || 'Login failed';
+          return;
+        }
+
+        localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
+        localStorage.setItem('adminRole', data.user.role || 'super_admin');
+        loginMsg.textContent = 'Admin login successful';
+        toggleDashboardPreset('today');
+checkAdminLogin();
+refreshDashboardPresetButtons();
+loadDashboardStats();
+refreshRequestCounts();
+
+if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+if (depositRefreshInterval) clearInterval(depositRefreshInterval);
+
+dashboardRefreshInterval = setInterval(loadDashboardStats, 10000);
+depositRefreshInterval = setInterval(() => {
+  refreshRequestCounts();
+}, 10000);
+      } catch (err) {
+        loginMsg.textContent = 'Server error';
+      }
+    }
+
+    async function loadUsers() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const usersList = document.getElementById('usersList');
+hideAllAdminSections();
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/load-users', {
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Access denied');
+      return;
+    }
+
+    const users = Array.isArray(data.users) ? data.users : [];
+allUsers = users;
+
+    getEl('usersPanel').style.display = 'block';
+    openAdminModal('Load Users', 'usersPanel');
+
+    if (!users.length) {
+      usersList.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No users found</div>';
+      output.textContent = 'Users loaded';
+      return;
+    }
+
+    filterUsers();
+
+  } catch (err) {
+    output.textContent = 'Failed to load users: ' + err.message;
+  }
+}
+
+function filterUsers() {
+  const query = document.getElementById('userSearch').value.toLowerCase();
+  const usersList = document.getElementById('usersList');
+
+  let filtered = allUsers.filter(user =>
+  String(user.username).toLowerCase().includes(query)
+);
+
+if (selectedUsername) {
+  const selectedUserExists = filtered.some(
+    user => String(user.username) === String(selectedUsername)
+  );
+
+  if (!selectedUserExists) {
+    const selectedUser = allUsers.find(
+      user => String(user.username) === String(selectedUsername)
+    );
+
+    if (selectedUser) {
+      filtered = [selectedUser, ...filtered];
+    }
+  }
+}
+
+  if (!filtered.length) {
+    usersList.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No users found</div>';
+    return;
+  }
+
+  usersList.innerHTML = filtered.map(user => `
+    <div onclick="selectUser(${Number(user.id)})" style="background:${selectedUsername === user.username ? '#1a2a44' : user.blocked ? '#2a1014' : '#111827'};border:1px solid ${selectedUsername === user.username ? '#ffd54a' : user.blocked ? '#ff4d4f' : '#243041'};border-radius:14px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all 0.2s ease;box-shadow:${selectedUsername === user.username ? '0 0 16px rgba(255,213,74,0.12)' : user.blocked ? '0 0 12px rgba(255,77,79,0.10)' : '0 0 0 rgba(0,0,0,0)'};" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+      <div><strong>Username:</strong> ${user.username}</div>
+      <div><strong>Main Wallet:</strong> ${user.mainBalance ?? user.walletBalance}</div>
+      <div><strong>Bonus:</strong> ${user.bonusBalance || 0} | <strong>Deposit:</strong> ${user.depositBalance || 0} | <strong>Winning:</strong> ${user.winningBalance || 0}</div>
+      <div><strong>Eligible Request:</strong> ${user.eligibleRequestBalance || 0}</div>
+      <div><strong>Total Played:</strong> ${user.totalPlayed}</div>
+      <div><strong>Total Wins:</strong> ${user.totalWins}</div>
+      <div><strong>Bonus Claimed:</strong> ${user.bonusClaimed}</div>
+      <div><strong>Referral Code:</strong> ${user.referralCode || '-'}</div>
+      <div><strong>Referral:</strong> Success ${user.referralSuccessfulCount || 0} | Pending ${user.referralPendingCount || 0}</div>
+      <div><strong>Used Code:</strong> ${user.referredBy || '-'}</div>
+      <div><strong>Referral Unlock:</strong> ${user.referralBonusUnlocked ? 'Unlocked' : 'Pending / None'}</div>
+      <div><strong>Status:</strong> ${user.blocked ? 'Blocked' : 'Active'}</div>
+    </div>
+  `).join('');
+}
+function renderSelectedUserCard(user) {
+  const selectedInfo = document.getElementById('selectedUserInfo');
+  const liveCard = document.getElementById('selectedWalletLiveCard');
+
+  if (!user) {
+    selectedInfo.textContent = 'No user selected';
+    if (liveCard) {
+      liveCard.innerHTML = `
+        <div style="font-weight:900;color:#ffd54a;margin-bottom:6px;">Selected User Live Wallet</div>
+        <div>ID: -</div>
+        <div>M: 0 | B: 0 | D: 0 | W: 0</div>
+      `;
+    }
+    return;
+  }
+
+  const blockedText = user.blocked ? 'Blocked' : 'Active';
+  const mainWallet = Number(user.mainBalance ?? user.walletBalance ?? 0);
+  const bonusWallet = Number(user.bonusBalance || 0);
+  const depositWallet = Number(user.depositBalance || 0);
+  const winningWallet = Number(user.winningBalance || 0);
+  const eligibleWallet = Number(user.eligibleRequestBalance || 0);
+
+  selectedInfo.innerHTML = `
+    <div><strong>Selected user:</strong> ${user.username}</div>
+    <div><strong>Status:</strong> ${blockedText}</div>
+    <div><strong>Eligible Request:</strong> ${eligibleWallet}</div>
+    <div><strong>Referral Code:</strong> ${user.referralCode || '-'}</div>
+    <div><strong>Used Code:</strong> ${user.referredBy || '-'}</div>
+    <div><strong>Referral Stats:</strong> Success ${user.referralSuccessfulCount || 0} | Pending ${user.referralPendingCount || 0}</div>
+    <div><strong>Referral Unlock:</strong> ${user.referralBonusUnlocked ? 'Unlocked' : 'Pending / None'}</div>
+  `;
+
+  if (liveCard) {
+    liveCard.innerHTML = `
+      <div style="font-weight:900;color:#ffd54a;margin-bottom:6px;">Selected User Live Wallet</div>
+      <div><strong>User ID:</strong> ${user.id ?? '-'}</div>
+      <div><strong>M:</strong> ${mainWallet} &nbsp; <strong>B:</strong> ${bonusWallet} &nbsp; <strong>D:</strong> ${depositWallet} &nbsp; <strong>W:</strong> ${winningWallet}</div>
+      <div style="margin-top:6px;color:#cbd5e1;">(M) Main Wallet, (B) Bonus, (D) Deposit, (W) Winning</div>
+    `;
+  }
+}
+
+function selectUser(userId) {
+  const selectedUser = allUsers.find(
+    user => Number(user.id) === Number(userId)
+  );
+
+  if (!selectedUser) {
+    selectedUserId = null;
+    selectedUsername = '';
+    document.getElementById('coinUsername').value = '';
+    document.getElementById('historyUsername').value = '';
+    renderSelectedUserCard(null);
+    document.getElementById('output').textContent = 'Selected user not found';
+    filterUsers();
+    return;
+  }
+
+  selectedUserId = Number(selectedUser.id);
+  selectedUsername = String(selectedUser.username || '');
+  document.getElementById('coinUsername').value = selectedUsername;
+  document.getElementById('historyUsername').value = selectedUsername;
+
+  renderSelectedUserCard(selectedUser);
+
+  document.getElementById('output').textContent = 'Selected user: ' + selectedUsername;
+  document.querySelector('button[onclick="toggleBlockUser()"]').textContent = selectedUser.blocked ? 'Unblock User' : 'Block User';
+  filterUsers();
+}
+async function addCoins() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const username = document.getElementById('coinUsername').value.trim();
+  const userId = Number(selectedUserId || 0);
   const amount = Number(document.getElementById('coinAmount').value);
-  if(!selectedUserId){ alert("Select user first"); return; }
+  const walletType = String(document.getElementById('coinWalletType').value || 'deposit').trim().toLowerCase();
+  const output = document.getElementById('output');
 
-  const res = await fetch('/api/admin/withdraw-coin',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ userId: selectedUserId, amount })
-  });
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
 
-  alert(await res.text());
+  if (!userId) {
+    output.textContent = 'Select user first';
+    return;
+  }
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    output.textContent = 'Valid amount required';
+    return;
+  }
+
+  if (walletType === 'winning') {
+    output.textContent = 'Add Coins me sirf Deposit Coin ya Bonus Coin use karo';
+    return;
+  }
+
+if (!confirm(`Add ${amount} ${walletType} coins to ${username}?`)) {
+  return;
 }
+  try {
+    const res = await fetch('/api/admin/add-coins', {
+      method: 'POST',
+      headers: getAdminHeaders({
+  'Content-Type': 'application/json'
+}),
+      body: JSON.stringify({ userId, username, amount, walletType })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = data.message + ' | New Main Wallet: ' + data.user.walletBalance;
+
+selectedUserId = Number(data.user.id || userId);
+selectedUsername = String(data.user.username || username);
+renderSelectedUserCard({
+  id: data.user.id,
+  username: data.user.username,
+  mainBalance: data.user.walletBalance,
+  walletBalance: data.user.walletBalance,
+  bonusBalance: data.user.bonusBalance || 0,
+  depositBalance: data.user.depositBalance || 0,
+  winningBalance: data.user.winningBalance || 0,
+  blocked: false,
+  eligibleRequestBalance: Number(data.user.depositBalance || 0) + Number(data.user.winningBalance || 0)
+});
+document.getElementById('coinAmount').value = '';
+document.getElementById('coinWalletType').value = 'deposit';
+document.getElementById('userSearch').value = '';
+loadUsers();
+  } catch (err) {
+    output.textContent = 'Failed to add coins: ' + err.message;
+  }
+}
+async function withdrawCoins() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const username = document.getElementById('coinUsername').value.trim();
+  const userId = Number(selectedUserId || 0);
+  const amount = Number(document.getElementById('coinAmount').value);
+  const walletType = String(document.getElementById('coinWalletType').value || 'deposit').trim().toLowerCase();
+  const output = document.getElementById('output');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!userId) {
+    output.textContent = 'Select user first';
+    return;
+  }
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    output.textContent = 'Valid amount required';
+    return;
+  }
+
+if (!confirm(`Withdraw ${amount} ${walletType} coins from ${username}?`)) {
+  return;
+}
+  try {
+    const res = await fetch('/api/admin/withdraw-coins', {
+      method: 'POST',
+      headers: getAdminHeaders({
+  'Content-Type': 'application/json'
+}),
+      body: JSON.stringify({ userId, username, amount, walletType })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = data.message + ' | New Main Wallet: ' + data.user.walletBalance;
+
+selectedUserId = Number(data.user.id || userId);
+selectedUsername = String(data.user.username || username);
+renderSelectedUserCard({
+  id: data.user.id,
+  username: data.user.username,
+  mainBalance: data.user.walletBalance,
+  walletBalance: data.user.walletBalance,
+  bonusBalance: data.user.bonusBalance || 0,
+  depositBalance: data.user.depositBalance || 0,
+  winningBalance: data.user.winningBalance || 0,
+  blocked: Boolean(data.user.blocked),
+  eligibleRequestBalance: Number(data.user.depositBalance || 0) + Number(data.user.winningBalance || 0)
+});
+document.getElementById('coinAmount').value = '';
+document.getElementById('coinWalletType').value = 'deposit';
+document.getElementById('userSearch').value = '';
+loadUsers();
+  } catch (err) {
+    output.textContent = 'Failed to withdraw coins: ' + err.message;
+  }
+}
+
+async function toggleBlockUser() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const username = document.getElementById('coinUsername').value.trim();
+  const output = document.getElementById('output');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!username) {
+    output.textContent = 'Select a user first';
+    return;
+  }
+
+  const selectedUser = allUsers.find(
+    user => String(user.username).toLowerCase() === username.toLowerCase()
+  );
+
+  if (!selectedUser) {
+    output.textContent = 'User not found in list';
+    return;
+  }
+
+  const newBlockedState = !selectedUser.blocked;
+
+  if (!confirm(`${newBlockedState ? 'Block' : 'Unblock'} user ${username}?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/block-user', {
+      method: 'POST',
+      headers: getAdminHeaders({
+  'Content-Type': 'application/json'
+}),
+      body: JSON.stringify({
+        username,
+        blocked: newBlockedState
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = data.message;
+
+        document.getElementById('selectedUserInfo').textContent =
+      `Selected user: ${data.user.username} | Account Status: ${data.user.blocked ? 'Blocked' : 'Active'}`;
+
+document.querySelector('button[onclick="toggleBlockUser()"]').textContent =
+      data.user.blocked ? 'Unblock User' : 'Block User';
+
+    loadUsers();
+  } catch (err) {
+    output.textContent = 'Failed to update block status: ' + err.message;
+  }
+}
+
+async function loadCurrentRound() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const roundPanel = document.getElementById('roundPanel');
+  const roundInfo = document.getElementById('roundInfo');
+hideAllAdminSections();
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  roundPanel.style.display = 'block';
+  openAdminModal('Round Control', 'roundPanel');
+  roundInfo.innerHTML = 'Loading round info...';
+
+  try {
+    const res = await fetch('/api/admin/current-round', {
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      roundInfo.innerHTML = 'Failed to load round info';
+      return;
+    }
+
+    const round = data.round;
+
+    roundInfo.innerHTML = `
+      <div><strong>Round Number:</strong> ${round.roundNumber}</div>
+      <div><strong>Round Code:</strong> ${round.roundCode}</div>
+      <div><strong>Status:</strong> ${round.status}</div>
+      <div><strong>Start Time:</strong> ${new Date(round.startsAt).toLocaleString()}</div>
+      <div><strong>Bet Close Time:</strong> ${new Date(round.bettingClosesAt).toLocaleString()}</div>
+      <div><strong>End Time:</strong> ${new Date(round.endsAt).toLocaleString()}</div>
+      <div><strong>Server Seed Hash:</strong> ${round.serverSeedHash}</div>
+      <div><strong>Client Seed:</strong> ${round.clientSeed}</div>
+    `;
+
+    output.textContent = 'Current round loaded';
+  } catch (err) {
+    roundInfo.innerHTML = 'Failed to load round info';
+    output.textContent = 'Failed to load round: ' + err.message;
+  }
+}
+
+async function forceSettleRound() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!confirm('Are you sure you want to force settle the current round?')) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/force-settle-round', {
+      method: 'POST',
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = data.message || 'Round settled successfully';
+    loadCurrentRound();
+
+  } catch (err) {
+    output.textContent = 'Failed to settle round: ' + err.message;
+  }
+}
+
+async function handleDepositRequest(requestId, action, requestType = 'deposit') {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to ${action} this ${requestType} request?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/deposit-requests/action', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        requestId,
+        action,
+        type: requestType
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = data.message || `${requestType} request updated`;
+    loadDepositRequests(currentRequestTab);
+    loadDashboardStats();
+    refreshRequestCounts();
+  } catch (err) {
+    output.textContent = `Failed to update ${requestType} request: ` + err.message;
+  }
+}
+
+async function loadDepositRequests(requestType = 'deposit') {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+currentRequestTab = requestType;
+  const panel = document.getElementById('depositRequestsPanel');
+const panelTitle = document.querySelector('#depositRequestsPanel h3');
+const depositBtn = document.getElementById('depositRequestsBtn');
+const withdrawalBtn = document.getElementById('withdrawalRequestsBtn');
+  const list = document.getElementById('depositRequestsList');
+
+hideAllAdminSections();
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  panel.style.display = 'block';
+  openAdminModal(requestType === 'withdrawal' ? 'Withdrawal Requests' : 'Deposit Requests', 'depositRequestsPanel');
+panelTitle.textContent = requestType === 'withdrawal' ? 'Withdrawal Requests' : 'Deposit Requests';
+
+depositBtn.style.background = requestType === 'deposit' ? '#ffd54a' : '';
+depositBtn.style.color = requestType === 'deposit' ? '#111' : '';
+
+withdrawalBtn.style.background = requestType === 'withdrawal' ? '#ffd54a' : '';
+withdrawalBtn.style.color = requestType === 'withdrawal' ? '#111' : '';
+
+list.innerHTML = `<div style="padding:12px;background:#111827;border-radius:10px;">Loading ${requestType} requests...</div>`;
+  const reqPreset = getEl('reqFilterPreset')?.value || 'today';
+  const reqFrom = getEl('reqFilterFrom')?.value || '';
+  const reqTo = getEl('reqFilterTo')?.value || '';
+  const reqStatus = getEl('reqFilterStatus')?.value || '';
+
+  try {
+    const reqPreset = getEl('reqFilterPreset')?.value || 'today';
+    const reqFrom = getEl('reqFilterFrom')?.value || '';
+    const reqTo = getEl('reqFilterTo')?.value || '';
+    const reqStatus = getEl('reqFilterStatus')?.value || '';
+
+    const res = await fetch('/api/admin/deposit-requests' + buildAdminQuery({ preset: reqPreset, from: reqFrom, to: reqTo, status: reqStatus }), {
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+
+const allRequests = Array.isArray(data.requests) ? data.requests : [];
+
+const depositPendingCount = allRequests.filter(
+  r => (r.type || 'deposit') === 'deposit' && r.status === 'pending'
+).length;
+
+const withdrawalPendingCount = allRequests.filter(
+  r => (r.type || 'deposit') === 'withdrawal' && r.status === 'pending'
+).length;
+
+document.getElementById('depositRequestsBtn').textContent = `Deposit Requests (${depositPendingCount})`;
+document.getElementById('withdrawalRequestsBtn').textContent = `Withdrawal Requests (${withdrawalPendingCount})`;
+
+const filteredRequests = allRequests.filter(
+  r => (r.type || 'deposit') === requestType
+);
+
+const filteredPendingCount = filteredRequests.filter(
+  r => r.status === 'pending'
+).length;
+
+document.getElementById('pendingRequestCount').textContent = 'Pending: ' + filteredPendingCount;
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      list.innerHTML = '';
+      return;
+    }
+
+    if (!filteredRequests.length) {
+document.getElementById('pendingRequestCount').textContent = 'Pending: 0';
+      list.innerHTML = `<div style="padding:12px;background:#111827;border-radius:10px;">No ${requestType} requests found</div>`;
+      output.textContent = 'Deposit requests loaded';
+      return;
+    }
+
+    list.innerHTML = filteredRequests.map(reqItem => {
+  const dateText = reqItem.createdAt
+    ? new Date(reqItem.createdAt).toLocaleString()
+    : '-';
+
+  const wd = reqItem.withdrawal_details || {};
+  const isWithdrawal = (reqItem.type || 'deposit') === 'withdrawal';
+
+  let withdrawalDetailsHtml = '';
+
+  if (isWithdrawal) {
+    if (reqItem.method === 'UPI') {
+      withdrawalDetailsHtml = `
+        <div style="margin-top:10px;padding:10px;border:1px solid #35506b;border-radius:10px;background:#0f172a;">
+          <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">Withdrawal Details</div>
+          <div><strong>UPI ID:</strong> ${wd.upiId || '-'}</div>
+        </div>
+      `;
+    } else if (reqItem.method === 'QR Code') {
+      withdrawalDetailsHtml = `
+        <div style="margin-top:10px;padding:10px;border:1px solid #35506b;border-radius:10px;background:#0f172a;">
+          <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">Withdrawal Details</div>
+          <div><strong>Method:</strong> QR Code</div>
+          ${wd.qrImage ? `
+            <div style="margin-top:10px;">
+              <img src="${wd.qrImage}"
+                   alt="Withdrawal QR"
+                   style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;border:1px solid #333;background:#000;padding:6px;cursor:pointer;"
+                   onclick="window.open('${wd.qrImage}', '_blank')"
+              />
+            </div>
+          ` : `
+            <div style="margin-top:8px;color:#888;font-size:13px;">No QR image uploaded</div>
+          `}
+        </div>
+      `;
+    } else if (reqItem.method === 'Bank Account') {
+      withdrawalDetailsHtml = `
+        <div style="margin-top:10px;padding:10px;border:1px solid #35506b;border-radius:10px;background:#0f172a;">
+          <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">Withdrawal Details</div>
+          <div><strong>Account Holder:</strong> ${wd.bankHolderName || '-'}</div>
+          <div><strong>Bank Name:</strong> ${wd.bankName || '-'}</div>
+          <div><strong>IFSC Code:</strong> ${wd.ifscCode || '-'}</div>
+          <div><strong>Account Number:</strong> ${wd.accountNumber || '-'}</div>
+        </div>
+      `;
+    }
+  }
+
+  const screenshotHtml = isWithdrawal
+    ? ''
+    : (reqItem.screenshot ? `
+      <div style="margin-top:10px;">
+        <img src="${reqItem.screenshot}" 
+             alt="Payment Proof"
+             style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;border:1px solid #333;background:#000;padding:6px;cursor:pointer;"
+             onclick="window.open('${reqItem.screenshot}', '_blank')"
+        />
+      </div>
+    ` : `
+      <div style="margin-top:10px;color:#888;font-size:13px;">
+        No payment proof image
+      </div>
+    `);
+
+  return `
+    <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;">
+      <div><strong>User:</strong> ${reqItem.username}</div>
+      <div><strong>Type:</strong> ${reqItem.type || 'deposit'}</div>
+      <div><strong>Amount:</strong> ${reqItem.amount}</div>
+      <div><strong>Method:</strong> ${reqItem.method || '-'}</div>
+      <div><strong>UTR:</strong> ${reqItem.utr || '-'}</div>
+      <div><strong>Status:</strong> ${reqItem.status}</div>
+      <div><strong>Time:</strong> ${dateText}</div>
+
+      ${withdrawalDetailsHtml}
+      ${screenshotHtml}
+
+      ${reqItem.status === 'pending' ? `
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button onclick="handleDepositRequest(${reqItem.id}, 'approve', '${reqItem.type || 'deposit'}')" style="background:#22c55e;color:#111;">Approve</button>
+          <button onclick="handleDepositRequest(${reqItem.id}, 'reject', '${reqItem.type || 'deposit'}')" style="background:#ff4d4f;color:#fff;">Reject</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}).join('');
+
+    output.textContent = 'Deposit requests loaded';
+  } catch (err) {
+    list.innerHTML = '';
+    output.textContent = 'Failed to load deposit requests: ' + err.message;
+  }
+}
+
+async function copyHistoryUserData() {
+  const output = document.getElementById('output');
+  const content = document.getElementById('userHistoryContent');
+
+  const textToCopy = content ? content.innerText.trim() : '';
+
+  if (!textToCopy) {
+    output.textContent = 'No user data available to copy';
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(textToCopy);
+    output.textContent = 'User data copied successfully';
+  } catch (err) {
+    output.textContent = 'Failed to copy user data: ' + err.message;
+  }
+}
+
+async function deleteHistoryUser(userId, username) {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const backupBeforeDelete = document.getElementById('backupBeforeDelete');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!username) {
+    output.textContent = 'Username required';
+    return;
+  }
+
+  const shouldBackup = !!backupBeforeDelete?.checked;
+
+  if (!confirm(`Are you sure you want to delete user ${username}?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/delete-user', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        userId,
+        backupBeforeDelete: shouldBackup
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = data.message || 'User deleted successfully';
+
+    document.getElementById('userHistoryPanel').style.display = 'none';
+    document.getElementById('userHistoryContent').innerHTML = '';
+    document.getElementById('historyUsername').value = '';
+
+    loadUsers();
+    refreshRequestCounts();
+    loadDashboardStats();
+  } catch (err) {
+    output.textContent = 'Failed to delete user: ' + err.message;
+  }
+}
+
+async function toggleHistoryUserBlock(username) {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!username) {
+    output.textContent = 'Username required';
+    return;
+  }
+
+  const historyContentText = document.getElementById('userHistoryContent').innerText || '';
+  const isBlockedNow = historyContentText.includes('Status: Blocked');
+
+  if (!confirm(`${isBlockedNow ? 'Unblock' : 'Block'} user ${username}?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/block-user', {
+      method: 'POST',
+      headers: getAdminHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        username,
+        blocked: !isBlockedNow
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      return;
+    }
+
+    output.textContent = data.message || 'User block status updated';
+
+    loadUserHistory();
+    loadUsers();
+    refreshRequestCounts();
+  } catch (err) {
+    output.textContent = 'Failed to update block status: ' + err.message;
+  }
+}
+
+async function loadUserHistory() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const username = document.getElementById('historyUsername').value.trim();
+  const output = document.getElementById('output');
+  const panel = document.getElementById('userHistoryPanel');
+  const content = document.getElementById('userHistoryContent');
+
+  hideAllAdminSections();
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  if (!username) {
+    output.textContent = 'Username required';
+    return;
+  }
+
+  panel.style.display = 'block';
+  openAdminModal('User Full History', 'userHistoryPanel');
+  content.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading user history...</div>';
+
+  try {
+    const res = await fetch('/api/admin/user-history/' + encodeURIComponent(username), {
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      content.innerHTML = '';
+      return;
+    }
+
+    const user = data.user || {};
+    const bets = Array.isArray(data.history?.bets) ? data.history.bets : [];
+    const transactions = Array.isArray(data.history?.transactions) ? data.history.transactions : [];
+    const requests = Array.isArray(data.history?.requests) ? data.history.requests : [];
+
+    const betHtml = bets.length
+      ? bets.map(item => `
+          <div style="padding:10px;border:1px solid #243041;border-radius:10px;background:#0f172a;">
+            <div><strong>Round:</strong> ${item.roundCode || item.roundNumber || '-'}</div>
+            <div><strong>Bet:</strong> ${Object.entries(item.betMap || {}).map(([num, amt]) => `${num}:${amt}`).join(', ') || '-'}</div>
+            <div><strong>Total Coins:</strong> ${item.totalCoins || 0}</div>
+            <div><strong>Matched Number:</strong> ${item.matchedNumber ?? '-'}</div>
+            <div><strong>Payout:</strong> ${item.payout || 0}</div>
+            <div><strong>Result:</strong> ${item.result || '-'}</div>
+            <div><strong>Time:</strong> ${item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}</div>
+          </div>
+        `).join('')
+      : '<div style="padding:10px;border:1px solid #243041;border-radius:10px;background:#0f172a;">No bet history found</div>';
+
+    const transactionHtml = transactions.length
+      ? transactions.map(item => `
+          <div style="padding:10px;border:1px solid #243041;border-radius:10px;background:#0f172a;">
+            <div><strong>Type:</strong> ${item.type || '-'}</div>
+            <div><strong>Amount:</strong> ${item.amount || 0}</div>
+            <div><strong>Time:</strong> ${item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}</div>
+          </div>
+        `).join('')
+      : '<div style="padding:10px;border:1px solid #243041;border-radius:10px;background:#0f172a;">No transaction history found</div>';
+
+    const requestHtml = requests.length
+      ? requests.map(item => `
+          <div style="padding:10px;border:1px solid #243041;border-radius:10px;background:#0f172a;">
+            <div><strong>Type:</strong> ${item.type || 'deposit'}</div>
+            <div><strong>Amount:</strong> ${item.amount || 0}</div>
+            <div><strong>Method:</strong> ${item.method || '-'}</div>
+            <div><strong>UTR:</strong> ${item.utr || '-'}</div>
+            <div><strong>Status:</strong> ${item.status || '-'}</div>
+            <div><strong>Time:</strong> ${item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}</div>
+          </div>
+        `).join('')
+      : '<div style="padding:10px;border:1px solid #243041;border-radius:10px;background:#0f172a;">No request history found</div>';
+
+    content.innerHTML = `
+  <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
+    <div><strong>User ID:</strong> ${user.id ?? '-'}</div>
+    <div><strong>Username:</strong> ${user.username || '-'}</div>
+    <div><strong>Main Wallet:</strong> ${user.mainBalance ?? user.walletBalance ?? 0}</div>
+    <div><strong>Bonus Balance:</strong> ${user.bonusBalance || 0}</div>
+    <div><strong>Deposit Balance:</strong> ${user.depositBalance || 0}</div>
+    <div><strong>Winning Balance:</strong> ${user.winningBalance || 0}</div>
+    <div><strong>Eligible Request Balance:</strong> ${user.eligibleRequestBalance || 0}</div>
+    <div><strong>Total Played:</strong> ${user.totalPlayed || 0}</div>
+    <div><strong>Total Wins:</strong> ${user.totalWins || 0}</div>
+    <div><strong>Bonus Claimed:</strong> ${user.bonusClaimed || 0}</div>
+    <div><strong>Status:</strong> ${user.blocked ? 'Blocked' : 'Active'}</div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+  <button onclick="toggleHistoryUserBlock('${user.username}')" style="margin-bottom:0;background:${user.blocked ? '#22c55e' : '#ff4d4f'};color:#fff;">
+    ${user.blocked ? 'Unblock User' : 'Block User'}
+  </button>
+
+  <button onclick="copyHistoryUserData()" style="margin-bottom:0;background:#2563eb;color:#fff;">
+    Copy User Data
+  </button>
+
+  <label style="display:flex;align-items:center;gap:8px;background:#0f172a;border:1px solid #243041;border-radius:10px;padding:10px 12px;color:#fff;">
+    <input id="backupBeforeDelete" type="checkbox" />
+    Backup before delete
+  </label>
+
+  <button onclick="deleteHistoryUser(${user.id}, '${user.username}')" style="margin-bottom:0;background:#dc2626;color:#fff;">
+    Delete User ID
+  </button>
+</div>
+  </div>
+
+      <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
+        <h4 style="margin:0 0 10px 0;color:#ffd54a;">Bet History</h4>
+        <div style="display:grid;gap:10px;">${betHtml}</div>
+      </div>
+
+      <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
+        <h4 style="margin:0 0 10px 0;color:#ffd54a;">Transaction History</h4>
+        <div style="display:grid;gap:10px;">${transactionHtml}</div>
+      </div>
+
+      <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;">
+        <h4 style="margin:0 0 10px 0;color:#ffd54a;">Deposit / Withdrawal Requests</h4>
+        <div style="display:grid;gap:10px;">${requestHtml}</div>
+      </div>
+    `;
+
+    output.textContent = 'User history loaded: ' + username;
+  } catch (err) {
+    content.innerHTML = '';
+    output.textContent = 'Failed to load user history: ' + err.message;
+  }
+}
+
+async function loadTransactions() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const panel = document.getElementById('transactionsPanel');
+  const list = document.getElementById('transactionsList');
+
+  hideAllAdminSections();
+
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+
+  panel.style.display = 'block';
+  openAdminModal('Transaction History', 'transactionsPanel');
+  list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">Loading transactions.</div>';
+
+  try {
+    const txPreset = getEl('txFilterPreset')?.value || 'today';
+    const txFrom = getEl('txFilterFrom')?.value || '';
+    const txTo = getEl('txFilterTo')?.value || '';
+    const txWalletType = getEl('txFilterWalletType')?.value || '';
+
+    const res = await fetch('/api/admin/transaction-history' + buildAdminQuery({ preset: txPreset, from: txFrom, to: txTo, walletType: txWalletType }), {
+      headers: getAdminHeaders()
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.textContent = 'Error ' + res.status + ': ' + (data.error || 'Failed');
+      list.innerHTML = '';
+      return;
+    }
+
+    const transactions = Array.isArray(data.history)
+      ? data.history
+      : Array.isArray(data.transactions)
+      ? data.transactions
+      : [];
+
+    if (!transactions.length) {
+      list.innerHTML = '<div style="padding:12px;background:#111827;border-radius:10px;">No transactions found</div>';
+      output.textContent = 'Admin wallet transaction history loaded';
+      return;
+    }
+
+    list.innerHTML = transactions.map(tx => {
+      const dateText = tx.createdAt
+        ? new Date(Number(tx.createdAt)).toLocaleString()
+        : '-';
+
+      let typeText = tx.type || '-';
+
+      if (tx.type === 'admin_add_coin') typeText = 'Admin Added Coins';
+      else if (tx.type === 'admin_withdraw_coin') typeText = 'Admin Withdraw Coins';
+
+      return `
+        <div style="background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;">
+          <div><strong>ID:</strong> ${tx.id ?? '-'}</div>
+          <div><strong>Selected User:</strong> ${tx.username || 'Deleted User'}</div>
+          <div><strong>Type:</strong> ${typeText}</div>
+          <div><strong>Amount:</strong> ${Number(tx.amount || 0)}</div>
+          <div><strong>Wallet:</strong> ${(tx.meta && tx.meta.walletType) ? String(tx.meta.walletType).toUpperCase() : '-'}</div>
+          <div><strong>Time:</strong> ${dateText}</div>
+        </div>
+      `;
+    }).join('');
+
+    output.textContent = 'Admin wallet transaction history loaded';
+  } catch (err) {
+    list.innerHTML = '';
+    output.textContent = 'Failed to load transactions: ' + err.message;
+  }
+}
+
+    function adminLogout() {
+if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+if (depositRefreshInterval) clearInterval(depositRefreshInterval);
+
+dashboardRefreshInterval = null;
+depositRefreshInterval = null;
+
+      localStorage.removeItem('adminSessionToken');
+localStorage.removeItem('adminRouteKey');
+      closeAdminModal(true);
+      checkAdminLogin();
+      document.getElementById('output').textContent = 'Admin action results will appear here....';
+document.getElementById('usersList').innerHTML = '';
+renderSelectedUserCard(null);
+document.getElementById('userSearch').value = '';
+selectedUsername = '';
+document.getElementById('coinUsername').value = '';
+document.getElementById('coinAmount').value = '';
+document.getElementById('transactionsPanel').style.display = 'none';
+document.getElementById('roundPanel').style.display = 'none';
+document.getElementById('depositRequestsPanel').style.display = 'none';
+document.getElementById('liveUpdatesPanel').style.display = 'none';
+document.getElementById('liveUpdatesContent').innerHTML = 'Live update options will appear here...';
+document.getElementById('depositRequestsBtn').style.background = '';
+document.getElementById('depositRequestsBtn').style.color = '';
+
+document.getElementById('withdrawalRequestsBtn').style.background = '';
+document.getElementById('withdrawalRequestsBtn').style.color = '';
+
+document.getElementById('depositRequestsBtn').textContent = 'Deposit Requests (0)';
+document.getElementById('withdrawalRequestsBtn').textContent = 'Withdrawal Requests (0)';
+      document.getElementById('loginMsg').textContent = 'Logged out';
+    }
+
+const currentAdminKey = new URLSearchParams(window.location.search).get('key') || localStorage.getItem('adminRouteKey') || '';
+
+function getAdminHeaders(extra = {}) {
+  const token = localStorage.getItem('adminSessionToken') || '';
+
+  return {
+   ...extra,
+    'x-auth-token': token,
+    'x-admin-key': currentAdminKey
+  };
+}
+
+if (!currentAdminKey) {
+  document.body.innerHTML = '<div style="color:#fff;text-align:center;padding:40px;font-family:Arial;">Not found</div>';
+  throw new Error('Admin key missing');
+}
+
+checkAdminLogin();
+refreshDashboardPresetButtons();
+loadDashboardStats();
+refreshRequestCounts();
+
+if (localStorage.getItem('adminSessionToken') && localStorage.getItem('adminRole')) {
+  if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+  if (depositRefreshInterval) clearInterval(depositRefreshInterval);
+  if (adminMiniTimerInterval) clearInterval(adminMiniTimerInterval);
+
+  dashboardRefreshInterval = setInterval(() => {
+    loadDashboardStats();
+    loadAdminMiniLiveCard();
+  }, 10000);
+
+  depositRefreshInterval = setInterval(() => {
+    refreshRequestCounts();
+  }, 10000);
+
+  adminMiniTimerInterval = setInterval(() => {
+    updateAdminTimerUi();
+    maybeSyncAdminTimer();
+  }, 1000);
+
+  setTimeout(loadAdminMiniLiveCard, 400);
+}
+  
+async function loadAdminChatPanel() {
+  const token = localStorage.getItem('adminSessionToken') || '';
+  const output = document.getElementById('output');
+  const panel = document.getElementById('adminChatPanel');
+  const list = document.getElementById('adminChatList');
+  hideAllAdminSections();
+  if (!token) {
+    output.textContent = 'Admin login required';
+    return;
+  }
+  panel.style.display = 'block';
+  openAdminModal('Global Chat Moderation', 'adminChatPanel');
+  list.innerHTML = '<div class="admin-chat-item">Loading chat...</div>';
+  try {
+    const res = await fetch('/api/admin/chat', { headers: getAdminHeaders() });
+    const data = await res.json();
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed to load chat';
+      return;
+    }
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+    if (!messages.length) {
+      list.innerHTML = '<div class="admin-chat-item">No chat messages yet.</div>';
+      output.textContent = 'Chat loaded';
+      return;
+    }
+    list.innerHTML = messages.map(item => {
+      const reactions = Object.entries(item.reactions || {}).map(([k,v]) => `${k} ${v}`).join(' | ') || '-';
+      return `<div class="admin-chat-item"><div class="admin-chat-meta"><span><strong>${item.username || 'User'}</strong></span><span>${item.createdAt ? new Date(Number(item.createdAt)).toLocaleString() : '-'}</span></div><div class="admin-chat-msg">${String(item.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div style="margin-top:8px;color:#9ca3af;font-size:12px;">Reactions: ${reactions}</div><div class="admin-chat-actions"><button type="button" onclick="toggleAdminChatHidden(${Number(item.id)}, ${item.isHidden ? 'false' : 'true'})" style="background:${item.isHidden ? '#22c55e' : '#ff4d4f'};color:#fff;">${item.isHidden ? 'Restore' : 'Hide'}</button></div></div>`;
+    }).join('');
+    output.textContent = 'Chat loaded';
+  } catch (err) {
+    output.textContent = 'Failed to load chat: ' + err.message;
+  }
+}
+
+async function toggleAdminChatHidden(messageId, hidden) {
+  const output = document.getElementById('output');
+  try {
+    const res = await fetch('/api/admin/chat/hide', { method: 'POST', headers: getAdminHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ messageId, hidden }) });
+    const data = await res.json();
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed';
+      return;
+    }
+    output.textContent = data.message || 'Done';
+    loadAdminChatPanel();
+  } catch (err) {
+    output.textContent = 'Failed to update chat: ' + err.message;
+  }
+}
+
+async function clearGlobalChatAdmin() {
+  const output = document.getElementById('output');
+  if (!confirm('Clear full global chat?')) return;
+  try {
+    const res = await fetch('/api/admin/chat/clear', { method: 'POST', headers: getAdminHeaders({ 'Content-Type': 'application/json' }) });
+    const data = await res.json();
+    if (!res.ok) {
+      output.textContent = data.error || 'Failed';
+      return;
+    }
+    output.textContent = data.message || 'Chat cleared';
+    loadAdminChatPanel();
+  } catch (err) {
+    output.textContent = 'Failed to clear chat: ' + err.message;
+  }
+}
+
+</script>
+<div class="footer-note">
+  ®️Since 1969 Zone Designed by - MrKinG
+</div>
+
+<style id="phase2RoleCss">
+.role-badge-card,.admin-mini-live-card,.admin-management-card,.admin-activity-card{background:linear-gradient(180deg,#131c2f,#0c1322);border:1px solid #243041;border-radius:18px;padding:16px;}
+.role-badge-text{color:#dbe2ea;font-size:14px;line-height:1.6;font-weight:700;}
+.admin-mini-live-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.admin-mini-live-box{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;text-align:center;}
+.admin-mini-live-label{color:#9ca3af;font-size:12px;margin-bottom:6px;}
+.admin-mini-live-value{color:#ffd54a;font-size:24px;font-weight:900;}
+.admin-mini-live-sub{color:#dbe2ea;font-size:13px;margin-top:4px;}
+.admin-management-grid{display:grid;gap:16px;margin-top:16px;}
+.admin-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;}
+.admin-list-grid,.activity-log-grid{display:grid;gap:10px;}
+.admin-row{background:#111827;border:1px solid #243041;border-radius:14px;padding:14px;display:grid;gap:10px;}
+.admin-row-top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.admin-actions select,.admin-actions input{margin:0;max-width:180px;}
+.admin-role-pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,213,74,.12);color:#ffd54a;font-size:12px;font-weight:800;}
+.admin-blocked-pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,77,79,.12);color:#ff8e8f;font-size:12px;font-weight:800;}
+.activity-log-item{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;line-height:1.6;color:#dbe2ea;}
+[data-role-guard-hidden="true"]{display:none !important;}
+@media (max-width:900px){.admin-mini-live-grid,.admin-form-grid{grid-template-columns:1fr;}}
+
+.admin-chat-card{background:linear-gradient(180deg,#131c2f,#0c1322);border:1px solid #243041;border-radius:18px;padding:16px;}
+.admin-chat-list{display:grid;gap:10px;max-height:320px;overflow:auto;padding-right:4px;}
+.admin-chat-item{background:#111827;border:1px solid #243041;border-radius:14px;padding:12px;line-height:1.6;}
+.admin-chat-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#9ca3af;font-size:12px;margin-bottom:6px;}
+.admin-chat-msg{color:#f8fafc;word-break:break-word;}
+.admin-chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+</style>
+<script id="phase2RoleScript">
+(function(){
+  const ROLE_SETS = {
+    super_admin: ['dashboard','users','money','requests','round','live_updates','admin_management','history'],
+    finance_admin: ['dashboard','money','requests','history'],
+    game_admin: ['dashboard','round','live_updates','history'],
+    support_admin: ['dashboard','users','history'],
+    read_only: ['dashboard','history','users','requests']
+  };
+
+  function currentRole(){ return localStorage.getItem('adminRole') || 'read_only'; }
+  function hasAccess(key){ const role=currentRole(); return (ROLE_SETS[role]||[]).includes(key); }
+  function fmtDate(ms){ return ms ? new Date(Number(ms)).toLocaleString() : 'Never'; }
+
+  function ensureUiContainers(){
+    const dashboardCard = document.querySelector('#panelSection .section-card');
+    if (dashboardCard && !document.getElementById('adminRoleBadgeCard')) {
+      const title = dashboardCard.querySelector('.section-title');
+      const rowHtml = `<div id="adminRoleBadgeCard" class="dashboard-top-row">
+  <div class="dashboard-top-left">
+    <div class="dashboard-top-label">Admin Session</div>
+    <div id="adminRoleBadgeText" class="dashboard-top-value">Logged in role: -</div>
+  </div>
+  <div class="dashboard-filter-trigger-row" style="display:flex;justify-content:flex-end;gap:10px;align-items:center;flex-wrap:wrap;margin:0;">
+    <button type="button" class="dashboard-filter-trigger-btn" onclick="toggleDashboardFilterPanel()">Filter</button>
+    <button type="button" onclick="adminLogout()" style="background:#374151;color:#fff;">Logout</button>
+  </div>
+</div>`;
+      if (title) {
+        title.insertAdjacentHTML('afterend', rowHtml);
+      } else {
+        dashboardCard.insertAdjacentHTML('afterbegin', rowHtml);
+      }
+    }
+    const badge = document.getElementById('adminRoleBadgeCard');
+    const insights = document.getElementById('proInsightRow');
+    if (badge && insights && badge.nextElementSibling !== insights) {
+      badge.insertAdjacentElement('afterend', insights);
+    }
+    if (!document.getElementById('adminManagementModal')) {
+      document.body.insertAdjacentHTML('beforeend', `<div id="adminManagementModal" class="modal-overlay"><div class="modal-shell" style="width:min(980px,100%);"><div class="modal-head"><h3 class="modal-title">Admin Management</h3><button type="button" class="modal-close" onclick="closeAdminManagementModal()">Close</button></div><div class="modal-body"><div id="adminManagementPanel" class="section-card" style="display:block;padding:0;background:transparent;border:none;box-shadow:none;"><div class="accordion-toggle-row" style="margin-bottom:14px;"><button type="button" onclick="toggleAdminManagementSection('createAdminSection')">Create New Admin</button><button type="button" onclick="toggleAdminManagementSection('allAdminsSection')" style="background:#2563eb;color:#fff;">All Admins</button></div><div class="admin-management-grid"><div id="createAdminSection" class="admin-management-card accordion-section"><div class="section-title" style="font-size:16px;">Create New Admin</div><div class="vertical-admin-form"><input id="newAdminUsername" type="text" placeholder="New admin username" /><input id="newAdminPassword" type="text" placeholder="New admin password" /><select id="newAdminRole" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"><option value="finance_admin">finance_admin</option><option value="game_admin">game_admin</option><option value="support_admin">support_admin</option><option value="read_only">read_only</option><option value="super_admin">super_admin</option></select><button type="button" onclick="createAdminAccount()">Create Admin</button></div></div><div id="allAdminsSection" class="admin-management-card accordion-section"><div class="section-title" style="font-size:16px;">All Admins</div><div id="adminList" class="admin-list-grid"></div></div><div class="admin-activity-card"><div class="section-title" style="font-size:16px;">Admin Activity Logs</div><div id="adminActivityLogs" class="activity-log-grid admin-scroll-box"></div></div></div></div></div></div></div>`);
+    }
+  }
+
+  window.updateRoleBadge = function(){
+    const role = currentRole();
+    const el = document.getElementById('adminRoleBadgeText');
+    if (el) el.textContent = `Logged in as role: ${role}`;
+  };
+
+  window.applyRoleUi = function(){
+    document.addEventListener('click', (event) => {
+    const modal = document.getElementById('adminManagementModal');
+    if (modal && event.target === modal) closeAdminManagementModal();
+  });
+  ensureUiContainers();
+    updateRoleBadge();
+    const role = currentRole();
+    const btn = (sel, show=true) => { const el = document.querySelector(sel); if (el) el.closest('button') ? null : null; };
+    const setVisible = (selector, visible) => { document.querySelectorAll(selector).forEach(el => { el.dataset.roleGuardHidden = visible ? 'false' : 'true'; el.style.display = visible ? '' : 'none'; }); };
+    setVisible('button[onclick="openLiveUpdatesPanel()"]', hasAccess('live_updates'));
+    setVisible('button[onclick="loadUsers()"]', hasAccess('users'));
+    setVisible('button[onclick="loadTransactions()"]', hasAccess('history'));
+    setVisible('#depositRequestsBtn', hasAccess('requests'));
+    setVisible('#withdrawalRequestsBtn', hasAccess('requests'));
+    setVisible('button[onclick="loadCurrentRound()"]', hasAccess('round'));
+    setVisible('button[onclick="addCoins()"]', hasAccess('money'));
+    setVisible('button[onclick="withdrawCoins()"]', hasAccess('money'));
+    setVisible('button[onclick="toggleBlockUser()"]', role === 'super_admin' || role === 'support_admin');
+    const adminMgmtBtn = document.getElementById('adminManagementQuickBtn');
+    if (adminMgmtBtn) adminMgmtBtn.style.display = role === 'super_admin' ? '' : 'none';
+    const coinWalletType = document.getElementById('coinWalletType');
+    if (coinWalletType) coinWalletType.parentElement.style.display = hasAccess('money') ? '' : 'none';
+    loadAdminMiniLiveCard();
+    if (role === 'super_admin') { loadAdminManagementData(); loadAdminActivityLogs(); } else { closeAdminManagementModal(); }
+  };
+
+  window.loadAdminMiniLiveCard = async function(){
+    const token = localStorage.getItem('adminSessionToken') || '';
+    if (!token || !document.getElementById('adminMiniTimer')) return;
+
+    try {
+      const [roundRes, stateRes] = await Promise.all([
+        fetch('/api/admin/current-round', { headers: getAdminHeaders() }),
+        fetch('/api/state', { headers: getAdminHeaders() })
+      ]);
+
+      const roundData = await roundRes.json();
+      const stateData = await stateRes.json();
+
+      if (!roundRes.ok || !roundData.round) return;
+
+      const round = roundData.round;
+      const serverNow = Number(stateData?.serverNow || Date.now());
+      adminServerTimeOffset = serverNow - Date.now();
+      const now = Date.now() + adminServerTimeOffset;
+
+      adminMiniRoundTargetTime = Number(round.endsAt || now);
+      adminMiniRoundStatus = round.status || 'Waiting';
+      adminMiniLastSyncAt = Date.now();
+
+      const diff = Math.max(0, adminMiniRoundTargetTime - now);
+      const totalSec = Math.floor(diff / 1000);
+      const m = String(Math.floor(totalSec / 60)).padStart(2,'0');
+      const s = String(totalSec % 60).padStart(2,'0');
+
+      document.getElementById('adminMiniTimer').textContent = `${m}:${s}`;
+      document.getElementById('adminMiniStatus').textContent = adminMiniRoundStatus;
+
+      const lastSettled = stateData?.lastSettledRound || null;
+
+      document.getElementById('adminMiniLucky').textContent =
+        lastSettled && lastSettled.luckyNumber !== null && lastSettled.luckyNumber !== undefined
+          ? String(lastSettled.luckyNumber)
+          : '--';
+
+      document.getElementById('adminMiniLuckyRound').textContent =
+        lastSettled && lastSettled.roundNumber
+          ? `Round ${lastSettled.roundNumber}`
+          : 'Waiting';
+      updateAdminTimerUi();
+
+    } catch (e) {}
+  };
+  window.openAdminManagementModal = function(){
+    const role = currentRole();
+    const modal = document.getElementById('adminManagementModal');
+    if (!modal) return;
+    if (role !== 'super_admin') {
+      const output = document.getElementById('output');
+      if (output) output.textContent = 'Only super_admin can open Admin Management';
+      return;
+    }
+    modal.classList.add('show');
+    loadAdminManagementData();
+    loadAdminActivityLogs();
+  };
+
+  window.closeAdminManagementModal = function(){
+    const modal = document.getElementById('adminManagementModal');
+    if (modal) modal.classList.remove('show');
+  };
+
+  window.toggleAdminManagementSection = function(sectionId){ ['createAdminSection','allAdminsSection'].forEach(id => { const el = document.getElementById(id); if (!el) return; if (id === sectionId) el.classList.toggle('open'); else el.classList.remove('open'); }); };
+
+  window.loadAdminManagementData = async function(){
+    const list = document.getElementById('adminList');
+    if (!list || currentRole() !== 'super_admin') return;
+    list.innerHTML = '<div class="activity-log-item">Loading admins...</div>';
+    try {
+      const res = await fetch('/api/admin/admins', { headers: getAdminHeaders() });
+      const data = await res.json();
+      if (!res.ok) { list.innerHTML = `<div class="activity-log-item">${data.error || 'Failed to load admins'}</div>`; return; }
+      const admins = Array.isArray(data.admins) ? data.admins : [];
+      if (!admins.length) { list.innerHTML = '<div class="activity-log-item">No admins found.</div>'; return; }
+      list.innerHTML = admins.map(admin => {
+        const roleOptions = ['super_admin','finance_admin','game_admin','support_admin','read_only'].map(role => `<option value="${role}" ${admin.role===role?'selected':''}>${role}</option>`).join('');
+        return `<div class="admin-row"><div class="admin-row-top"><div><strong style="color:#fff;font-size:16px;">${admin.username}</strong><div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;"><span class="admin-role-pill">${admin.role}</span>${admin.blocked ? '<span class="admin-blocked-pill">Blocked</span>' : ''}</div><div style="margin-top:8px;color:#9ca3af;font-size:12px;">Created: ${fmtDate(admin.createdAt)} | Last Active: ${fmtDate(admin.lastActiveAt)}</div></div></div><div class="admin-actions"><select id="roleFor_${admin.id}" style="width:auto;min-width:170px;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:14px;">${roleOptions}</select><button type="button" onclick="updateAdminRoleAction(${admin.id})">Update Role</button><input id="passwordFor_${admin.id}" type="text" placeholder="New password" style="width:auto;min-width:160px;padding:10px 12px;border-radius:12px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:14px;" /><button type="button" onclick="resetAdminPasswordAction(${admin.id})">Reset Password</button><button type="button" onclick="toggleAdminBlockAction(${admin.id})" style="background:${admin.blocked ? '#22c55e' : '#ff4d4f'};color:#fff;">${admin.blocked ? 'Unblock' : 'Block'}</button><button type="button" onclick="deleteAdminAction(${admin.id})" style="background:#374151;color:#fff;">Delete</button></div></div>`;
+      }).join('');
+    } catch (err) {
+      list.innerHTML = `<div class="activity-log-item">Failed to load admins: ${err.message}</div>`;
+    }
+  };
+
+  window.createAdminAccount = async function(){
+    const username = document.getElementById('newAdminUsername')?.value.trim() || '';
+    const password = document.getElementById('newAdminPassword')?.value.trim() || '';
+    const role = document.getElementById('newAdminRole')?.value || 'finance_admin';
+    const output = document.getElementById('output');
+    if (!username || !password) { output.textContent = 'Admin username and password required'; return; }
+    try {
+      const res = await fetch('/api/admin/create-admin', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ username, password, role }) });
+      const data = await res.json();
+      output.textContent = data.message || data.error || 'Request completed';
+      if (res.ok) { document.getElementById('newAdminUsername').value=''; document.getElementById('newAdminPassword').value=''; loadAdminManagementData(); loadAdminActivityLogs(); }
+    } catch (err) { output.textContent = 'Failed to create admin: ' + err.message; }
+  };
+  window.updateAdminRoleAction = async function(adminId){
+    const role = document.getElementById(`roleFor_${adminId}`)?.value || 'read_only';
+    const output = document.getElementById('output');
+    try { const res = await fetch('/api/admin/update-admin-role', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ adminId, role }) }); const data = await res.json(); output.textContent = data.message || data.error || 'Done'; if (res.ok) { loadAdminManagementData(); loadAdminActivityLogs(); } } catch (err) { output.textContent = 'Failed to update role: ' + err.message; }
+  };
+  window.toggleAdminBlockAction = async function(adminId){
+    const output = document.getElementById('output');
+    try { const res = await fetch('/api/admin/toggle-admin-block', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ adminId }) }); const data = await res.json(); output.textContent = data.message || data.error || 'Done'; if (res.ok) { loadAdminManagementData(); loadAdminActivityLogs(); } } catch (err) { output.textContent = 'Failed to update admin status: ' + err.message; }
+  };
+  window.resetAdminPasswordAction = async function(adminId){
+    const password = document.getElementById(`passwordFor_${adminId}`)?.value.trim() || '';
+    const output = document.getElementById('output');
+    if (!password) { output.textContent = 'Enter new password first'; return; }
+    try { const res = await fetch('/api/admin/reset-admin-password', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ adminId, password }) }); const data = await res.json(); output.textContent = data.message || data.error || 'Done'; if (res.ok) { document.getElementById(`passwordFor_${adminId}`).value=''; loadAdminActivityLogs(); } } catch (err) { output.textContent = 'Failed to reset admin password: ' + err.message; }
+  };
+  window.deleteAdminAction = async function(adminId){
+    const output = document.getElementById('output');
+    if (!confirm('Delete this admin account?')) return;
+    try { const res = await fetch('/api/admin/delete-admin', { method:'POST', headers:getAdminHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ adminId }) }); const data = await res.json(); output.textContent = data.message || data.error || 'Done'; if (res.ok) { loadAdminManagementData(); loadAdminActivityLogs(); } } catch (err) { output.textContent = 'Failed to delete admin: ' + err.message; }
+  };
+  window.loadAdminActivityLogs = async function(){
+    const box = document.getElementById('adminActivityLogs');
+    if (!box || currentRole() !== 'super_admin') return;
+    box.innerHTML = '<div class="activity-log-item">Loading logs...</div>';
+    try {
+      const res = await fetch('/api/admin/activity-logs', { headers: getAdminHeaders() });
+      const data = await res.json();
+      if (!res.ok) { box.innerHTML = `<div class="activity-log-item">${data.error || 'Failed to load logs'}</div>`; return; }
+      const logs = Array.isArray(data.logs) ? data.logs : [];
+      if (!logs.length) { box.innerHTML = '<div class="activity-log-item">No activity logs yet.</div>'; return; }
+      box.innerHTML = logs.map(log => `<div class="activity-log-item"><strong style="color:#ffd54a;">${log.adminUsername}</strong> → ${log.action.replaceAll('_',' ')} ${log.targetUsername ? `<span style="color:#9ca3af;">(${log.targetUsername})</span>` : ''}<div style="margin-top:6px;color:#9ca3af;font-size:12px;">${fmtDate(log.createdAt)}</div></div>`).join('');
+    } catch (err) { box.innerHTML = `<div class="activity-log-item">Failed to load logs: ${err.message}</div>`; }
+  };
+
+  const originalCheckAdminLogin = window.checkAdminLogin;
+  window.checkAdminLogin = function(){ if (typeof originalCheckAdminLogin === 'function') originalCheckAdminLogin(); applyRoleUi(); };
+  window.adminLogin = async function(){
+    const username = document.getElementById('adminUsername').value.trim();
+    const password = document.getElementById('adminPassword').value.trim();
+    const loginMsg = document.getElementById('loginMsg');
+
+    if (!username) { loginMsg.textContent = 'Username required'; return; }
+    if (!password) { loginMsg.textContent = 'Password required'; return; }
+
+    try {
+      const res = await fetch('/api/admin-login', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-admin-key': currentAdminKey
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        loginMsg.textContent = data.error || 'Login failed';
+        return;
+      }
+
+      const role = String(data.user?.role || 'read_only').toLowerCase();
+
+      if (role === 'read_only') {
+        localStorage.removeItem('adminSessionToken');
+        localStorage.removeItem('adminRole');
+        loginMsg.textContent = 'Read-only admin cannot login from panel';
+        checkAdminLogin();
+        return;
+      }
+
+      localStorage.setItem('adminSessionToken', data.user.sessionToken || '');
+      localStorage.setItem('adminRole', role);
+
+      loginMsg.textContent = 'Admin login successful';
+      checkAdminLogin();
+      loadDashboardStats();
+      refreshRequestCounts();
+      loadAdminMiniLiveCard();
+
+      if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+      if (depositRefreshInterval) clearInterval(depositRefreshInterval);
+      if (adminMiniTimerInterval) clearInterval(adminMiniTimerInterval);
+
+      dashboardRefreshInterval = setInterval(() => {
+        loadDashboardStats();
+        loadAdminMiniLiveCard();
+      }, 10000);
+
+      depositRefreshInterval = setInterval(() => {
+        refreshRequestCounts();
+        if (currentRole() === 'super_admin') {
+          loadAdminActivityLogs();
+        }
+      }, 10000);
+
+      adminMiniTimerInterval = setInterval(() => {
+        updateAdminTimerUi();
+        maybeSyncAdminTimer();
+      }, 1000);
+
+    } catch (err) { loginMsg.textContent = 'Server error'; }
+  };
+  const originalAdminLogout = window.adminLogout;
+  window.adminLogout = function(){
+  localStorage.removeItem('adminRole');
+
+  if (adminMiniTimerInterval) {
+    clearInterval(adminMiniTimerInterval);
+    adminMiniTimerInterval = null;
+  }
+
+  adminMiniRoundTargetTime = 0;
+  adminMiniRoundStatus = 'Waiting';
+  adminMiniLastSyncAt = 0;
+  adminMiniSyncBusy = false;
+  getEl('adminMiniTimer')?.classList.remove('timer-blink');
+
+  closeAdminManagementModal();
+  if (typeof originalAdminLogout === 'function') {
+    originalAdminLogout();
+  }
+};
+  ensureUiContainers();
+  if (localStorage.getItem('adminSessionToken')) { applyRoleUi(); setTimeout(loadAdminMiniLiveCard, 600); }
+})();
+</script>
+
+
+<script>
+(function(){
+  const h1 = document.querySelector('h1');
+  if (h1) h1.textContent = 'Since1969 Admin';
+  const topTitle = document.querySelector('#panelSection .section-title');
+  if (topTitle) topTitle.textContent = 'Hello, Admin';
+})();
 </script>
 
 </body>
