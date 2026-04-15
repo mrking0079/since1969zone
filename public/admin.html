@@ -879,6 +879,7 @@ button:hover {
               <button id="depositRequestsBtn" onclick="loadDepositRequests('deposit')">Deposit Requests (0)</button>
               <button id="withdrawalRequestsBtn" onclick="loadDepositRequests('withdrawal')">Withdrawal Requests (0)</button>
               <button onclick="loadCurrentRound()">Round Control</button>
+              <button id="adminManagementQuickBtn" onclick="openAdminManagementModal()" style="background:#2563eb;color:#fff;grid-column:1/-1;">Admin Management</button>
               <button onclick="clearAllSelections()" style="background:#374151;color:#fff;grid-column:1/-1;">Clear All Selections</button>
             </div>
           </div>
@@ -1047,6 +1048,12 @@ let currentRequestTab = 'deposit';
 let adminMiniTimerInterval = null;
 let adminMiniRoundTargetTime = 0;
 let adminMiniRoundStatus = 'Waiting';
+let adminMiniSyncBusy = false;
+let adminMiniLastSyncAt = 0;
+window.loadAdminMiniLiveCard = window.loadAdminMiniLiveCard || (async function(){});
+window.openAdminManagementModal = window.openAdminManagementModal || function(){};
+window.closeAdminManagementModal = window.closeAdminManagementModal || function(){};
+
 let currentModalSectionId = '';
 
 const adminDashboardFilter = { preset: 'today', from: '', to: '' };
@@ -1794,7 +1801,7 @@ if (!confirm(`Add ${amount} ${walletType} coins to ${username}?`)) {
   return;
 }
   try {
-    const res = await fetch('/api/admin/add-coin', {
+    const res = await fetch('/api/admin/add-coins', {
       method: 'POST',
       headers: getAdminHeaders({
   'Content-Type': 'application/json'
@@ -1856,7 +1863,7 @@ if (!confirm(`Withdraw ${amount} ${walletType} coins from ${username}?`)) {
   return;
 }
   try {
-    const res = await fetch('/api/admin/withdraw-coin', {
+    const res = await fetch('/api/admin/withdraw-coins', {
       method: 'POST',
       headers: getAdminHeaders({
   'Content-Type': 'application/json'
@@ -2811,9 +2818,8 @@ async function clearGlobalChatAdmin() {
     if (badge && insights && badge.nextElementSibling !== insights) {
       badge.insertAdjacentElement('afterend', insights);
     }
-    const rightStack = document.querySelector('.right-stack');
-    if (rightStack && !document.getElementById('adminManagementPanel')) {
-      rightStack.insertAdjacentHTML('beforeend', `<div id="adminManagementPanel" class="section-card" style="display:none;"><h3 style="margin:0 0 10px 0;color:#ffd54a;">Admin Management Panel</h3><div class="accordion-toggle-row"><button type="button" onclick="toggleAdminManagementSection('createAdminSection')">Create New Admin</button><button type="button" onclick="toggleAdminManagementSection('allAdminsSection')" style="background:#2563eb;color:#fff;">All Admins</button></div><div class="admin-management-grid"><div id="createAdminSection" class="admin-management-card accordion-section"><div class="section-title" style="font-size:16px;">Create New Admin</div><div class="vertical-admin-form"><input id="newAdminUsername" type="text" placeholder="New admin username" /><input id="newAdminPassword" type="text" placeholder="New admin password" /><select id="newAdminRole" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"><option value="finance_admin">finance_admin</option><option value="game_admin">game_admin</option><option value="support_admin">support_admin</option><option value="read_only">read_only</option><option value="super_admin">super_admin</option></select><button type="button" onclick="createAdminAccount()">Create Admin</button></div></div><div id="allAdminsSection" class="admin-management-card accordion-section"><div class="section-title" style="font-size:16px;">All Admins</div><div id="adminList" class="admin-list-grid"></div></div><div class="admin-activity-card"><div class="section-title" style="font-size:16px;">Admin Activity Logs</div><div id="adminActivityLogs" class="activity-log-grid admin-scroll-box"></div></div></div></div>`);
+    if (!document.getElementById('adminManagementModal')) {
+      document.body.insertAdjacentHTML('beforeend', `<div id="adminManagementModal" class="modal-overlay"><div class="modal-shell" style="width:min(980px,100%);"><div class="modal-head"><h3 class="modal-title">Admin Management</h3><button type="button" class="modal-close" onclick="closeAdminManagementModal()">Close</button></div><div class="modal-body"><div id="adminManagementPanel" class="section-card" style="display:block;padding:0;background:transparent;border:none;box-shadow:none;"><div class="accordion-toggle-row" style="margin-bottom:14px;"><button type="button" onclick="toggleAdminManagementSection('createAdminSection')">Create New Admin</button><button type="button" onclick="toggleAdminManagementSection('allAdminsSection')" style="background:#2563eb;color:#fff;">All Admins</button></div><div class="admin-management-grid"><div id="createAdminSection" class="admin-management-card accordion-section"><div class="section-title" style="font-size:16px;">Create New Admin</div><div class="vertical-admin-form"><input id="newAdminUsername" type="text" placeholder="New admin username" /><input id="newAdminPassword" type="text" placeholder="New admin password" /><select id="newAdminRole" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:14px;border:1px solid #2a3550;background:#0a1020;color:#fff;font-size:15px;"><option value="finance_admin">finance_admin</option><option value="game_admin">game_admin</option><option value="support_admin">support_admin</option><option value="read_only">read_only</option><option value="super_admin">super_admin</option></select><button type="button" onclick="createAdminAccount()">Create Admin</button></div></div><div id="allAdminsSection" class="admin-management-card accordion-section"><div class="section-title" style="font-size:16px;">All Admins</div><div id="adminList" class="admin-list-grid"></div></div><div class="admin-activity-card"><div class="section-title" style="font-size:16px;">Admin Activity Logs</div><div id="adminActivityLogs" class="activity-log-grid admin-scroll-box"></div></div></div></div></div></div></div>`);
     }
   }
 
@@ -2824,7 +2830,11 @@ async function clearGlobalChatAdmin() {
   };
 
   window.applyRoleUi = function(){
-    ensureUiContainers();
+    document.addEventListener('click', (event) => {
+    const modal = document.getElementById('adminManagementModal');
+    if (modal && event.target === modal) closeAdminManagementModal();
+  });
+  ensureUiContainers();
     updateRoleBadge();
     const role = currentRole();
     const btn = (sel, show=true) => { const el = document.querySelector(sel); if (el) el.closest('button') ? null : null; };
@@ -2838,12 +2848,12 @@ async function clearGlobalChatAdmin() {
     setVisible('button[onclick="addCoins()"]', hasAccess('money'));
     setVisible('button[onclick="withdrawCoins()"]', hasAccess('money'));
     setVisible('button[onclick="toggleBlockUser()"]', role === 'super_admin' || role === 'support_admin');
-    const adminPanel = document.getElementById('adminManagementPanel');
-    if (adminPanel) adminPanel.style.display = role === 'super_admin' ? 'block' : 'none';
+    const adminMgmtBtn = document.getElementById('adminManagementQuickBtn');
+    if (adminMgmtBtn) adminMgmtBtn.style.display = role === 'super_admin' ? '' : 'none';
     const coinWalletType = document.getElementById('coinWalletType');
     if (coinWalletType) coinWalletType.parentElement.style.display = hasAccess('money') ? '' : 'none';
     loadAdminMiniLiveCard();
-    if (role === 'super_admin') { loadAdminManagementData(); loadAdminActivityLogs(); }
+    if (role === 'super_admin') { loadAdminManagementData(); loadAdminActivityLogs(); } else { closeAdminManagementModal(); }
   };
 
   window.loadAdminMiniLiveCard = async function(){
@@ -2893,6 +2903,25 @@ async function clearGlobalChatAdmin() {
 
     } catch (e) {}
   };
+  window.openAdminManagementModal = function(){
+    const role = currentRole();
+    const modal = document.getElementById('adminManagementModal');
+    if (!modal) return;
+    if (role !== 'super_admin') {
+      const output = document.getElementById('output');
+      if (output) output.textContent = 'Only super_admin can open Admin Management';
+      return;
+    }
+    modal.classList.add('show');
+    loadAdminManagementData();
+    loadAdminActivityLogs();
+  };
+
+  window.closeAdminManagementModal = function(){
+    const modal = document.getElementById('adminManagementModal');
+    if (modal) modal.classList.remove('show');
+  };
+
   window.toggleAdminManagementSection = function(sectionId){ ['createAdminSection','allAdminsSection'].forEach(id => { const el = document.getElementById(id); if (!el) return; if (id === sectionId) el.classList.toggle('open'); else el.classList.remove('open'); }); };
 
   window.loadAdminManagementData = async function(){
@@ -3045,6 +3074,7 @@ async function clearGlobalChatAdmin() {
   adminMiniSyncBusy = false;
   getEl('adminMiniTimer')?.classList.remove('timer-blink');
 
+  closeAdminManagementModal();
   if (typeof originalAdminLogout === 'function') {
     originalAdminLogout();
   }
