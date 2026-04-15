@@ -1245,15 +1245,15 @@ async function buildGameState(userId = DEMO_USER_ID) {
 
   return {
     user: {
-      id: Number((refreshedUser || user).id),
-      username: (refreshedUser || user).username,
-      walletBalance: Number((refreshedUser || user).wallet_balance || 0),
+      id: Number(user.id),
+      username: user.username,
+      walletBalance: Number(user.wallet_balance || 0),
       ...getWalletBreakdown(user),
-      totalPlayed: Number((refreshedUser || user).total_played || 0),
+      totalPlayed: Number(user.total_played || 0),
       totalPlayedCoins: Number(user.total_played || 0),
-      totalWins: Number((refreshedUser || user).total_wins || 0),
-      bonusClaimed: Number((refreshedUser || user).bonus_claimed || 0),
-      lastBonusTime: Number((refreshedUser || user).last_bonus_time || 0),
+      totalWins: Number(user.total_wins || 0),
+      bonusClaimed: Number(user.bonus_claimed || 0),
+      lastBonusTime: Number(user.last_bonus_time || 0),
       referralCode: referralSummary.referralCode,
       referredBy: String(user.referred_by || ''),
       referralSuccessfulCount: referralSummary.successfulCount,
@@ -1494,7 +1494,7 @@ app.post('/api/login', async (req, res) => {
     await updateUserSessionToken(user.id, newSessionToken);
     await updateUserFields(user.id, { last_active_at: nowMs() });
     const refreshedUser = await refreshMainBalance(user.id);
-    const referralSummary = await getReferralSummaryForUser(refreshedUser || user);
+    const referralSummary = await getReferralSummaryForUseruser;
 
     return res.json({
       success: true,
@@ -1503,11 +1503,11 @@ app.post('/api/login', async (req, res) => {
         username: user.username,
         sessionToken: newSessionToken,
         walletBalance: Number(user.wallet_balance || 0),
-        mainBalance: Number((refreshedUser || user).wallet_balance || 0),
-        bonusBalance: Number((refreshedUser || user).bonus_balance || 0),
-        depositBalance: Number((refreshedUser || user).deposit_balance || 0),
-        winningBalance: Number((refreshedUser || user).winning_balance || 0),
-        eligibleRequestBalance: calculateEligibleRequestBalance(refreshedUser || user),
+        mainBalance: Number(user.wallet_balance || 0),
+        bonusBalance: Number(user.bonus_balance || 0),
+        depositBalance: Number(user.deposit_balance || 0),
+        winningBalance: Number(user.winning_balance || 0),
+        eligibleRequestBalance: calculateEligibleRequestBalanceuser,
         totalPlayed: Number(user.total_played || 0),
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
