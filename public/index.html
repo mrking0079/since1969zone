@@ -2303,6 +2303,16 @@ body.auth-open {
   }
 }
 
+
+.game-hub-card{margin:0 0 18px;background:linear-gradient(180deg,#121212,#090909);border:1px solid #3a2d00;border-radius:22px;padding:18px;box-shadow:0 12px 30px rgba(0,0,0,0.28)}
+.game-hub-title{font-size:24px;font-weight:900;color:#ffd700;text-align:center;margin-bottom:8px}
+.game-hub-sub{color:#d6d6d6;text-align:center;margin-bottom:14px;font-size:14px}
+.game-hub-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.game-hub-btn{border:1px solid #3a3a3a;background:linear-gradient(180deg,#1d1d1d,#111);color:#fff;border-radius:16px;padding:14px 10px;cursor:pointer;font-weight:800}
+.game-hub-btn.active{background:linear-gradient(180deg,#ffd700,#dfb100);color:#111;border-color:#ffd700;box-shadow:0 8px 22px rgba(255,215,0,0.18)}
+.mode-note{margin:0 0 12px;padding:12px;border:1px solid #3a2d00;border-radius:14px;background:rgba(255,215,0,0.05);color:#f2f2f2;line-height:1.6}
+@media (max-width:900px){.game-hub-grid{grid-template-columns:1fr 1fr}}
+
 </style>
 </head>
 <body>
@@ -2532,6 +2542,19 @@ body.auth-open {
 </div>
 </div>
 
+
+    <div class="game-hub-card" id="gameHubCard">
+      <div class="game-hub-title">Choose Your Game</div>
+      <div class="game-hub-sub">Desktop jaisa same layout mobile par bhi rahega. Tap any game card to enter.</div>
+      <div class="game-hub-grid">
+        <button type="button" class="game-hub-btn active" data-mode-btn="classic">0-9 Game</button>
+        <button type="button" class="game-hub-btn" data-mode-btn="color">Color Prediction</button>
+        <button type="button" class="game-hub-btn" data-mode-btn="spin">Spin Wheel</button>
+        <button type="button" class="game-hub-btn" data-mode-btn="dice">Dice</button>
+        <button type="button" class="game-hub-btn" data-mode-btn="flip99">00-99 Flip</button>
+      </div>
+    </div>
+
     <div class="topbar">
       <div class="card">
         <div class="mini-label">Wallet Balance</div>
@@ -2599,6 +2622,10 @@ body.auth-open {
           <div class="mini-label">Choose Your Numbers</div>
           <div class="muted">Select one or more numbers from 0 to 9. Enter a separate coin amount for each selected number.</div>
 
+
+          <div class="mode-note" id="gameModeNote">
+            <strong>0-9 Game:</strong> Select one or more numbers from 0 to 9. Enter a separate coin amount for each selected number.
+          </div>
           <div class="numbers" id="numbers"></div>
 
           <div class="btns">
@@ -3007,6 +3034,8 @@ const state = {
   server: null,
   selections: new Set(),
   amounts: {},
+  currentGameMode: 'classic',
+  modeDisplayName: '0-9 Game',
   liveUpdates: {
     paymentMethod: {
       upiId: '',
@@ -3661,15 +3690,64 @@ function getCurrentBetTotal() {
   return total;
 }
 
+
+function getModeOptions() {
+  if (state.currentGameMode === 'color') {
+    return [
+      { key: 'red', label: 'Red', note: '1,3,7,9' },
+      { key: 'green', label: 'Green', note: '2,4,6,8' },
+      { key: 'violet', label: 'Violet', note: '0,5' }
+    ];
+  }
+  if (state.currentGameMode === 'spin') {
+    return Array.from({ length: 8 }, (_, i) => ({ key: String(i), label: `S${i}`, note: `Segment ${i}` }));
+  }
+  if (state.currentGameMode === 'dice') {
+    return Array.from({ length: 6 }, (_, i) => ({ key: String(i + 1), label: `Face ${i + 1}`, note: `Lucky ${i + 1}` }));
+  }
+  if (state.currentGameMode === 'flip99') {
+    return Array.from({ length: 100 }, (_, i) => {
+      const val = String(i).padStart(2, '0');
+      return { key: val, label: val, note: '' };
+    });
+  }
+  return Array.from({ length: 10 }, (_, i) => ({ key: String(i), label: String(i), note: '' }));
+}
+
+function updateModeUiText() {
+  if (!els.gameModeNote) return;
+  if (state.currentGameMode === 'color') {
+    els.gameModeNote.innerHTML = '<strong>Color Prediction:</strong> Enter coins on Red, Green, or Violet. Red/Green are split across 4 lucky digits and Violet across 2 lucky digits.';
+  } else if (state.currentGameMode === 'spin') {
+    els.gameModeNote.innerHTML = '<strong>Spin Wheel:</strong> Pick any segment S0 to S7. Winning segment follows the live lucky digit logic.';
+  } else if (state.currentGameMode === 'dice') {
+    els.gameModeNote.innerHTML = '<strong>Dice:</strong> Pick any face from 1 to 6. Winning face uses the live lucky digit result.';
+  } else if (state.currentGameMode === 'flip99') {
+    els.gameModeNote.innerHTML = '<strong>00-99 Flip:</strong> UI preview mode added here. Live backend remains protected on the existing round system in this build.';
+  } else {
+    els.gameModeNote.innerHTML = '<strong>0-9 Game:</strong> Select one or more numbers from 0 to 9. Enter a separate coin amount for each selected number.';
+  }
+}
+
 function buildNumbers() {
   els.numbers.innerHTML = '';
-  for (let i = 0; i <= 9; i++) {
+  const options = getModeOptions();
+  const isFlip99 = state.currentGameMode === 'flip99';
+  els.numbers.style.gridTemplateColumns = isFlip99 ? 'repeat(10, 1fr)' : (state.currentGameMode === 'color' ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)');
+
+  for (const option of options) {
     const wrap = document.createElement('div');
     wrap.className = 'num';
-    wrap.dataset.num = String(i);
+    wrap.dataset.num = option.key;
 
     const btn = document.createElement('button');
-    btn.textContent = i;
+    btn.textContent = option.label;
+    if (isFlip99) {
+      btn.style.width = '46px';
+      btn.style.height = '46px';
+      btn.style.fontSize = '14px';
+      btn.style.marginBottom = '8px';
+    }
 
     const input = document.createElement('input');
     input.type = 'number';
@@ -3678,9 +3756,8 @@ function buildNumbers() {
     input.disabled = true;
 
     btn.addEventListener('click', () => {
-    playClickSound();
-
-      const key = String(i);
+      playClickSound();
+      const key = option.key;
       if (state.selections.has(key)) {
         state.selections.delete(key);
         delete state.amounts[key];
@@ -3696,22 +3773,29 @@ function buildNumbers() {
 
     input.addEventListener('input', () => {
       const val = Number(input.value);
-      if (!input.value) {
-        delete state.amounts[String(i)];
-      } else {
-        state.amounts[String(i)] = val;
-      }
+      if (!input.value) delete state.amounts[option.key];
+      else state.amounts[option.key] = val;
       renderSelections();
     });
 
     wrap.appendChild(btn);
+    if (option.note) {
+      const note = document.createElement('div');
+      note.className = 'mini-label';
+      note.style.marginBottom = '6px';
+      note.style.fontSize = isFlip99 ? '10px' : '11px';
+      note.textContent = option.note;
+      wrap.appendChild(note);
+    }
     wrap.appendChild(input);
     els.numbers.appendChild(wrap);
   }
+  updateModeUiText();
   renderSelections();
 }
 
 function renderSelections() {
+
   [...els.numbers.children].forEach(card => {
     const key = card.dataset.num;
     const active = state.selections.has(key);
@@ -3721,6 +3805,66 @@ function renderSelections() {
     input.value = state.amounts[key] || '';
   });
   els.currentBet.textContent = getCurrentBetTotal();
+}
+
+
+function setGameMode(mode) {
+  state.currentGameMode = mode;
+  state.selections.clear();
+  state.amounts = {};
+  document.querySelectorAll('[data-mode-btn]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-mode-btn') === mode);
+  });
+  buildNumbers();
+  if (mode === 'flip99') {
+    showMessage('00-99 flip UI is visible. Existing live round remains protected in this build.');
+  } else {
+    showMessage('');
+  }
+}
+
+function transformSelectionsForApi() {
+  const betMap = {};
+  const addAmount = (key, amount) => {
+    const n = Number(amount || 0);
+    if (!Number.isFinite(n) || n <= 0) return;
+    betMap[key] = Number((Number(betMap[key] || 0) + n).toFixed(2));
+  };
+
+  for (const key of state.selections) {
+    const amount = Number(state.amounts[key]);
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+
+    if (state.currentGameMode === 'color') {
+      const map = {
+        red: ['1','3','7','9'],
+        green: ['2','4','6','8'],
+        violet: ['0','5']
+      };
+      const nums = map[key] || [];
+      const split = nums.length ? amount / nums.length : 0;
+      nums.forEach(num => addAmount(num, split));
+      continue;
+    }
+
+    if (state.currentGameMode === 'spin') {
+      addAmount(String(Number(key) % 10), amount);
+      continue;
+    }
+
+    if (state.currentGameMode === 'dice') {
+      addAmount(String(Number(key)), amount);
+      continue;
+    }
+
+    if (state.currentGameMode === 'flip99') {
+      continue;
+    }
+
+    addAmount(key, amount);
+  }
+
+  return betMap;
 }
 
 let historyPage = 1;
@@ -4208,33 +4352,32 @@ renderLiveOffer();
 
 els.placeBetBtn.addEventListener('click', async () => {
   try {
-    const betMap = {};
-    for (const key of state.selections) {
-      const amount = Number(state.amounts[key]);
-      if (Number.isInteger(amount) && amount >= 1) {
-        betMap[key] = amount;
-      }
+    if (state.currentGameMode === 'flip99') {
+      showMessage('00-99 backend mode is not enabled in this build to keep the live system stable.');
+      return;
     }
 
-if (Object.keys(betMap).length === 0) {
-  showMessage('Please select at least one number and enter coins');
-  return;
-}
+    const betMap = transformSelectionsForApi();
+
+    if (Object.keys(betMap).length === 0) {
+      showMessage('Please select at least one option and enter valid coins');
+      return;
+    }
+
     const data = await api('/api/bet', {
       method: 'POST',
       body: JSON.stringify({ betMap })
     });
 
-     playBetSound();
-
     state.server = data.state;
     state.selections.clear();
     state.amounts = {};
-    renderSelections();
-    showMessage(`Bet placed successfully. Total bet: ${Object.values(betMap).reduce((sum, value) => sum + value, 0)} coins on numbers ${Object.keys(betMap).join(', ')}`);
-    renderServerState();
+    buildNumbers();
+    showMessage(`Bet placed successfully in ${state.currentGameMode}. Total bet: ${Object.values(betMap).reduce((sum, value) => sum + Number(value || 0), 0)} coins`);
+    applyState(data.state);
+    playBetSound();
   } catch (error) {
-    showMessage(error.message);
+    showMessage(error.message || 'Failed to place bet');
   }
 });
 
@@ -4726,7 +4869,12 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-buildNumbers();
+
+document.querySelectorAll('[data-mode-btn]').forEach(btn => {
+  btn.addEventListener('click', () => setGameMode(btn.getAttribute('data-mode-btn') || 'classic'));
+});
+
+setGameMode('classic');
 
 setAuthMode('login');
 
