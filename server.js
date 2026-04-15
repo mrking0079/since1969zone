@@ -58,10 +58,6 @@ const CHAT_REACTIONS = ['👍','❤️','😂','🔥'];
 const REFERRAL_BONUS_AMOUNT = 20;
 const REFERRAL_BONUS_PLAY_THRESHOLD = 200;
 const REFERRAL_BONUS_CAP = 30;
-const STREAK_BONUS_AMOUNT = 5;
-const LOSS_BONUS_AMOUNT = 5;
-const COMEBACK_BONUS_AMOUNT = 10;
-const COMEBACK_COOLDOWN_MS = 72 * 60 * 60 * 1000;
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '20mb' }));
@@ -560,10 +556,6 @@ async function processReferralRewardIfEligible(userId) {
 
   const referrer = await getUserByRefCode(user.referred_by);
   if (!referrer || referrer.is_admin === true) {
-    await updateUserFields(user.id, { referral_bonus_unlocked: true });
-    return;
-  }
-  if (String(referrer.device_fingerprint || '').trim() && String(referrer.device_fingerprint || '').trim() === String(user.device_fingerprint || '').trim()) {
     await updateUserFields(user.id, { referral_bonus_unlocked: true });
     return;
   }
@@ -1155,8 +1147,6 @@ async function settleRoundTx(roundId) {
         walletType: 'winning'
       });
     }
-
-    await maybeAwardSmartBetBonus(Number(bet.user_id), result);
   }
 }
 
@@ -1374,87 +1364,6 @@ async function claimBonusTx(userId) {
 }
 
 
-
-async function maybeAwardComebackBonus(user) {
-  if (!user || user.is_admin === true) return null;
-  const now = nowMs();
-  const lastActive = Number(user.last_active_at || 0);
-  if (lastActive && (now - lastActive) < COMEBACK_COOLDOWN_MS) return null;
-
-  const recentBonus = await pool.query(
-    `SELECT id FROM transactions WHERE user_id = $1 AND type = 'comeback_bonus_credit' AND created_at >= $2 LIMIT 1`,
-    [Number(user.id), now - COMEBACK_COOLDOWN_MS]
-  );
-  if (recentBonus.rows.length) return null;
-
-  await incrementUserFields(Number(user.id), {
-    wallet_balance: COMEBACK_BONUS_AMOUNT,
-    bonus_balance: COMEBACK_BONUS_AMOUNT
-  });
-  await addTransaction(Number(user.id), 'comeback_bonus_credit', COMEBACK_BONUS_AMOUNT, {
-    reason: 'inactive_return',
-    cooldownMs: COMEBACK_COOLDOWN_MS
-  });
-  return COMEBACK_BONUS_AMOUNT;
-}
-
-async function maybeAwardSmartBetBonus(userId, latestResult) {
-  const user = await getUser(userId);
-  if (!user || user.is_admin === true) return null;
-
-  const betsResult = await pool.query(
-    `SELECT result FROM bets WHERE user_id = $1 AND result IN ('win','lose') ORDER BY id DESC LIMIT 3`,
-    [Number(userId)]
-  );
-  const results = betsResult.rows.map(row => String(row.result || ''));
-  if (!results.length) return null;
-
-  const dayStart = (() => {
-    const d = new Date(nowMs());
-    d.setHours(0,0,0,0);
-    return d.getTime();
-  })();
-
-  if (latestResult === 'win' && results.length >= 3 && results.every(item => item === 'win')) {
-    const already = await pool.query(
-      `SELECT id FROM transactions WHERE user_id = $1 AND type = 'streak_bonus_credit' AND created_at >= $2 LIMIT 1`,
-      [Number(userId), dayStart]
-    );
-    if (!already.rows.length) {
-      await incrementUserFields(Number(userId), {
-        wallet_balance: STREAK_BONUS_AMOUNT,
-        bonus_balance: STREAK_BONUS_AMOUNT
-      });
-      await addTransaction(Number(userId), 'streak_bonus_credit', STREAK_BONUS_AMOUNT, {
-        streak: 3,
-        bonusType: 'win_streak'
-      });
-      return { type: 'streak_bonus_credit', amount: STREAK_BONUS_AMOUNT };
-    }
-  }
-
-  if (latestResult === 'lose' && results.length >= 3 && results.every(item => item === 'lose')) {
-    const already = await pool.query(
-      `SELECT id FROM transactions WHERE user_id = $1 AND type = 'loss_bonus_credit' AND created_at >= $2 LIMIT 1`,
-      [Number(userId), dayStart]
-    );
-    if (!already.rows.length) {
-      await incrementUserFields(Number(userId), {
-        wallet_balance: LOSS_BONUS_AMOUNT,
-        bonus_balance: LOSS_BONUS_AMOUNT
-      });
-      await addTransaction(Number(userId), 'loss_bonus_credit', LOSS_BONUS_AMOUNT, {
-        streak: 3,
-        bonusType: 'loss_recovery'
-      });
-      return { type: 'loss_bonus_credit', amount: LOSS_BONUS_AMOUNT };
-    }
-  }
-
-  return null;
-}
-
-
 async function logAdminActivity(adminUser, action, targetUser = null, meta = {}) {
   try {
     await pool.query(
@@ -1489,12 +1398,9 @@ app.post('/api/login', async (req, res) => {
     if (!isPasswordMatch(user, password)) return res.status(401).json({ error: 'Wrong password' });
     if (user.blocked) return res.status(403).json({ error: 'Your account is blocked by admin' });
 
-    const comebackBonusAwarded = await maybeAwardComebackBonus(user);
     const newSessionToken = crypto.randomUUID();
     await updateUserSessionToken(user.id, newSessionToken);
-    await updateUserFields(user.id, { last_active_at: nowMs() });
-    const refreshedUser = await refreshMainBalance(user.id);
-    const referralSummary = await getReferralSummaryForUseruser;
+    const referralSummary = await getReferralSummaryForUser(user);
 
     return res.json({
       success: true,
@@ -1507,7 +1413,7 @@ app.post('/api/login', async (req, res) => {
         bonusBalance: Number(user.bonus_balance || 0),
         depositBalance: Number(user.deposit_balance || 0),
         winningBalance: Number(user.winning_balance || 0),
-        eligibleRequestBalance: calculateEligibleRequestBalanceuser,
+        eligibleRequestBalance: calculateEligibleRequestBalance(user),
         totalPlayed: Number(user.total_played || 0),
         totalWins: Number(user.total_wins || 0),
         bonusClaimed: Number(user.bonus_claimed || 0),
@@ -1518,8 +1424,7 @@ app.post('/api/login', async (req, res) => {
         referralPendingCount: referralSummary.pendingCount,
         referralBonusCap: referralSummary.bonusCap,
         referralBonusAmount: referralSummary.bonusAmount,
-        referralThreshold: referralSummary.playThreshold,
-        comebackBonusAwarded: Number(comebackBonusAwarded || 0)
+        referralThreshold: referralSummary.playThreshold
       }
     });
   } catch (error) {
@@ -1600,9 +1505,6 @@ app.post('/api/signup', async (req, res) => {
       }
       if (String(validReferrer.username || '').toLowerCase() === username.toLowerCase()) {
         return res.status(400).json({ error: 'You cannot use your own referral code' });
-      }
-      if (deviceFingerprint && String(validReferrer.device_fingerprint || '').trim() && String(validReferrer.device_fingerprint || '').trim() === deviceFingerprint) {
-        return res.status(403).json({ error: 'Referral is not allowed from the same device' });
       }
     }
 
